@@ -1,0 +1,10 @@
+[package]
+name = "visbis"
+version = "0.1.0"
+authors = ["Nick Sanders <nsan1129@gmail.com>"]
+
+[dependencies.bismit]
+path = "/home/nick/projects/bismit"
+
+[dependencies.time]
+git = "https://github.com/rust-lang/time.git"
