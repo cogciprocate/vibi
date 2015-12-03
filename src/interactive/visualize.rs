@@ -1,11 +1,11 @@
 // use std::iter;
 use std::io::{ self, Write };
-use time;
+use time::{ self, Timespec };
 
-use bismit::cmn::{ CorticalDims };
+// use bismit::cmn::{ CorticalDims };
 use bismit::map::{ self, LayerTags };
 use bismit::cortex::{ self, Cortex };
-use bismit::encode:: { IdxReader };
+// use bismit::encode:: { IdxReader };
 use bismit::proto::{ ProtolayerMap, ProtolayerMaps, ProtoareaMaps, Axonal, Spatial, Horizontal, 
 	Sensory, Thalamic, Protocell, Protofilter, Protoinput };
 use bismit::input_source::{ InputGanglion };
@@ -24,7 +24,6 @@ pub fn define_plmaps() -> ProtolayerMaps {
 	// const MOTOR_UID: u32 = 543;
 	const OLFAC_UID: u32 = 654;
 
-	// [FIXME]: TODO: Create '.out_layer(...)'.
 	ProtolayerMaps::new()
 		.lmap(ProtolayerMap::new("visual", Sensory)
 			//.layer("test_noise", 1, map::DEFAULT, Axonal(Spatial))
@@ -144,14 +143,13 @@ pub fn run(autorun_iters: i32) -> bool {
 	#![allow(unused_assignments, dead_code)]
 
 	// KEEP UNTIL WE FIGURE OUT HOW TO GENERATE THIS NUMBER ELSEWHERE
-	let mut ir_labels_vec: Vec<u8> = Vec::with_capacity(1);
-	ir_labels_vec.push(0);
+	// let mut ir_labels_vec: Vec<u8> = Vec::with_capacity(1);
+	// ir_labels_vec.push(0);
 
-	let mut ir_labels = IdxReader::new(CorticalDims::new(1, 1, 1, 0, None), 
-		"data/train-labels-idx1-ubyte", CYCLES_PER_FRAME, 1.0);
+	// let mut ir_labels = IdxReader::new(CorticalDims::new(1, 1, 1, 0, None), 
+	// 	"data/train-labels-idx1-ubyte", CYCLES_PER_FRAME, 1.0);
 	
 	let mut cortex = cortex::Cortex::new(define_plmaps(), define_pamaps());
-	let area_name = "v1".to_string();
 
 	/* ************************* */
 	/* ***** DISABLE STUFF ***** */	
@@ -170,8 +168,8 @@ pub fn run(autorun_iters: i32) -> bool {
 		area.disable_regrowth = false;
 	}
 	
-
-	let mut input_status: String = String::with_capacity(100);
+	// Unused right now (except for a .clear())
+	// let mut input_status: String = String::with_capacity(100);
 
 	let mut ri = RunInfo {
 		cortex: cortex,
@@ -185,8 +183,10 @@ pub fn run(autorun_iters: i32) -> bool {
 		first_run: true, 
 		view_all_axons: false, 
 		view_sdr_only: true,
-		area_name: area_name,
-		cur_ttl_iters: 0,
+		area_name: "v1".to_string(),
+		cur_ttl_iters: 0i32,
+		cur_cycle: 0i32,
+		loop_start_time: time::get_time(),
 	};
 
 	loop {
@@ -196,63 +196,34 @@ pub fn run(autorun_iters: i32) -> bool {
 			LoopAction::None => (),
 		}
 
-		let time_start = time::get_time();
+		ri.loop_start_time = time::get_time();
+		ri.cur_cycle = 0;
 
 		if ri.test_iters > 1 {
 			print!("Running {} iterations... \n", ri.test_iters);
 		}
 
-		// CURRENT ACTIVE ITERATION
-		let mut i = 0i32;
 
-		/*######### SENSE ONLY LOOP #########*/
+		// Sense only loop:
 		if !ri.view_sdr_only { print!("\nRunning {} sense only loop(s) ... \n", ri.test_iters - 1); }
-
-		loop {
-			if i >= (ri.test_iters - 1) { break; }
-
-			if i % STATUS_EVERY == 0 || i < 0 || i == (ri.test_iters - 2) {
-				let t = time::get_time() - time_start;
-				if i > 0 || (ri.test_iters > 1 && i == 0) {
-					print!("[{}: {:02.4}ms]", i, t.num_milliseconds());
-				}
-				io::stdout().flush().ok();
-			}
-
-			if i % PRINT_DETAILS_EVERY == 0 || i < 0 {
-				if !ri.view_sdr_only { 
-					output_czar::print_sense_only(&mut ri.cortex, &ri.area_name); 
-				}
-			}
-						
-			if !ri.bypass_act {
-				ir_labels.cycle(&mut ir_labels_vec[..]);
-				ri.cortex.cycle();
-			}
+		loop_cycles(&mut ri);
 
 
-			i += 1;
-		}
-
-
-
-		/*######### SENSE AND PRINT LOOP #########*/
+		// Sense and print loop:
 		if !ri.view_sdr_only { print!("\n\nRunning {} sense and print loop(s)...", 1usize); }
-
 		loop {
-			if i >= (ri.test_iters) { break; }
+			if ri.cur_cycle >= (ri.test_iters) { break; }
 
 			if !ri.bypass_act {
-				ir_labels.cycle(&mut ir_labels_vec[..]);
+				// ir_labels.cycle(&mut ir_labels_vec[..]);
 				ri.cortex.cycle();
-				input_status.clear();
-				let cur_frame = ri.cur_ttl_iters as usize % 5000;
-				input_status.push_str(&format!("[{}] -> '{}'", cur_frame, ir_labels_vec[0]));
+				// input_status.clear();
+				// let cur_frame = ri.cur_ttl_iters as usize % 5000;
+				// input_status.push_str(&format!("[{}] -> '{}'", cur_frame, ir_labels_vec[0]));
 			}
-
 
 			if !ri.view_sdr_only {
-				print!("\n\n=== Iteration {}/{} ===", i + 1, ri.test_iters);
+				print!("\n\n=== Iteration {}/{} ===", ri.cur_cycle + 1, ri.test_iters);
 
 				if false {
 					print!("\nSENSORY INPUT VECTOR:");
@@ -261,14 +232,10 @@ pub fn run(autorun_iters: i32) -> bool {
 				output_czar::print_sense_and_print(&mut ri.cortex, &ri.area_name);
 			}
 
-
 			if ri.view_sdr_only { ri.cortex.area_mut(&ri.area_name).psal_mut().dens.states.read_wait(); }
-
 			ri.cortex.area_mut(&ri.area_name).axns.states.read_wait();
-
 			print!("\n'{}' output:", &ri.area_name);
-
-			ri.cortex.area_mut(&ri.area_name).render_aff_out(&input_status, true);
+			ri.cortex.area_mut(&ri.area_name).render_aff_out("", true);
 
 			if ri.view_all_axons {
 				print!("\n\nAXON SPACE:\n");
@@ -276,12 +243,12 @@ pub fn run(autorun_iters: i32) -> bool {
 				ri.cortex.area_mut(&ri.area_name).render_axon_space();
 			}			
 
-			i += 1;
+			ri.cur_cycle += 1;
 
-			if i > 1 {
-				let t = time::get_time() - time_start;
+			if ri.cur_cycle > 1 {
+				let t = time::get_time() - ri.loop_start_time;
 				printlny!("-> {} cycles @ [> {:02.2} c/s <]", 
-					i, (i as f32 / t.num_milliseconds() as f32) * 1000.0);
+					ri.cur_cycle, (ri.cur_cycle as f32 / t.num_milliseconds() as f32) * 1000.0);
 			}
 		}
 
@@ -290,7 +257,7 @@ pub fn run(autorun_iters: i32) -> bool {
 		}
 
 		if !ri.bypass_act {
-			ri.cur_ttl_iters += i;
+			ri.cur_ttl_iters += ri.cur_cycle;
 		}
 
 		if ri.autorun_iters > 0 {
@@ -302,6 +269,37 @@ pub fn run(autorun_iters: i32) -> bool {
 
 	true
 }
+
+
+fn loop_cycles(ri: &mut RunInfo) {
+	loop {
+		if ri.cur_cycle >= (ri.test_iters - 1) { break; }
+
+		if ri.cur_cycle % STATUS_EVERY == 0 || ri.cur_cycle < 0 || ri.cur_cycle == (ri.test_iters - 2) {
+			let t = time::get_time() - ri.loop_start_time;
+			if ri.cur_cycle > 0 || (ri.test_iters > 1 && ri.cur_cycle == 0) {
+				print!("[{}: {:01}ms]", ri.cur_cycle, t.num_milliseconds());
+			}
+			io::stdout().flush().ok();
+		}
+
+		if ri.cur_cycle % PRINT_DETAILS_EVERY == 0 || ri.cur_cycle < 0 {
+			if !ri.view_sdr_only { 
+				output_czar::print_sense_only(&mut ri.cortex, &ri.area_name); 
+			}
+		}
+					
+		if !ri.bypass_act {
+			// ir_labels.cycle(&mut ir_labels_vec[..]);
+			ri.cortex.cycle();
+		}
+
+
+		ri.cur_cycle += 1;
+	}
+}
+
+
 
 fn prompt(ri: &mut RunInfo) -> LoopAction {
 	if ri.test_iters == 0 {
@@ -497,6 +495,8 @@ struct RunInfo {
 	view_sdr_only: bool,
 	area_name: String,
 	cur_ttl_iters: i32,
+	cur_cycle: i32,
+	loop_start_time: Timespec,
 }
 
 enum LoopAction {
