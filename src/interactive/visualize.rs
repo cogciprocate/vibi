@@ -6,20 +6,17 @@ use bismit::cmn::{ CorticalDims };
 use bismit::map::{ self, LayerTags };
 use bismit::cortex::{ self, Cortex };
 use bismit::encode:: { IdxReader };
-use bismit::proto::{ ProtolayerMap, ProtolayerMaps, ProtoareaMaps, Axonal, Spatial, Horizontal, Sensory, Thalamic, Protocell, Protofilter, Protoinput };
+use bismit::proto::{ ProtolayerMap, ProtolayerMaps, ProtoareaMaps, Axonal, Spatial, Horizontal, 
+	Sensory, Thalamic, Protocell, Protofilter, Protoinput };
 use bismit::input_source::{ InputGanglion };
 
 use interactive::{ output_czar };
 
 
-pub const INITIAL_TEST_ITERATIONS: i32 		= 1; 
-pub const STATUS_EVERY: i32 				= 5000;
-pub const PRINT_DETAILS_EVERY: i32			= 10000;
+const INITIAL_TEST_ITERATIONS: i32 		= 1; 
+const STATUS_EVERY: i32 				= 5000;
+const PRINT_DETAILS_EVERY: i32			= 10000;
 
-// pub const TOGGLE_DIRS: bool 				= false;
-// pub const INTRODUCE_NOISE: bool 			= false;
-// pub const COUNTER_RANGE: Range<usize>		= Range { start: 0, end: 10 };
-// pub const COUNTER_RANDOM: bool				= false;
 const CYCLES_PER_FRAME: usize 				= 1;
 
 /* Eventually move defines to a config file or some such */
@@ -155,8 +152,6 @@ pub fn run(autorun_iters: i32) -> bool {
 	
 	let mut cortex = cortex::Cortex::new(define_plmaps(), define_pamaps());
 	let area_name = "v1".to_string();
-	// let inhib_layer_name = "iv_inhib";
-	// let area_dims = cortex.area(&area_name).dims().clone();
 
 	/* ************************* */
 	/* ***** DISABLE STUFF ***** */	
@@ -174,38 +169,8 @@ pub fn run(autorun_iters: i32) -> bool {
 		// area.disable_regrowth = true;
 		area.disable_regrowth = false;
 	}
-	/* ************************* */
-	/* ************************* */
-	/* ************************* */
-
-	//let input_kind = InputKind::Stripes { stripe_size: 512, zeros_first: true };
-	//let input_kind = InputKind::Hexballs { edge_size: 9, invert: false, fill: false };
-	//let input_kind = InputKind::World;
-	//let input_kind = InputKind::Exp1;		
 	
 
-	// let mut ir = IdxReader::new(area_dims.clone(), "data/train-images-idx3-ubyte", CYCLES_PER_FRAME);
-	// let input_sources: Vec<InputSource> = vec![
-	// 	InputSource::new(InputKind::IdxReader(Box::new(ir)), "v1"),
-	// ];
-	// let mut input_czar = InputCzar::new(area_dims.clone(), input_sources, COUNTER_RANGE, 
-	// 	COUNTER_RANDOM, TOGGLE_DIRS, INTRODUCE_NOISE);	
-
-	//let mut vec_out_prev: Vec<u8> = iter::repeat(0).take(area_dims.columns() as usize).collect();
-	//let mut vec_ff_prev: Vec<u8> = iter::repeat(0).take(area_dims.columns() as usize).collect();
-
-	// let test_iters: i32 = if autorun_iters > 0 {
-	// 	autorun_iters
-	// } else {
-	// 	INITIAL_TEST_ITERATIONS
-	// };
-
-	// let first_run: bool = true;
-	// let bypass_act = false;
-
-	// let view_all_axons: bool = false;
-	// let view_sdr_only: bool = true;
-	// let cur_ttl_iters: i32 = 0;
 	let mut input_status: String = String::with_capacity(100);
 
 	let mut ri = RunInfo {
@@ -261,7 +226,6 @@ pub fn run(autorun_iters: i32) -> bool {
 			}
 						
 			if !ri.bypass_act {
-				//input_czar.next(&mut cortex);
 				ir_labels.cycle(&mut ir_labels_vec[..]);
 				ri.cortex.cycle();
 			}
@@ -279,7 +243,6 @@ pub fn run(autorun_iters: i32) -> bool {
 			if i >= (ri.test_iters) { break; }
 
 			if !ri.bypass_act {
-				//input_czar.next(&mut cortex); // Just increments counter
 				ir_labels.cycle(&mut ir_labels_vec[..]);
 				ri.cortex.cycle();
 				input_status.clear();
@@ -287,31 +250,21 @@ pub fn run(autorun_iters: i32) -> bool {
 				input_status.push_str(&format!("[{}] -> '{}'", cur_frame, ir_labels_vec[0]));
 			}
 
-			//let sr_start = (512 << cmn::SYNAPSES_PER_CELL_PROXIMAL_LOG2) as usize;
 
 			if !ri.view_sdr_only {
 				print!("\n\n=== Iteration {}/{} ===", i + 1, ri.test_iters);
 
 				if false {
 					print!("\nSENSORY INPUT VECTOR:");
-					//ocl::fmt::print_vec(&input_czar.vec()_optical[..], 1 , None, None, false);
 				}
 
 				output_czar::print_sense_and_print(&mut ri.cortex, &ri.area_name);
 			}
 
-			// REQUIRES cortex.area(&area_name).axns.states TO BE FILLED BY .print() unless:
 
 			if ri.view_sdr_only { ri.cortex.area_mut(&ri.area_name).psal_mut().dens.states.read_wait(); }
 
 			ri.cortex.area_mut(&ri.area_name).axns.states.read_wait();
-
-			//let (eff_out_idz, eff_out_idn) = cortex.area(&area_name).mcols.axn_output_range();
-			//let (ssts_axn_idz, ssts_axn_idn) = cortex.area_mut(&area_name).psal_mut().axn_range();
-
-			//let out_slc = &cortex.area(&area_name).axns.states.vec()[eff_out_idz..eff_out_idn];
-			//let ff_slc = &cortex.area(&area_name).axns.states.vec()[ssts_axn_idz..ssts_axn_idn];
-			//let ff_slc = &cortex.area(&area_name).psal_mut().dens.states.vec()[..];
 
 			print!("\n'{}' output:", &ri.area_name);
 
@@ -320,8 +273,6 @@ pub fn run(autorun_iters: i32) -> bool {
 			if ri.view_all_axons {
 				print!("\n\nAXON SPACE:\n");
 				
-				// let axn_space_len = cortex.area(&area_name).axns.states.vec().len();
-
 				ri.cortex.area_mut(&ri.area_name).render_axon_space();
 			}			
 
@@ -352,25 +303,6 @@ pub fn run(autorun_iters: i32) -> bool {
 	true
 }
 
-struct RunInfo {
-	cortex: Cortex,
-	test_iters: i32, 
-	bypass_act: bool, 
-	autorun_iters: i32, 
-	first_run: bool, 
-	view_all_axons: bool, 
-	view_sdr_only: bool,
-	area_name: String,
-	cur_ttl_iters: i32,
-}
-
-enum LoopAction {
-	Break,
-	Continue,
-	None,
-}
-
-
 fn prompt(ri: &mut RunInfo) -> LoopAction {
 	if ri.test_iters == 0 {
 		ri.test_iters = 1;
@@ -389,7 +321,7 @@ fn prompt(ri: &mut RunInfo) -> LoopAction {
 
 			rin(format!("bismit: [{ttl_i}/({loop_i})]: [v]iew:[{}] [a]xons:[{}] \
 				[m]otor:[X] a[r]ea:[{}] [t]ests [q]uit [i]ters:[{iters}]", 
-				view_state, axn_state, /*input_czar.motor_state.cur_str(),*/ ri.area_name, 
+				view_state, axn_state, ri.area_name, 
 				iters = ri.test_iters,
 				loop_i = 0, //input_czar.counter(), 
 				ttl_i = ri.cur_ttl_iters,
@@ -399,26 +331,20 @@ fn prompt(ri: &mut RunInfo) -> LoopAction {
 
 		if "q\n" == in_string {
 			print!("\nExiting interactive test mode... ");
-			// break;
 			return LoopAction::Break;
 		} else if "i\n" == in_string {
 			let in_s = rin(format!("Iterations: [i={}]", ri.test_iters));
 			if "\n" == in_s {
-				// continue;
 				return LoopAction::Continue;
-				//test_iters = TEST_ITERATIONS;
 			} else {
 				let in_int: Option<i32> = parse_num(in_s);
 				match in_int {
 					Some(x)	=> {
 						 ri.test_iters = x;
-						 //continue;
-						 // return LoopAction::Continue;
 						 return LoopAction::None;
 					},
 					None    => {
 						print!("Invalid number.\n");
-						// continue;
 						return LoopAction::Continue;
 					},
 				}
@@ -434,7 +360,6 @@ fn prompt(ri: &mut RunInfo) -> LoopAction {
 			} else {
 				print!("Invalid area.");
 			}
-			//continue;
 			ri.bypass_act = true;
 			return LoopAction::None;
 
@@ -453,12 +378,10 @@ fn prompt(ri: &mut RunInfo) -> LoopAction {
 			return LoopAction::None;
 
 		} else if "t\n" == in_string {
-			// bypass_act = true;
 			let in_s = rin(format!("tests: [f]ract [c]ycles [l]earning [a]ctivate a[r]ea_output o[u]tput"));
 
 			if "p\n" == in_s {
 				//synapse_drill_down::print_pyrs(&mut cortex);
-				// continue;
 				return LoopAction::Continue;
 
 			} else if "u\n" == in_s {
@@ -469,25 +392,21 @@ fn prompt(ri: &mut RunInfo) -> LoopAction {
 				// cortex.area_mut(&in_s).read_output(&mut t_vec, map::FF_OUT);
 				// ocl::fmt::print_vec_simple(&t_vec);
 				println!("\n##### PRINTING TEMPORARILY DISABLED #####");
-				// continue;
 				return LoopAction::Continue;
 
 			} else if "c\n" == in_s {
 				println!("\n##### DISABLED #####");
 				//hybrid::test_cycles(&mut cortex, &area_name);
-				// continue;
 				return LoopAction::Continue;
 
 			} else if "l\n" == in_s {
 				println!("\n##### DISABLED #####");
 				//learning::test_learning_cell_range(&mut cortex, inhib_layer_name, &area_name);
-				// continue;
 				return LoopAction::Continue;
 
 			} else if "a\n" == in_s {
 				println!("\n##### DISABLED #####");
 				//learning::test_learning_activation(&mut cortex, &area_name);
-				// continue;
 				return LoopAction::Continue;
 
 			// } else if "f\n" == in_s {
@@ -528,7 +447,6 @@ fn prompt(ri: &mut RunInfo) -> LoopAction {
 			// 	continue;
 
 			} else {
-				// continue;
 				return LoopAction::Continue;
 			}
 
@@ -539,16 +457,13 @@ fn prompt(ri: &mut RunInfo) -> LoopAction {
 			if "s\n" == in_s {
 				//input_czar.motor_state.switch();
 				//println!("\nREPLACE ME - synapse_sources::run() - line 100ish");
-				// continue;
 				return LoopAction::Continue;
 				//test_iters = TEST_ITERATIONS;
 
 			} else {
-				// continue;
 				return LoopAction::Continue;
 			}
 		} else {
-			// continue;
 			return LoopAction::Continue;
 		}
 	}
@@ -572,3 +487,20 @@ fn parse_num(in_s: String) -> Option<i32> {
 }
 
 
+struct RunInfo {
+	cortex: Cortex,
+	test_iters: i32, 
+	bypass_act: bool, 
+	autorun_iters: i32, 
+	first_run: bool, 
+	view_all_axons: bool, 
+	view_sdr_only: bool,
+	area_name: String,
+	cur_ttl_iters: i32,
+}
+
+enum LoopAction {
+	Break,
+	Continue,
+	None,
+}
