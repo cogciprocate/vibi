@@ -1,5 +1,5 @@
 [package]
-name = "visbis"
+name = "vibi"
 version = "0.1.0"
 authors = ["Nick Sanders <nsan1129@gmail.com>"]
 
@@ -8,3 +8,21 @@ path = "/home/nick/projects/bismit"
 
 [dependencies.time]
 git = "https://github.com/rust-lang/time.git"
+
+[dependencies]
+piston_window = "0.32.0"
+piston2d-opengl_graphics = "0.21.0"
+conrod = "0.23.0"
+find_folder = "*"
+elmesque = "0.11.0"
+num = "*"
+vecmath = "0.2.0"
+rustc-serialize = "0.3.16"
+
+# piston = "0.16.0"
+# pistoncore-glutin_window = "0.20.0"
+
+# gfx = "0.8.1"
+# piston-viewport = "0.2.0"
+# piston2d-gfx_graphics = "0.13.0"
+

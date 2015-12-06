@@ -10,7 +10,7 @@ macro_rules! yellowify {
 	($s:expr) => (concat!("\x1b[93m", $s, "\x1b[0m"));
 }
 
-
+use std::str::{ FromStr };
 // pub use self::input_czar::{ InputCzar, InputKind, InputSource };
 
 pub mod visualize;
@@ -22,3 +22,9 @@ mod output_czar;
 //mod hybrid;
 //mod renderer;
 
+
+
+pub fn parse_iters(in_s: &str) -> Result<u32, <u32 as FromStr>::Err> {
+	in_s.trim().replace("k","000").parse()
+	//in_s.trim().replace("m","000000").parse().ok()
+}
