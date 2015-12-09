@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 #[derive(Copy, Clone)]
 pub struct Vertex {
     position: (f32, f32, f32)

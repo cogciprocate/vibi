@@ -31,10 +31,12 @@ mod teapot;
 // type Ui = conrod::Ui<GlyphCache<'static>>;
 
 fn main() {
+	#![allow(unused_variables)]
 	println!("================= Bismit: vibi::main() running... =================");
 	let time_start = time::get_time();	
 	// tomfoolery(&time_start);
 
+	
 	let (status_tx, status_rx) = mpsc::channel();
 	let (control_tx, control_rx) = mpsc::channel();
 
