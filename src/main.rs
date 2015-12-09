@@ -9,6 +9,8 @@ extern crate elmesque;
 extern crate num;
 extern crate vecmath;
 extern crate rustc_serialize;
+#[macro_use] extern crate glium;
+extern crate image;
 // extern crate glutin_window;
 // extern crate graphics;
 // extern crate opengl_graphics;
@@ -17,13 +19,15 @@ extern crate rustc_serialize;
 use std::thread;
 use std::sync::mpsc;
 use time::{ Timespec };
-use interactive::visualize::{ self }; 
+// use interactive::cyc_loop::{ self }; 
 
 #[macro_use] mod interactive;
-mod window;
 mod config;
-mod widgets;
-
+mod cyc_loop;
+// mod widgets;
+// mod window;
+mod window_glium;
+mod teapot;
 // type Ui = conrod::Ui<GlyphCache<'static>>;
 
 fn main() {
@@ -35,15 +39,15 @@ fn main() {
 	let (control_tx, control_rx) = mpsc::channel();
 
 	let th_win = thread::Builder::new().name("win".to_string()).spawn(move || {
-		window::window(control_tx, status_rx);
+		window_glium::window(control_tx, status_rx);
 	}).expect("Error creating 'win' thread");
 
-	let th_vis = thread::Builder::new().name("vis".to_string()).spawn(move || {
-		interactive::visualize::run(0, control_rx, status_tx);
-	}).expect("Error creating 'vis' thread");
+	// let th_vis = thread::Builder::new().name("vis".to_string()).spawn(move || {
+	// 	cyc_loop::run(0, control_rx, status_tx);
+	// }).expect("Error creating 'vis' thread");
 
 	if let Err(e) = th_win.join() { println!("th_win.join(): Error: '{:?}'", e); }
-	if let Err(e) = th_vis.join() { println!("th_vin.join(): Error: '{:?}'", e); }
+	// if let Err(e) = th_vis.join() { println!("th_vin.join(): Error: '{:?}'", e); }
 
 
 	// <<<<< MOVE THIS ELSEWHERE >>>>>
@@ -88,7 +92,7 @@ fn tomfoolery(ts: &Timespec) {
 
 			thread::sleep(Duration::new(0, h_id as u32 * 10000000));
 
-			let msg = visualize::rin(h_id.to_string());
+			let msg = cyc_loop::rin(h_id.to_string());
 
 			tx.send((h_id, time::get_time(), msg.clone())).ok();
 

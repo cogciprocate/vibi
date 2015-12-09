@@ -10,6 +10,8 @@ path = "/home/nick/projects/bismit"
 git = "https://github.com/rust-lang/time.git"
 
 [dependencies]
+glium = "*"
+image = "*"
 piston_window = "0.32.0"
 piston2d-opengl_graphics = "0.21.0"
 conrod = "0.23.0"

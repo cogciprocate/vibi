@@ -1,8 +1,10 @@
 pub use self::hex_button::{ HexButton };
 pub use self::hex_grid::{ HexGrid };
+pub use self::drinking_clock::{ DrinkingClock };
 
 mod hex_button;
 mod hex_grid;
+mod drinking_clock;
 
 
 

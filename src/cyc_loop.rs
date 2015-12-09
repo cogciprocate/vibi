@@ -6,13 +6,15 @@ use bismit::cortex::{ self, Cortex };
 use bismit::input_source::{ InputGanglion };
 use config;
 
-use interactive::{ output_czar };
+use interactive::{ self as iact, output_czar };
 
 const INITIAL_TEST_ITERATIONS: u32 	= 1; 
 const STATUS_EVERY: u32 			= 5000;
 const PRINT_DETAILS_EVERY: u32		= 10000;
+
 const GUI_CONTROL: bool				= true;
 
+#[allow(dead_code)]
 pub enum CyCtl {
 	None,
 	Iterate(u32),
@@ -30,6 +32,8 @@ pub struct CySts {
 	pub ttl_elapsed: Duration,
 }
 
+
+#[allow(dead_code)]
 impl CySts {
 	pub fn new() -> CySts {
 		CySts {
@@ -261,7 +265,7 @@ fn prompt(ri: &mut RunInfo) -> LoopAction {
 			if "\n" == in_s {
 				return LoopAction::Continue;
 			} else {
-				let in_int = super::parse_iters(&in_s);
+				let in_int = iact::parse_iters(&in_s);
 				match in_int {
 					Ok(x)	=> {
 						 ri.test_iters = x;

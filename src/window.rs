@@ -2,20 +2,22 @@
 use std::sync::mpsc::{ Receiver, Sender };
 use time::{ self, Timespec };
 use find_folder::{ Search };
-use conrod::{ self, color, Colorable, Labelable, Sizeable, Theme, Widget, Button, Positionable, TextBox,
+use conrod::{ color, Colorable, Labelable, Sizeable, Theme, Widget, Button, Positionable, TextBox,
 	Label, Ui, };
-use piston_window::{ PistonWindow, WindowSettings, Window, Glyphs, OpenGL, Size };
+use piston_window::{ PistonWindow, WindowSettings, Window, Glyphs, OpenGL, Size, Key, PressEvent, Button as KeyButton };
+
+use piston_window::{ Flip, TextureSettings, Texture, image, clear };
 // use opengl_graphics::glyph_cache::GlyphCache;
 // use elmesque::{ self, Form, Renderer };
 
 use interactive as iact;
-use interactive::visualize::{ CyCtl, CySts };
-use widgets::{ HexButton, HexGrid };
+use interactive::cyc_loop::{ CyCtl, CySts };
+use widgets::{ HexButton, /*HexGrid, DrinkingClock*/ };
 
 const SHOW_FPS: bool = true;
 
 widget_ids!(BUTTON_STOP, BUTTON_EXIT, BUTTON_CYCLE, TEXTBOX_ITERS, LABEL_CUR_CYCLE, LABEL_TTL_CYCLES,
-	LABEL_FPS, HEX_BUTTON, HEX_GRID);
+	LABEL_FPS, HEX_BUTTON, /*HEX_GRID, DRINKING_CLOCK*/);
 
 
 pub fn window(control_tx: Sender<CyCtl>, status_rx: Receiver<CySts>) {
@@ -28,13 +30,26 @@ pub fn window(control_tx: Sender<CyCtl>, status_rx: Receiver<CySts>) {
 		// .vsync(true)
 		.build().expect("Window build error");
 
-	let mut ui = {
+	let (mut ui, rust_logo) = {
 		let assets = Search::ParentsThenKids(3, 3).for_folder("assets").unwrap();
 		let font_path = assets.join("fonts/NotoSans/NotoSans-Regular.ttf");
 		let glyph_cache = Glyphs::new(&font_path, window.factory.borrow().clone()).unwrap();
 		// let glyph_cache = GlyphCache::new(&font_path).unwrap();
-		Ui::new(glyph_cache, Theme::default())
+
+		// Rust logo image asset:
+		let rust_logo = assets.join("rust.png");
+	    let rust_logo = Texture::from_path(
+	            &mut *window.factory.borrow_mut(),
+	            &rust_logo,
+	            Flip::None,
+	            &TextureSettings::new()
+	        ).unwrap();
+
+		(Ui::new(glyph_cache, Theme::default()), rust_logo)
 	};
+
+
+	
 
 	// let bpos = (340.0, -350.0);
 	let mut iters = "1".to_string();
@@ -46,10 +61,22 @@ pub fn window(control_tx: Sender<CyCtl>, status_rx: Receiver<CySts>) {
 	let mut stupid_labels_idx = 0;
 
 	for e in window {
-		ui.handle_event(&e.event.clone().unwrap());		
+		if let Some(KeyButton::Keyboard(key)) = e.press_args() {
+            if key == Key::Q {
+                println!("Pressed 'Q'.");
+            }
+
+            println!("Pressed keyboard key '{:?}'.", key);
+        };
+
+        ui.handle_event(&e.event.clone().unwrap());
 
 		e.draw_2d(|c, g| {
-			conrod::Background::new().rgb(0.2, 0.25, 0.4).set(&mut ui);
+			// conrod::Background::new().rgb(0.2, 0.25, 0.4).set(&mut ui);			
+			clear([0.2, 0.25, 0.4, 1.0], g);
+
+			// let img_transform = math::transform_pos(, 
+			image(&rust_logo, c.transform, g);
 
 			loop {
 				match status_rx.try_recv() {
@@ -161,24 +188,6 @@ pub fn window(control_tx: Sender<CyCtl>, status_rx: Receiver<CySts>) {
 				})
 				.set(HEX_BUTTON, &mut ui);
 
-			// HexGrid::new()
-			// 	.color(color::blue())
-			// 	.dimensions(1200.0, 800.0)
-			// 	.xy(0.0, 0.0)
-			// 	.depth(1.0)
-			// 	// .orient(0.0)
-			// 	.label_color(conrod::color::white())
-			// 	.label_font_size(18)
-			// 	.whatever_number(stats.elapsed_ms() / 8000.0)
-			// 	.label(stupid_labels[stupid_labels_idx])
-			// 	.react(|| {
-			// 		stupid_labels_idx = if stupid_labels_idx >= (stupid_labels.len() - 1) {
-			// 			0 
-			// 		} else {
-			// 			stupid_labels_idx + 1
-			// 		}
-			// 	})
-			// 	.set(HEX_GRID, &mut ui);
 
 			ui.draw_if_changed(c, g);
 		});
@@ -226,5 +235,45 @@ impl WinStats {
 
 
 
+
+
+
+			// HexGrid::new()
+			// 	.color(color::blue())
+			// 	.dimensions(1200.0, 800.0)
+			// 	.xy(0.0, 0.0)
+			// 	.depth(1.0)
+			// 	// .orient(0.0)
+			// 	.label_color(conrod::color::white())
+			// 	.label_font_size(18)
+			// 	.whatever_number(stats.elapsed_ms() / 8000.0)
+			// 	.label(stupid_labels[stupid_labels_idx])
+			// 	.react(|| {
+			// 		stupid_labels_idx = if stupid_labels_idx >= (stupid_labels.len() - 1) {
+			// 			0 
+			// 		} else {
+			// 			stupid_labels_idx + 1
+			// 		}
+			// 	})
+			// 	.set(HEX_GRID, &mut ui);
+
+			// DrinkingClock::new()
+			// 	.color(color::blue())
+			// 	.dimensions(1200.0, 800.0)
+			// 	.xy(0.0, 0.0)
+			// 	.depth(1.0)
+			// 	// .orient(0.0)
+			// 	.label_color(conrod::color::white())
+			// 	.label_font_size(18)
+			// 	.whatever_number(stats.elapsed_ms() / 8000.0)
+			// 	.label(stupid_labels[stupid_labels_idx])
+			// 	.react(|| {
+			// 		stupid_labels_idx = if stupid_labels_idx >= (stupid_labels.len() - 1) {
+			// 			0 
+			// 		} else {
+			// 			stupid_labels_idx + 1
+			// 		}
+			// 	})
+			// 	.set(DRINKING_CLOCK, &mut ui);
 
 
