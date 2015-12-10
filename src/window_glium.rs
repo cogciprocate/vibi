@@ -1,4 +1,5 @@
 #![allow(unused_imports, unused_variables, unused_mut)]
+use std::f32;
 use std::thread;
 use std::time::{ Duration };
 use std::io::{ Cursor };
@@ -13,8 +14,10 @@ use cyc_loop::{ CyCtl, CySts };
 use teapot;
 
 
-const GRID_SIDE: usize = 16;
+const GRID_SIDE: u32 = 256;
+const GRID_COUNT: usize = (GRID_SIDE * GRID_SIDE) as usize;
 const HEX_X: f32 = 0.086602540378 + 0.01;
+const HEX_Y: f32 = 0.05 + 0.01;
 
 
 // Vertex Shader:
@@ -27,6 +30,7 @@ static vertex_shader_src: &'static str = r#"
 
 	out vec3 v_color;
 
+	uniform uint grid_side;
 	uniform mat4 model;
 	uniform mat4 view;
 	uniform mat4 persp;
@@ -34,15 +38,15 @@ static vertex_shader_src: &'static str = r#"
 	void main() {
 		v_color = color;
 
-		uint grid_dim = 16;
+		// uint grid_dim = 16;
 
 		float border = 0.01;
 
 		float x_scl = 0.086602540378f + border;
 		float y_scl = 0.05 + border;
 
-		float u = float(uint(gl_InstanceID) % grid_dim);
-		float v = float(uint(gl_InstanceID) / grid_dim);
+		float u = float(uint(gl_InstanceID) % grid_side);
+		float v = float(uint(gl_InstanceID) / grid_side);
 
 		float x_pos = ((v + u) * x_scl) + position.x;
 		float y_pos = ((v * -y_scl) + (u * y_scl)) + position.y;
@@ -70,8 +74,23 @@ static fragment_shader_src: &'static str = r#"
 
 
 pub fn window(control_tx: Sender<CyCtl>, status_rx: Receiver<CySts>) {
+	// Light direction:
+	let light = [1.4, 0.4, 0.9f32];
+	// Center of hex grid:
+	let grid_ctr_x = HEX_X * (GRID_SIDE - 1) as f32;
+	let grid_top_y = (HEX_Y * (GRID_SIDE - 1) as f32) / 2.0;
+	let grid_ctr_z = -grid_ctr_x * 1.5;
+
+	// Create our window:
 	let display = glium::glutin::WindowBuilder::new()
 		.with_depth_buffer(24)
+		.with_dimensions(1600, 1200)
+		.with_title("Vibi".to_string())
+		.with_multisampling(8)
+		// .with_gl_robustness(Robustness::whatev)
+		.with_vsync()
+		// .with_transparency(true)
+		// .with_fullscreen(glium::glutin::get_primary_monitor())
 		.build_glium().unwrap();
 
 	// Create the greatest hexagon ever made:
@@ -81,7 +100,7 @@ pub fn window(control_tx: Sender<CyCtl>, status_rx: Receiver<CySts>) {
 	// Create program:
 	let program = glium::Program::from_source(&display, vertex_shader_src, fragment_shader_src, None).unwrap();
 
-	// Depth param:
+	// Draw parameters:
 	let params = glium::DrawParameters {
 		depth: glium::Depth {
 			test: glium::DepthTest::IfLess,
@@ -91,12 +110,10 @@ pub fn window(control_tx: Sender<CyCtl>, status_rx: Receiver<CySts>) {
 		// // Use to avoid drawing the back side of triangles:
 		// backface_culling: glium::draw_parameters::BackfaceCullingMode::CullClockwise,
 		.. Default::default()
-	};
-
-	// Light direction:
-	let light = [1.4, 0.4, 0.9f32];
+	};	
 	
 	// Loop mutables:
+	let mut i: usize = 0;
 	let mut t: f32 = -0.5;
 	let mut exit_app: bool = false;
 
@@ -125,21 +142,34 @@ pub fn window(control_tx: Sender<CyCtl>, status_rx: Receiver<CySts>) {
 				_ => ()
 			}
 		}
+
+
+		// // Grow and shrink grid count:
+		// let ii = i / 1000;
+		// let grid_count = if (ii / GRID_COUNT) & 1 == 1 {
+		// 	GRID_COUNT - (ii % GRID_COUNT) } else { (ii % GRID_COUNT) };
+		let grid_count = GRID_COUNT;
+
+		// Animation, etc:
+		let cam_x = f32::cos(t) * grid_ctr_x * 0.8;
+		let cam_y = f32::sin(t) * grid_top_y * 0.8;
+		let cam_z = f32::cos(t / 3.0) * grid_ctr_z * 0.4; // <-- last arg sets zoom range
 		
 		// Create draw target and clear color and depth:
 		let mut target = display.draw();
-		target.clear_color_and_depth((0.025, 0.025, 0.025, 1.0), 1.0);
+		target.clear_color_and_depth((0.025, 0.025, 0.025, 1.0), 1.0);	
 
 		// Perspective transformation matrix:
 		let persp = persp_matrix(&target, 3.0);
 
-		// Center of hex grid:
-		let mid_x_ofs = HEX_X * (GRID_SIDE - 1) as f32;
-
 		// View transformation matrix: { position(x,y,z), direction(x,y,z), up_dim(x,y,z)}
 		let view = view_matrix(
-			&[mid_x_ofs, 0.0, -2.0], 
-			&[0.0, 0.0, 2.0], 
+			&[	grid_ctr_x + cam_x, 
+				0.0 + cam_y, 
+				(grid_ctr_z * 0.4) + cam_z + -1.7],  // <-- first f32 sets z base
+			&[	0.0 - (cam_x / 5.0), 
+				0.0 - (cam_y / 5.0), 
+				0.5 * -grid_ctr_z],  // <-- distant focus point
 			&[0.0, 1.0, 0.0]
 		);
 
@@ -157,20 +187,22 @@ pub fn window(control_tx: Sender<CyCtl>, status_rx: Receiver<CySts>) {
 			view: view,
 			persp: persp,
 			u_light: light,
+			grid_side: GRID_SIDE,
 			// diffuse_tex: &diffuse_texture,
 			// normal_tex: &normal_map,
 		};
 
 		// Draw:
 		target.draw((&hex_vertices, glium::vertex::EmptyInstanceAttributes { 
-			len: GRID_SIDE * GRID_SIDE }), &hex_indices, &program, &uniforms, 
+			len: grid_count }), &hex_indices, &program, &uniforms, 
 			&params).unwrap();
 
 		// Swap buffers:
 		target.finish().unwrap();
 
-		// Increment our 'counter':
-		t += 0.0002;
+		// Increment our counters:
+		i += 1;
+		t += 0.00150;
 
 		if exit_app {
 			// control_tx.send(CyCtl::Exit).expect("Exit button control tx");
@@ -198,8 +230,7 @@ fn persp_matrix(target: &glium::Frame, zoom: f32) -> [[f32; 4]; 4] {
 }
 
 
-fn hex_vbo(display: &GlutinFacade) -> glium::vertex::VertexBuffer<Vertex> 
-{
+fn hex_vbo(display: &GlutinFacade) -> glium::vertex::VertexBuffer<Vertex> {
 	let a = 0.5 / 10.0f32;
 	let s = 0.57735026919 / 10.0f32; // 1/sqrt(3)
 	let hs = s / 2.0f32;
