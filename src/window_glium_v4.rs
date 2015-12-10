@@ -4,7 +4,6 @@ use std::time::{ Duration };
 use std::io::{ Cursor };
 use std::sync::mpsc::{ Receiver, Sender };
 use glium::{ self, DisplayBuild, Surface };
-use glium::backend::glutin_backend::{ GlutinFacade };
 use image;
 use find_folder::{ Search };
 
@@ -13,9 +12,6 @@ use cyc_loop::{ CyCtl, CySts };
 use teapot;
 
 
-const GRID_SIDE: usize = 16;
-const HEX_X: f32 = 0.086602540378 + 0.01;
-
 
 // Vertex Shader:
 #[allow(non_upper_case_globals)]
@@ -23,32 +19,24 @@ static vertex_shader_src: &'static str = r#"
 	#version 330
 
 	in vec3 position;
-	in vec3 color;
+	in vec3 normal;
+	in vec2 tex_coords;
 
-	out vec3 v_color;
+	out vec3 v_normal;
+	out vec3 v_position;
+	out vec2 v_tex_coords;
 
-	uniform mat4 model;
+	uniform mat4 perspective;
 	uniform mat4 view;
-	uniform mat4 persp;
+	uniform mat4 model;
 
 	void main() {
-		v_color = color;
-
-		uint grid_dim = 16;
-
-		float border = 0.01;
-
-		float x_scl = 0.086602540378f + border;
-		float y_scl = 0.05 + border;
-
-		float u = float(uint(gl_InstanceID) % grid_dim);
-		float v = float(uint(gl_InstanceID) / grid_dim);
-
-		float x_pos = ((v + u) * x_scl) + position.x;
-		float y_pos = ((v * -y_scl) + (u * y_scl)) + position.y;
-
-		gl_Position = persp * view * model * vec4(x_pos, y_pos, 0.0, 1.0);
-	};
+		v_tex_coords = tex_coords;
+		mat4 modelview = view * model;
+		v_normal = transpose(inverse(mat3(modelview))) * normal;
+		gl_Position = perspective * modelview * vec4(position, 1.0);
+		v_position = gl_Position.xyz / gl_Position.w;
+	}
 "#;
 		
 
@@ -57,16 +45,45 @@ static vertex_shader_src: &'static str = r#"
 static fragment_shader_src: &'static str = r#"
 	#version 330
 
-	in vec3 v_color;
+    in vec3 v_normal;
+    in vec3 v_position;
+    in vec2 v_tex_coords;
 
-	out vec4 color;
+    out vec4 color;
 
-	uniform vec3 u_light;
+    uniform vec3 u_light;
+    uniform sampler2D diffuse_tex;
+    uniform sampler2D normal_tex;
 
-	void main() {
-		color = vec4(v_color, 1.0);
-	};
+    const vec3 specular_color = vec3(1.0, 1.0, 1.0);
+
+    mat3 cotangent_frame(vec3 normal, vec3 pos, vec2 uv) {
+        vec3 dp1 = dFdx(pos);
+        vec3 dp2 = dFdy(pos);
+        vec2 duv1 = dFdx(uv);
+        vec2 duv2 = dFdy(uv);
+        vec3 dp2perp = cross(dp2, normal);
+        vec3 dp1perp = cross(normal, dp1);
+        vec3 T = dp2perp * duv1.x + dp1perp * duv2.x;
+        vec3 B = dp2perp * duv1.y + dp1perp * duv2.y;
+        float invmax = inversesqrt(max(dot(T, T), dot(B, B)));
+        return mat3(T * invmax, B * invmax, normal);
+    }
+
+    void main() {
+        vec3 diffuse_color = texture(diffuse_tex, v_tex_coords).rgb;
+        vec3 ambient_color = diffuse_color * 0.1;
+        vec3 normal_map = texture(normal_tex, v_tex_coords).rgb;
+        mat3 tbn = cotangent_frame(v_normal, v_position, v_tex_coords);
+        vec3 real_normal = normalize(tbn * -(normal_map * 2.0 - 1.0));
+        float diffuse = max(dot(real_normal, normalize(u_light)), 0.0);
+        vec3 camera_dir = normalize(-v_position);
+        vec3 half_direction = normalize(normalize(u_light) + camera_dir);
+        float specular = pow(max(dot(half_direction, real_normal), 0.0), 16.0);
+        color = vec4(ambient_color + diffuse * diffuse_color + specular * specular_color, 1.0);
+    }
 "#;
+
 
 
 pub fn window(control_tx: Sender<CyCtl>, status_rx: Receiver<CySts>) {
@@ -74,12 +91,30 @@ pub fn window(control_tx: Sender<CyCtl>, status_rx: Receiver<CySts>) {
 		.with_depth_buffer(24)
 		.build_glium().unwrap();
 
-	// Create the greatest hexagon ever made:
-	let hex_vertices = hex_vbo(&display);
-	let hex_indices = hex_ibo(&display);
+	// Define square:
+	let shape = glium::vertex::VertexBuffer::new(&display, &[
+			Vertex { position: [-1.0,  1.0, 0.0], normal: [0.0, 0.0, -1.0], tex_coords: [0.0, 1.0] },
+			Vertex { position: [ 1.0,  1.0, 0.0], normal: [0.0, 0.0, -1.0], tex_coords: [1.0, 1.0] },
+			Vertex { position: [-1.0, -1.0, 0.0], normal: [0.0, 0.0, -1.0], tex_coords: [0.0, 0.0] },
+			Vertex { position: [ 1.0, -1.0, 0.0], normal: [0.0, 0.0, -1.0], tex_coords: [1.0, 0.0] },
+		]).unwrap();
+
 
 	// Create program:
 	let program = glium::Program::from_source(&display, vertex_shader_src, fragment_shader_src, None).unwrap();
+
+	// Load image:
+	let image = image::load(Cursor::new(&include_bytes!(
+		"/home/nick/projects/vibi/assets/tuto-14-diffuse.jpg")[..]), image::JPEG).unwrap().to_rgba();
+	let image_dimensions = image.dimensions();
+	let image = glium::texture::RawImage2d::from_raw_rgba_reversed(image.into_raw(), image_dimensions);
+	let diffuse_texture = glium::texture::SrgbTexture2d::new(&display, image).unwrap();
+
+	let image = image::load(Cursor::new(&include_bytes!(
+		"/home/nick/projects/vibi/assets/tuto-14-normal.png")[..]), image::PNG).unwrap().to_rgba();
+	let image_dimensions = image.dimensions();
+	let image = glium::texture::RawImage2d::from_raw_rgba_reversed(image.into_raw(), image_dimensions);
+	let normal_map = glium::texture::Texture2d::new(&display, image).unwrap();
 
 	// Depth param:
 	let params = glium::DrawParameters {
@@ -102,13 +137,13 @@ pub fn window(control_tx: Sender<CyCtl>, status_rx: Receiver<CySts>) {
 
 	// Event/Rendering loop:
 	loop {
+		// listing the events produced by the window and waiting to be received
 		for ev in display.poll_events() {
 			use glium::glutin::Event::{ Closed, KeyboardInput };
 			match ev {
 				Closed => {					
 					exit_app = true;
 				},
-
 				KeyboardInput(state, code, vk_code_o) => {
 					use glium::glutin::ElementState::{ Released, Pressed };
 					if let Released = state {
@@ -121,27 +156,19 @@ pub fn window(control_tx: Sender<CyCtl>, status_rx: Receiver<CySts>) {
 						}
 					}
 				},
-
 				_ => ()
 			}
 		}
 		
 		// Create draw target and clear color and depth:
 		let mut target = display.draw();
-		target.clear_color_and_depth((0.025, 0.025, 0.025, 1.0), 1.0);
+		target.clear_color_and_depth((0.2, 0.2, 1.0, 1.0), 1.0);
 
 		// Perspective transformation matrix:
-		let persp = persp_matrix(&target, 3.0);
-
-		// Center of hex grid:
-		let mid_x_ofs = HEX_X * (GRID_SIDE - 1) as f32;
+		let perspective = perspective_matrix(&target);
 
 		// View transformation matrix: { position(x,y,z), direction(x,y,z), up_dim(x,y,z)}
-		let view = view_matrix(
-			&[mid_x_ofs, 0.0, -2.0], 
-			&[0.0, 0.0, 2.0], 
-			&[0.0, 1.0, 0.0]
-		);
+		let view = view_matrix(&[0.5, 0.5, -2.0], &[-0.5, -0.5, 2.0], &[0.0, 1.0, 0.0]);
 
 		// Model transformation matrix:
 		let model = [
@@ -155,16 +182,15 @@ pub fn window(control_tx: Sender<CyCtl>, status_rx: Receiver<CySts>) {
 		let mut uniforms = uniform! {		
 			model: model,
 			view: view,
-			persp: persp,
+			perspective: perspective,
 			u_light: light,
-			// diffuse_tex: &diffuse_texture,
-			// normal_tex: &normal_map,
+			diffuse_tex: &diffuse_texture,
+			normal_tex: &normal_map,
 		};
 
 		// Draw:
-		target.draw((&hex_vertices, glium::vertex::EmptyInstanceAttributes { 
-			len: GRID_SIDE * GRID_SIDE }), &hex_indices, &program, &uniforms, 
-			&params).unwrap();
+		target.draw(&shape, glium::index::NoIndices(glium::index::PrimitiveType::TriangleStrip), &program,
+			&uniforms, &params).unwrap();
 
 		// Swap buffers:
 		target.finish().unwrap();
@@ -180,13 +206,15 @@ pub fn window(control_tx: Sender<CyCtl>, status_rx: Receiver<CySts>) {
 }
 
 
-fn persp_matrix(target: &glium::Frame, zoom: f32) -> [[f32; 4]; 4] {
+
+fn perspective_matrix(target: &glium::Frame) -> [[f32; 4]; 4] {
+	let (width, height) = target.get_dimensions();
+	let aspect_ratio = height as f32 / width as f32;
+
+	let fov: f32 = 3.141592 / 3.0;
 	let zfar = 1024.0;
 	let znear = 0.1;
 
-	let (width, height) = target.get_dimensions();
-	let aspect_ratio = height as f32 / width as f32;
-	let fov: f32 = 3.141592 / zoom;	
 	let f = 1.0 / (fov / 2.0).tan();
 
 	[
@@ -198,49 +226,13 @@ fn persp_matrix(target: &glium::Frame, zoom: f32) -> [[f32; 4]; 4] {
 }
 
 
-fn hex_vbo(display: &GlutinFacade) -> glium::vertex::VertexBuffer<Vertex> 
-{
-	let a = 0.5 / 10.0f32;
-	let s = 0.57735026919 / 10.0f32; // 1/sqrt(3)
-	let hs = s / 2.0f32;
-
-	glium::vertex::VertexBuffer::new(display, &[
-			Vertex::new([ 0.0, 	 0.0, 	 0.0], [0.7, 0.7, 0.7]),
-			Vertex::new([-hs, 	 a,  	 0.0], [0.7, 0.7, 0.2,]),
-			Vertex::new([ hs, 	 a,  	 0.0], [0.2, 0.7, 0.7,]),
-			Vertex::new([ s, 	 0.0,  	 0.0], [0.7, 0.2, 0.7,]),
-			Vertex::new([ hs, 	-a, 	 0.0], [0.7, 0.7, 0.2,]),
-			Vertex::new([-hs, 	-a,  	 0.0], [0.2, 0.7, 0.7,]),
-			Vertex::new([-s, 	 0.0,  	 0.0], [0.7, 0.2, 0.7,]),
-		]).unwrap()
-}
-
-
-fn hex_ibo(display: &GlutinFacade) -> glium::IndexBuffer<u16> {
-	glium::IndexBuffer::new(display, glium::index::PrimitiveType::TrianglesList, &[
-			0, 1, 2,
-			2, 3, 0,
-			0, 3, 4,
-			4, 5, 0,
-			0, 5, 6,
-			6, 1, 0u16,
-		]).unwrap()
-}
-
-
 #[derive(Copy, Clone)]
 struct Vertex {
 	position: [f32; 3],
-	color: [f32; 3],
+	normal: [f32; 3],
+	tex_coords: [f32; 2],
 }
-
-impl Vertex {
-	fn new(position: [f32; 3], color: [f32; 3]) -> Vertex {
-		Vertex { position: position, color: color }
-	}
-}
-implement_vertex!(Vertex, position, color);
-
+implement_vertex!(Vertex, position, normal, tex_coords);
 
 
 fn view_matrix(position: &[f32; 3], direction: &[f32; 3], up: &[f32; 3]) -> [[f32; 4]; 4] {
