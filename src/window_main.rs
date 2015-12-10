@@ -11,11 +11,11 @@ use find_folder::{ Search };
 
 // use interactive as iact;
 use cyc_loop::{ CyCtl, CySts };
-use teapot;
+// use teapot;
 
 
-const GRID_SIDE: u32 = 256;
-const GRID_COUNT: usize = (GRID_SIDE * GRID_SIDE) as usize;
+const GRID_SIDE: u32 = 64;
+const MAX_GRID_SIDE: u32 = 1024;
 const HEX_X: f32 = 0.086602540378 + 0.01;
 const HEX_Y: f32 = 0.05 + 0.01;
 
@@ -27,8 +27,11 @@ static vertex_shader_src: &'static str = r#"
 
 	in vec3 position;
 	in vec3 color;
+	in vec3 normal;
 
 	out vec3 v_color;
+	out vec3 v_normal;
+	out vec3 v_position;
 
 	uniform uint grid_side;
 	uniform mat4 model;
@@ -36,22 +39,24 @@ static vertex_shader_src: &'static str = r#"
 	uniform mat4 persp;
 
 	void main() {
-		v_color = color;
-
-		// uint grid_dim = 16;
 
 		float border = 0.01;
 
 		float x_scl = 0.086602540378f + border;
 		float y_scl = 0.05 + border;
 
-		float u = float(uint(gl_InstanceID) % grid_side);
-		float v = float(uint(gl_InstanceID) / grid_side);
+		float u_id = float(uint(gl_InstanceID) % grid_side);
+		float v_id = float(uint(gl_InstanceID) / grid_side);
 
-		float x_pos = ((v + u) * x_scl) + position.x;
-		float y_pos = ((v * -y_scl) + (u * y_scl)) + position.y;
+		float x_pos = ((v_id + u_id) * x_scl) + position.x;
+		float y_pos = ((v_id * -y_scl) + (u_id * y_scl)) + position.y;
 
-		gl_Position = persp * view * model * vec4(x_pos, y_pos, 0.0, 1.0);
+		mat4 model_view = view * model;
+
+		gl_Position = persp * model_view * vec4(x_pos, y_pos, 0.0, 1.0);
+		v_normal = transpose(inverse(mat3(model_view))) * normal;
+		v_color = color;
+		v_position = gl_Position.xyz / gl_Position.w;
 	};
 "#;
 		
@@ -61,30 +66,47 @@ static vertex_shader_src: &'static str = r#"
 static fragment_shader_src: &'static str = r#"
 	#version 330
 
-	in vec3 v_color;
+	in vec3 v_color; // <-- currently unused
+	in vec3 v_normal;
+	in vec3 v_position;
 
 	out vec4 color;
 
-	uniform vec3 u_light;
+	uniform vec3 u_light_pos;
+
+	// const float ambient_strength = 0.1;
+	const vec3 ambient_color = vec3(0.6, 0.6, 0.6);
+	const vec3 diffuse_color = vec3(0.2, 0.2, 0.2);
+	const vec3 specular_color = vec3(0.4, 0.4, 0.4);
+	const vec3 model_color = vec3(0.9607, 0.4745, 0.0);
 
 	void main() {
-		color = vec4(v_color, 1.0);
+		// Use color from vertex:
+		// model_color = vec4(v_color, 1.0);
+		
+		// vec3 light_color = vec3(1.0, 1.0, 1.0);
+	 //    vec3 ambient_light = ambient_strength * ambient_color;
+	 //    vec3 result = ambient_light * model_color;
+		// color = vec4(result, 1.0);
+
+
+		float diffuse = max(dot(normalize(v_normal), normalize(u_light_pos)), 0.0);
+
+		vec3 camera_dir = normalize(-v_position);
+		vec3 half_direction = normalize(normalize(u_light_pos) + camera_dir);
+		float specular = pow(max(dot(half_direction, normalize(v_normal)), 0.0), 16.0);
+
+		color = vec4((ambient_color * model_color) + diffuse 
+			* diffuse_color + specular * specular_color, 1.0);	
 	};
 "#;
 
 
-pub fn window(control_tx: Sender<CyCtl>, status_rx: Receiver<CySts>) {
-	// Light direction:
-	let light = [1.4, 0.4, 0.9f32];
-	// Center of hex grid:
-	let grid_ctr_x = HEX_X * (GRID_SIDE - 1) as f32;
-	let grid_top_y = (HEX_Y * (GRID_SIDE - 1) as f32) / 2.0;
-	let grid_ctr_z = -grid_ctr_x * 1.5;
-
+pub fn window(control_tx: Sender<CyCtl>, status_rx: Receiver<CySts>) {	
 	// Create our window:
 	let display = glium::glutin::WindowBuilder::new()
 		.with_depth_buffer(24)
-		.with_dimensions(1600, 1200)
+		.with_dimensions(1200, 800)
 		.with_title("Vibi".to_string())
 		.with_multisampling(8)
 		// .with_gl_robustness(Robustness::whatev)
@@ -111,11 +133,19 @@ pub fn window(control_tx: Sender<CyCtl>, status_rx: Receiver<CySts>) {
 		// backface_culling: glium::draw_parameters::BackfaceCullingMode::CullClockwise,
 		.. Default::default()
 	};	
+
+	println!("-- Hex grid flyover demo --\n\
+		Current settings: MSAA '8x', VSYNC 'on'.\n\
+		Press 'escape' or 'q' to quit.\n\
+		Press 'up arrow' to double grid size or 'down arrow' to halve.\n\
+		Press 'left arrow' to decrease or 'right arrow' to increase grid size by one.\n\
+		Window is resizable.");
 	
 	// Loop mutables:
 	let mut i: usize = 0;
 	let mut t: f32 = -0.5;
 	let mut exit_app: bool = false;
+	let mut grid_side = GRID_SIDE;
 
 	// Event/Rendering loop:
 	loop {
@@ -130,9 +160,13 @@ pub fn window(control_tx: Sender<CyCtl>, status_rx: Receiver<CySts>) {
 					use glium::glutin::ElementState::{ Released, Pressed };
 					if let Released = state {
 						if let Some(vk_code) = vk_code_o {
-							use glium::glutin::VirtualKeyCode::{ Q, Escape };
+							use glium::glutin::VirtualKeyCode::{ Q, Escape, Up, Down, Left, Right };
 							match vk_code {
 								Q | Escape => exit_app = true,
+								Up => if grid_side <= MAX_GRID_SIDE { grid_side *= 2; },
+								Down => if grid_side > 1 { grid_side /= 2; },
+								Right => if grid_side <= MAX_GRID_SIDE { grid_side += 1; },
+								Left => if grid_side > 1 { grid_side -= 1; },
 								_ => (),
 							}
 						}
@@ -143,12 +177,17 @@ pub fn window(control_tx: Sender<CyCtl>, status_rx: Receiver<CySts>) {
 			}
 		}
 
+		// Center of hex grid:
+		let grid_ctr_x = HEX_X * (grid_side as f32 - 1.0);
+		let grid_top_y = (HEX_Y * (grid_side as f32 - 1.0)) / 2.0;
+		let grid_ctr_z = -grid_ctr_x * 1.5;
 
+		// Grid count:
 		// // Grow and shrink grid count:
 		// let ii = i / 1000;
 		// let grid_count = if (ii / GRID_COUNT) & 1 == 1 {
 		// 	GRID_COUNT - (ii % GRID_COUNT) } else { (ii % GRID_COUNT) };
-		let grid_count = GRID_COUNT;
+		let grid_count = (grid_side * grid_side) as usize;
 
 		// Animation, etc:
 		let cam_x = f32::cos(t) * grid_ctr_x * 0.8;
@@ -157,7 +196,7 @@ pub fn window(control_tx: Sender<CyCtl>, status_rx: Receiver<CySts>) {
 		
 		// Create draw target and clear color and depth:
 		let mut target = display.draw();
-		target.clear_color_and_depth((0.025, 0.025, 0.025, 1.0), 1.0);	
+		target.clear_color_and_depth((0.030, 0.050, 0.080, 1.0), 1.0);	
 
 		// Perspective transformation matrix:
 		let persp = persp_matrix(&target, 3.0);
@@ -181,13 +220,16 @@ pub fn window(control_tx: Sender<CyCtl>, status_rx: Receiver<CySts>) {
 			[0.0, 0.0, 0.0, 1.0f32]
 		];
 
+		// Light position:
+		let light_pos = [-1.4, 0.4, -0.9f32];
+
 		// Uniforms:
 		let mut uniforms = uniform! {		
 			model: model,
 			view: view,
 			persp: persp,
-			u_light: light,
-			grid_side: GRID_SIDE,
+			u_light_pos: light_pos,
+			grid_side: grid_side,
 			// diffuse_tex: &diffuse_texture,
 			// normal_tex: &normal_map,
 		};
@@ -236,13 +278,13 @@ fn hex_vbo(display: &GlutinFacade) -> glium::vertex::VertexBuffer<Vertex> {
 	let hs = s / 2.0f32;
 
 	glium::vertex::VertexBuffer::new(display, &[
-			Vertex::new([ 0.0, 	 0.0, 	 0.0], [0.7, 0.7, 0.7]),
-			Vertex::new([-hs, 	 a,  	 0.0], [0.7, 0.7, 0.2,]),
-			Vertex::new([ hs, 	 a,  	 0.0], [0.2, 0.7, 0.7,]),
-			Vertex::new([ s, 	 0.0,  	 0.0], [0.7, 0.2, 0.7,]),
-			Vertex::new([ hs, 	-a, 	 0.0], [0.7, 0.7, 0.2,]),
-			Vertex::new([-hs, 	-a,  	 0.0], [0.2, 0.7, 0.7,]),
-			Vertex::new([-s, 	 0.0,  	 0.0], [0.7, 0.2, 0.7,]),
+			Vertex::new([ 0.0, 	 0.0, 	 0.0], [0.4, 0.4, 0.4,], [0.0, 0.0, -1.0]),
+			Vertex::new([-hs, 	 a,  	 0.0], [0.7, 0.7, 0.2,], [0.0, 0.0, -1.0]),
+			Vertex::new([ hs, 	 a,  	 0.0], [0.2, 0.7, 0.7,], [0.0, 0.0, -1.0]),
+			Vertex::new([ s, 	 0.0,  	 0.0], [0.7, 0.2, 0.7,], [0.0, 0.0, -1.0]),
+			Vertex::new([ hs, 	-a, 	 0.0], [0.7, 0.7, 0.2,], [0.0, 0.0, -1.0]),
+			Vertex::new([-hs, 	-a,  	 0.0], [0.2, 0.7, 0.7,], [0.0, 0.0, -1.0]),
+			Vertex::new([-s, 	 0.0,  	 0.0], [0.7, 0.2, 0.7,], [0.0, 0.0, -1.0]),
 		]).unwrap()
 }
 
@@ -263,14 +305,15 @@ fn hex_ibo(display: &GlutinFacade) -> glium::IndexBuffer<u16> {
 struct Vertex {
 	position: [f32; 3],
 	color: [f32; 3],
+	normal: [f32; 3],
 }
 
 impl Vertex {
-	fn new(position: [f32; 3], color: [f32; 3]) -> Vertex {
-		Vertex { position: position, color: color }
+	fn new(position: [f32; 3], color: [f32; 3], normal: [f32; 3]) -> Vertex {
+		Vertex { position: position, color: color, normal: normal }
 	}
 }
-implement_vertex!(Vertex, position, color);
+implement_vertex!(Vertex, position, color, normal);
 
 
 

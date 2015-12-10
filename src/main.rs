@@ -26,8 +26,8 @@ mod config;
 mod cyc_loop;
 // mod widgets;
 // mod window;
-mod window_glium;
-mod teapot;
+mod window_main;
+// mod teapot;
 // type Ui = conrod::Ui<GlyphCache<'static>>;
 
 fn main() {
@@ -41,7 +41,7 @@ fn main() {
 	let (control_tx, control_rx) = mpsc::channel();
 
 	let th_win = thread::Builder::new().name("win".to_string()).spawn(move || {
-		window_glium::window(control_tx, status_rx);
+		window_main::window(control_tx, status_rx);
 	}).expect("Error creating 'win' thread");
 
 	// let th_vis = thread::Builder::new().name("vis".to_string()).spawn(move || {
