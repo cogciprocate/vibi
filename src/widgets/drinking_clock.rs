@@ -1,3 +1,4 @@
+#![allow(dead_code)]
 use elmesque::{ Form };
 use conrod::{ CharacterCache, Color, Colorable, CommonBuilder, DrawArgs, Element, FontSize,
 	GlyphCache, Labelable, Dimensions, Mouse, Point, Scalar, Theme, UpdateArgs, Widget, };
@@ -209,7 +210,7 @@ impl<'a, F> Widget for DrinkingClock<'a, F>
 
 	/// Construct and return a renderable `Element` for the given button state.
 	fn draw<C: CharacterCache>(args: DrawArgs<Self, C>) -> Element {
-		use elmesque::{ self, form, utils };
+		use elmesque::{ self, form };
 		use num::Float;
 
 		// Unwrap the args and state structs into individual variables.
@@ -217,11 +218,11 @@ impl<'a, F> Widget for DrinkingClock<'a, F>
 		let (xy, dim) = rect.xy_dim();
 
 		// Retrieve the styling for the Element.
-		let color = state.color(style.color(theme));
+		// let color = state.color(style.color(theme));
 
 		// Construct the frame and inner rectangle forms. We assume that dim is a
 		// square bounding box, thus 2 * radius == dim[0] == dim[1].
-		let radius = dim[0] / 2.0;
+		// let radius = dim[0] / 2.0;
 		// let pressable_form: elmesque::Form = circle(radius).filled(color);
 
 		// let pressable_form: elmesque::Form = form::ngon(6, radius).filled(color)
@@ -237,7 +238,7 @@ impl<'a, F> Widget for DrinkingClock<'a, F>
 		// which may or may not store a String for some label.
 		let maybe_label_form: Option<elmesque::Form> =
 			// Convert the Option<&str> to an Option<elmesque::Form>.
-			state.maybe_label.as_ref().map(|label_text| {
+			state.maybe_label.as_ref().map(|_| { // '_' --> 'label_text'
 				use elmesque::text::Text;
 				let label_color = style.label_color(theme);
 				let size = style.label_font_size(theme);

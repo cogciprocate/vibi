@@ -12,7 +12,8 @@ extern crate vecmath;
 #[macro_use] extern crate conrod;
 extern crate piston_window;
 extern crate elmesque;
-// extern crate rustc_serialize;
+extern crate rustc_serialize;
+// extern crate gfx_graphics;
 // extern crate graphics;
 // extern crate opengl_graphics;
 // extern crate piston;
@@ -21,15 +22,18 @@ use std::thread;
 use std::sync::mpsc;
 use time::{ Timespec };
 // use interactive::loop_cycles::{ self }; 
+// use window_main as window;
+use window_conrod as window;
 
 #[macro_use] mod interactive;
 mod config;
 mod loop_cycles;
-// mod widgets;
-// mod window;
-mod window_main;
-// mod teapot;
-// type Ui = conrod::Ui<GlyphCache<'static>>;
+mod widgets;
+mod window_conrod;
+// mod window_main;
+mod conrod_draw;
+mod win_stats;
+
 
 fn main() {
 	#![allow(unused_variables)]
@@ -42,7 +46,7 @@ fn main() {
 	let (control_tx, control_rx) = mpsc::channel();
 
 	let th_win = thread::Builder::new().name("win".to_string()).spawn(move || {
-		window_main::window(control_tx, status_rx);
+		window::window(control_tx, status_rx);
 	}).expect("Error creating 'win' thread");
 
 	// let th_vis = thread::Builder::new().name("vis".to_string()).spawn(move || {
