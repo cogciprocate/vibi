@@ -66,37 +66,35 @@ static vertex_shader_src: &'static str = r#"
 static fragment_shader_src: &'static str = r#"
 	#version 330
 
-	in vec3 v_color; // <-- currently unused
+	in vec3 v_color; // <-- currently unused (using uniform atm)
 	in vec3 v_normal;
 	in vec3 v_position;
 
 	out vec4 color;
 
 	uniform vec3 u_light_pos;
+	uniform vec3 u_model_color;
 
 	// const float ambient_strength = 0.1;
 	const vec3 ambient_color = vec3(0.6, 0.6, 0.6);
 	const vec3 diffuse_color = vec3(0.2, 0.2, 0.2);
 	const vec3 specular_color = vec3(0.4, 0.4, 0.4);
-	const vec3 model_color = vec3(0.9607, 0.4745, 0.0);
+	const float specular_coeff = 16.0;
+
+	// // Pastel orange:
+	// const vec3 model_color = vec3(0.9607, 0.4745, 0.0);
+	// // Pink model:
+	// const vec3 model_color = vec3(0.9882, 0.4902, 0.7059);
 
 	void main() {
-		// Use color from vertex:
-		// model_color = vec4(v_color, 1.0);
-		
-		// vec3 light_color = vec3(1.0, 1.0, 1.0);
-	 //    vec3 ambient_light = ambient_strength * ambient_color;
-	 //    vec3 result = ambient_light * model_color;
-		// color = vec4(result, 1.0);
-
-
-		float diffuse = max(dot(normalize(v_normal), normalize(u_light_pos)), 0.0);
+		float diffuse_ampl = max(dot(normalize(v_normal), normalize(u_light_pos)), 0.0);
 
 		vec3 camera_dir = normalize(-v_position);
 		vec3 half_direction = normalize(normalize(u_light_pos) + camera_dir);
-		float specular = pow(max(dot(half_direction, normalize(v_normal)), 0.0), 16.0);
+		float specular = pow(max(dot(half_direction, normalize(v_normal)), 0.0), 
+			specular_coeff);
 
-		color = vec4((ambient_color * model_color) + diffuse 
+		color = vec4((ambient_color * u_model_color) + diffuse_ampl
 			* diffuse_color + specular * specular_color, 1.0);	
 	};
 "#;
@@ -130,16 +128,16 @@ pub fn window(control_tx: Sender<CyCtl>, status_rx: Receiver<CySts>) {
 			.. Default::default()
 		},
 		// // Use to avoid drawing the back side of triangles:
-		// backface_culling: glium::draw_parameters::BackfaceCullingMode::CullClockwise,
+		// backface_culling: glium::draw_parameters::BackfaceCullingMode::CullCounterClockwise,
 		.. Default::default()
 	};	
 
-	println!("-- Hex grid flyover demo --\n\
-		Current settings: MSAA '8x', VSYNC 'on'.\n\
-		Press 'escape' or 'q' to quit.\n\
-		Press 'up arrow' to double grid size or 'down arrow' to halve.\n\
-		Press 'left arrow' to decrease or 'right arrow' to increase grid size by one.\n\
-		Window is resizable.");
+	println!("\t==== Hex Grid Flyover ====\n\
+		\tCurrent settings: MSAA '8x', VSYNC 'on'.\n\
+		\tPress 'escape' or 'q' to quit.\n\
+		\tPress 'up arrow' to double grid size or 'down arrow' to halve.\n\
+		\tPress 'left arrow' to decrease or 'right arrow' to increase grid size by one.\n\
+		\tWindow is resizable.");
 	
 	// Loop mutables:
 	let mut i: usize = 0;
@@ -221,7 +219,10 @@ pub fn window(control_tx: Sender<CyCtl>, status_rx: Receiver<CySts>) {
 		];
 
 		// Light position:
-		let light_pos = [-1.4, 0.4, -0.9f32];
+		let light_pos = [-1.0, 0.4, -0.9f32];
+
+		// Model color:
+		let model_color = [0.9882, 0.4902, 0.7059f32];
 
 		// Uniforms:
 		let mut uniforms = uniform! {		
@@ -229,6 +230,7 @@ pub fn window(control_tx: Sender<CyCtl>, status_rx: Receiver<CySts>) {
 			view: view,
 			persp: persp,
 			u_light_pos: light_pos,
+			u_model_color: model_color,
 			grid_side: grid_side,
 			// diffuse_tex: &diffuse_texture,
 			// normal_tex: &normal_map,
@@ -244,7 +246,7 @@ pub fn window(control_tx: Sender<CyCtl>, status_rx: Receiver<CySts>) {
 
 		// Increment our counters:
 		i += 1;
-		t += 0.00150;
+		t += 0.01150;
 
 		if exit_app {
 			// control_tx.send(CyCtl::Exit).expect("Exit button control tx");

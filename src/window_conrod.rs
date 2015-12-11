@@ -206,6 +206,7 @@ struct WinStats {
 #[allow(dead_code)]
 impl WinStats {
 	pub fn new() -> WinStats {
+		// panic!("Replaced by new version");
 		WinStats {
 			event_count: 0usize,
 			start_time: time::get_time(),
