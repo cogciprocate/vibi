@@ -1,4 +1,4 @@
-#![allow(unused_imports, unused_variables, unused_mut, dead_code)]
+#![allow(unused_imports, unused_variables, unused_mut, dead_code, unused_assignments)]
 use std::f32;
 use std::thread;
 // use std::time::{ Duration as StdDuration };
@@ -9,13 +9,13 @@ use glium::{ self, DisplayBuild, Surface };
 use glium::backend::glutin_backend::{ GlutinFacade };
 use image;
 use find_folder::{ Search };
-
 use glium_text;
 use glium::glutin;
 
 // use interactive as iact;
 use loop_cycles::{ CyCtl, CySts };
-
+use super::win_stats::{ WinStats };
+use super::window_status_text::{ StatusText };
 
 const C_PINK: [f32; 3] = [0.9882, 0.4902, 0.7059];
 const C_ORANGE: [f32; 3] = [0.9607, 0.4745, 0.0];
@@ -82,7 +82,7 @@ static fragment_shader_src: &'static str = r#"
 	uniform vec3 u_model_color;
 
 	// const float ambient_strength = 0.1;
-	const vec3 ambient_color = vec3(0.6, 0.6, 0.6);
+	const vec3 ambient_color = vec3(0.9, 0.9, 0.9);
 	const vec3 diffuse_color = vec3(0.2, 0.2, 0.2);
 	const vec3 specular_color = vec3(0.4, 0.4, 0.4);
 	const float specular_coeff = 16.0;
@@ -106,7 +106,7 @@ static fragment_shader_src: &'static str = r#"
 "#;
 
 
-pub fn window(control_tx: Sender<CyCtl>, status_rx: Receiver<CySts>) {	
+pub fn open(control_tx: Sender<CyCtl>, status_rx: Receiver<CySts>) {	
 	// Create our window:
 	let display = glium::glutin::WindowBuilder::new()
 		.with_depth_buffer(24)
@@ -124,14 +124,16 @@ pub fn window(control_tx: Sender<CyCtl>, status_rx: Receiver<CySts>) {
 	//////////////////////////////// TEXT ////////////////////////////////
 	//////////////////////////////////////////////////////////////////////
 
-	// Text system (experimental):
-	let text_system = glium_text::TextSystem::new(&display);
+	// // Text system (experimental):
+	// let text_system = glium_text::TextSystem::new(&display);
 
-	// Font:
-	let font_size = 24;
-	let font = glium_text::FontTexture::new(&display, &include_bytes!(
-			"/home/nick/projects/vibi/assets/fonts/NotoSans/NotoSans-Regular.ttf"
-		)[..], font_size).unwrap();
+	// // Font:
+	// let font_size = 24;
+	// let font = glium_text::FontTexture::new(&display, &include_bytes!(
+	// 		"/home/nick/projects/vibi/assets/fonts/NotoSans/NotoSans-Regular.ttf"
+	// 	)[..], font_size).unwrap();
+
+	let status_text = StatusText::new(&display);
 
 	//////////////////////////////////////////////////////////////////////
 	//////////////////////////////////////////////////////////////////////
@@ -163,6 +165,7 @@ pub fn window(control_tx: Sender<CyCtl>, status_rx: Receiver<CySts>) {
 	
 	// Loop vars:
 	// let mut i: usize = 0;
+	let mut cycle_status = CySts::new();
 	let mut f_c: f32 = -0.5;
 	let mut stats = WinStats::new();
 	let mut exit_app: bool = false;
@@ -196,9 +199,9 @@ pub fn window(control_tx: Sender<CyCtl>, status_rx: Receiver<CySts>) {
 							match vk_code {
 								Q | Escape => exit_app = true,
 								Up => if grid_side < MAX_GRID_SIDE { grid_side *= 2; },
-								Down => if grid_side > 1 { grid_side /= 2; },
+								Down => if grid_side >= 4 { grid_side /= 2; },
 								Right => if grid_side < MAX_GRID_SIDE { grid_side += 1; },
-								Left => if grid_side > 1 { grid_side -= 1; },
+								Left => if grid_side > 2 { grid_side -= 1; },
 								_ => (),
 							}
 						}
@@ -235,7 +238,7 @@ pub fn window(control_tx: Sender<CyCtl>, status_rx: Receiver<CySts>) {
 
 		// Camera position:
 		let cam_x = f32::cos(f_c) * grid_ctr_x * 0.8;
-		let cam_y = f32::sin(f_c) * grid_top_y * 0.8;
+		let cam_y = f32::cos(f_c) * grid_top_y * 0.8;
 		let cam_z = f32::cos(f_c / 3.0) * grid_ctr_z * 0.4; // <-- last arg sets zoom range
 
 		// View transformation matrix: { position(x,y,z), direction(x,y,z), up_dim(x,y,z)}
@@ -262,9 +265,9 @@ pub fn window(control_tx: Sender<CyCtl>, status_rx: Receiver<CySts>) {
 
 		// Model color:
 		let model_color = [
-			(f32::abs(f32::cos(f_c / 3.0) * 0.6)) + 0.1, 
-			(f32::abs(f32::cos(f_c / 2.0) * 0.6)) + 0.1, 
-			(f32::abs(f32::cos(f_c / 1.0) * 0.6)) + 0.1,
+			(f32::abs(f32::cos(f_c / 3.0) * 0.99)) + 0.001, 
+			(f32::abs(f32::sin(f_c / 2.0) * 0.99)) + 0.001, 
+			(f32::abs(f32::cos(f_c / 1.0) * 0.99)) + 0.001,
 		];
 
 		// Uniforms:
@@ -289,37 +292,39 @@ pub fn window(control_tx: Sender<CyCtl>, status_rx: Receiver<CySts>) {
 		// ];
 
 		
-		let text_scl = 0.019; // / ((width * height) as f32 / 1000000.0);
-		// let text_x_scl = text_scl * 2.0 / text_width;
-		// let text_y_scl = text_scl * 2.0 * (width as f32) / (height as f32) / text_width;
+		// let text_scl = 0.019; // / ((width * height) as f32 / 1000000.0);
+		// // let text_x_scl = text_scl * 2.0 / text_width;
+		// // let text_y_scl = text_scl * 2.0 * (width as f32) / (height as f32) / text_width;
 
-		let text_x_scl = text_scl / (width as f32 / 1000.0);
-		let text_y_scl = text_x_scl * (width as f32) / (height as f32);
+		// let text_x_scl = text_scl / (width as f32 / 1000.0);
+		// let text_y_scl = text_x_scl * (width as f32) / (height as f32);
 
-		// FPS Text:
-		let fps_text_matrix = [
-			[text_x_scl, 0.0, 0.0, 0.0,],
-			[0.0, text_y_scl, 0.0, 0.0,],
-			[0.0, 0.0, 1.0, 0.0,],
-			[-1.0, 1.0 - (2.0 * text_y_scl), 0.0, 1.0f32,],
-		];
-		let fps_text = glium_text::TextDisplay::new(&text_system, &font, 
-			&format!("FPS: {}", stats.fps()));
-		glium_text::draw(&fps_text, &text_system, &mut target, fps_text_matrix, 
-			(0.99, 0.99, 0.99, 1.0));
+		// // FPS Text:
+		// let fps_text_matrix = [
+		// 	[text_x_scl, 0.0, 0.0, 0.0,],
+		// 	[0.0, text_y_scl, 0.0, 0.0,],
+		// 	[0.0, 0.0, 1.0, 0.0,],
+		// 	[-1.0, 1.0 - (2.0 * text_y_scl), 0.0, 1.0f32,],
+		// ];
+		// let fps_text = glium_text::TextDisplay::new(&text_system, &font, 
+		// 	&format!("FPS: {}", stats.fps()));
+		// glium_text::draw(&fps_text, &text_system, &mut target, fps_text_matrix, 
+		// 	(0.99, 0.99, 0.99, 1.0));
 
 
-		// Grid Side Text:
-		let gs_text_matrix = [
-			[text_x_scl, 0.0, 0.0, 0.0,],
-			[0.0, text_y_scl, 0.0, 0.0,],
-			[0.0, 0.0, 1.0, 0.0,],
-			[-1.0, 1.0 - (4.0 * text_y_scl), 0.0, 1.0f32,],
-		];
-		let gs_text = glium_text::TextDisplay::new(&text_system, &font, 
-			&format!("Grid: {gs} X {gs}", gs = grid_side));
-		glium_text::draw(&gs_text, &text_system, &mut target, gs_text_matrix, 
-			(0.99, 0.99, 0.99, 1.0));
+		// // Grid Side Text:
+		// let gs_text_matrix = [
+		// 	[text_x_scl, 0.0, 0.0, 0.0,],
+		// 	[0.0, text_y_scl, 0.0, 0.0,],
+		// 	[0.0, 0.0, 1.0, 0.0,],
+		// 	[-1.0, 1.0 - (4.0 * text_y_scl), 0.0, 1.0f32,],
+		// ];
+		// let gs_text = glium_text::TextDisplay::new(&text_system, &font, 
+		// 	&format!("Grid: {gs} X {gs}", gs = grid_side));
+		// glium_text::draw(&gs_text, &text_system, &mut target, gs_text_matrix, 
+		// 	(0.99, 0.99, 0.99, 1.0));
+
+		status_text.draw(&mut target, &stats, grid_side);
 
 
 		///////////////////////////////////////////////////////////////////////

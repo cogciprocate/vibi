@@ -1,3 +1,4 @@
+#![allow(dead_code)]
 use elmesque::{ Form };
 use conrod::{ CharacterCache, Color, Colorable, CommonBuilder, DrawArgs, Element, FontSize,
 	GlyphCache, Labelable, Dimensions, Mouse, Point, Scalar, Theme, UpdateArgs, Widget, }; 

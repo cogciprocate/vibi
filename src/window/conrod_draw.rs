@@ -1,10 +1,11 @@
+#![allow(dead_code)]
 use std::sync::mpsc::{ /*Receiver,*/ Sender };
 
+use find_folder::{ Search };
 use conrod::{ color, Colorable, Labelable, Sizeable, Widget, Button, Positionable, TextBox,
-	Label, Ui, };
-// use piston_window::{ gfx_graphics_gl };
-use piston_window::{ Glyphs, Size };
-// use piston_window::graphics::{ GfxGraphics };
+	Label, Ui, Theme };
+use piston_window::{ PistonWindow, Glyphs, Size };
+// use piston_window::{ Flip, TextureSettings, Texture, /*image, clear*/ };
 
 
 use interactive as iact;
@@ -17,9 +18,31 @@ const SHOW_FPS: bool = true;
 widget_ids!(BUTTON_STOP, BUTTON_EXIT, BUTTON_CYCLE, TEXTBOX_ITERS, LABEL_CUR_CYCLE, LABEL_TTL_CYCLES,
 	LABEL_FPS, HEX_BUTTON, /*HEX_GRID, DRINKING_CLOCK*/);
 
+
+// let (mut ui, rust_logo) = 
+
+pub fn create_ui(window: PistonWindow) -> Ui<Glyphs> {
+	let assets = Search::ParentsThenKids(3, 3).for_folder("assets").unwrap();
+	let font_path = assets.join("fonts/NotoSans/NotoSans-Regular.ttf");
+	let glyph_cache = Glyphs::new(&font_path, window.factory.borrow().clone()).unwrap();
+
+	// Rust logo image asset:
+	// let rust_logo = assets.join("rust.png");
+ //    let rust_logo = Texture::from_path(
+ //            &mut *window.factory.borrow_mut(),
+ //            &rust_logo,
+ //            Flip::None,
+ //            &TextureSettings::new()
+ //        ).unwrap();
+
+	Ui::new(glyph_cache, Theme::default())
+}
+
+
 pub fn draw_buttons(ui: &mut Ui<Glyphs>, cycle_status: &mut CySts, win_size: &Size, 
 			control_tx: &mut Sender<CyCtl>, stats: &WinStats, close_window: &mut bool,
-			mut iters_text: &mut String) 
+			mut iters_text: &mut String
+		) 
 {
 	let btn_size = Size { width: 130, height: 28 };
 
