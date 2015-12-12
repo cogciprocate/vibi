@@ -1,7 +1,6 @@
 #![allow(dead_code, unused_variables)]
 use glium_text::{ self, TextSystem, FontTexture, TextDisplay };
-// use glutin::{ GlutinWindow };
-use glium::{ /*Frame,*/ Surface };
+use glium::{ Surface };
 use glium::backend::glutin_backend::{ GlutinFacade };
 
 use super::win_stats::{ WinStats };

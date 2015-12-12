@@ -15,7 +15,8 @@ use glium::glutin;
 // use interactive as iact;
 use loop_cycles::{ CyCtl, CySts };
 use super::win_stats::{ WinStats };
-use super::window_status_text::{ StatusText };
+use super::status_text::{ StatusText };
+use super::hex_grid::{ HexGrid };
 
 const C_PINK: [f32; 3] = [0.9882, 0.4902, 0.7059];
 const C_ORANGE: [f32; 3] = [0.9607, 0.4745, 0.0];
@@ -119,43 +120,35 @@ pub fn open(control_tx: Sender<CyCtl>, status_rx: Receiver<CySts>) {
 		// .with_fullscreen(glium::glutin::get_primary_monitor())
 		.build_glium().unwrap();
 
-
-	//////////////////////////////////////////////////////////////////////
-	//////////////////////////////// TEXT ////////////////////////////////
-	//////////////////////////////////////////////////////////////////////
-
-	// // Text system (experimental):
-	// let text_system = glium_text::TextSystem::new(&display);
-
-	// // Font:
-	// let font_size = 24;
-	// let font = glium_text::FontTexture::new(&display, &include_bytes!(
-	// 		"/home/nick/projects/vibi/assets/fonts/NotoSans/NotoSans-Regular.ttf"
-	// 	)[..], font_size).unwrap();
-
+	// Status text UI element (fps & grid side):
 	let status_text = StatusText::new(&display);
 
-	//////////////////////////////////////////////////////////////////////
-	//////////////////////////////////////////////////////////////////////
+	// Hex grid:
+	let hex_grid = HexGrid::new(&display);
 
 
-	// Create the greatest hexagon ever made:
-	let hex_vertices = hex_vbo(&display);
-	let hex_indices = hex_ibo(&display);
+	// ------------ << DEPRICATE >>
 
-	// Create program:
-	let program = glium::Program::from_source(&display, vertex_shader_src, fragment_shader_src, None).unwrap();
+	// // The greatest hexagon ever made (o rly?):
+	// let hex_vertices = hex_vbo(&display);
+	// let hex_indices = hex_ibo(&display);
 
-	// Draw parameters:
-	let params = glium::DrawParameters {
-		depth: glium::Depth {
-			test: glium::DepthTest::IfLess,
-			write: true,
-			.. Default::default()
-		},
-		// backface_culling: glium::draw_parameters::BackfaceCullingMode::CullCounterClockwise,
-		.. Default::default()
-	};	
+	// // Create program:
+	// let program = glium::Program::from_source(&display, vertex_shader_src, fragment_shader_src, None).unwrap();
+
+	// // Draw parameters:
+	// let params = glium::DrawParameters {
+	// 	depth: glium::Depth {
+	// 		test: glium::DepthTest::IfLess,
+	// 		write: true,
+	// 		.. Default::default()
+	// 	},
+	// 	// backface_culling: glium::draw_parameters::BackfaceCullingMode::CullCounterClockwise,
+	// 	backface_culling: glium::draw_parameters::BackfaceCullingMode::CullingDisabled, // <-- default
+	// 	.. Default::default()
+	// };
+
+	// ------------- ^ DEPRICATE ^
 
 	// Print random deets:
 	println!("\t==== Vibi Experimental Window ====\n\
@@ -169,7 +162,7 @@ pub fn open(control_tx: Sender<CyCtl>, status_rx: Receiver<CySts>) {
 	let mut f_c: f32 = -0.5;
 	let mut stats = WinStats::new();
 	let mut exit_app: bool = false;
-	let mut grid_side = GRID_SIDE;
+	let mut grid_side = GRID_SIDE; // <--- DEPRICATE
 
 	// Event/Rendering loop:
 	loop {
@@ -212,127 +205,85 @@ pub fn open(control_tx: Sender<CyCtl>, status_rx: Receiver<CySts>) {
 			}
 		}
 
-		// Get frame dimensions 
-		// [FIXME]: TODO: Is 'target.get_dimensions()' better to call?:
-		let (width, height) = display.get_framebuffer_dimensions();
-
 		// Create draw target and clear color and depth:
 		let mut target = display.draw();
 		target.clear_color_and_depth((0.030, 0.050, 0.080, 1.0), 1.0);
 
+		// // Get frame dimensions 
+		// // [FIXME]: TODO: Is 'target.get_dimensions()' better to call?:
+		// let (width, height) = display.get_framebuffer_dimensions();
 
-		// Center of hex grid:
-		let grid_ctr_x = HEX_X * (grid_side as f32 - 1.0);
-		let grid_top_y = (HEX_Y * (grid_side as f32 - 1.0)) / 2.0;
-		let grid_ctr_z = -grid_ctr_x * 1.5;
+		// // Center of hex grid:
+		// let grid_ctr_x = HEX_X * (grid_side as f32 - 1.0);
+		// let grid_top_y = (HEX_Y * (grid_side as f32 - 1.0)) / 2.0;
+		// let grid_ctr_z = -grid_ctr_x * 1.5;
 
-		// Grid count:
-		// // Grow and shrink grid count:
-		// let ii = i / 1000;
-		// let grid_count = if (ii / GRID_COUNT) & 1 == 1 {
-		// 	GRID_COUNT - (ii % GRID_COUNT) } else { (ii % GRID_COUNT) };
-		let grid_count = (grid_side * grid_side) as usize;	
+		// // Grid count:
+		// // // Grow and shrink grid count:
+		// // let ii = i / 1000;
+		// // let grid_count = if (ii / GRID_COUNT) & 1 == 1 {
+		// // 	GRID_COUNT - (ii % GRID_COUNT) } else { (ii % GRID_COUNT) };
+		// let grid_count = (grid_side * grid_side) as usize;	
 
-		// Perspective transformation matrix:
-		let persp = persp_matrix(width, height, 3.0);
+		// // Perspective transformation matrix:
+		// let persp = persp_matrix(width, height, 3.0);
 
-		// Camera position:
-		let cam_x = f32::cos(f_c) * grid_ctr_x * 0.8;
-		let cam_y = f32::cos(f_c) * grid_top_y * 0.8;
-		let cam_z = f32::cos(f_c / 3.0) * grid_ctr_z * 0.4; // <-- last arg sets zoom range
+		// // Camera position:
+		// let cam_x = f32::cos(f_c) * grid_ctr_x * 0.8;
+		// let cam_y = f32::cos(f_c) * grid_top_y * 0.8;
+		// let cam_z = f32::cos(f_c / 3.0) * grid_ctr_z * 0.4; // <-- last arg sets zoom range
 
-		// View transformation matrix: { position(x,y,z), direction(x,y,z), up_dim(x,y,z)}
-		let view = view_matrix(
-			&[	grid_ctr_x + cam_x, 
-				0.0 + cam_y, 
-				(grid_ctr_z * 0.4) + cam_z + -1.7],  // <-- second f32 sets z base
-			&[	0.0 - (cam_x / 5.0), 
-				0.0 - (cam_y / 5.0), 
-				0.5 * -grid_ctr_z],  // <-- first f32 sets distant focus point
-			&[0.0, 1.0, 0.0]
-		);
+		// // View transformation matrix: { position(x,y,z), direction(x,y,z), up_dim(x,y,z)}
+		// let view = view_matrix(
+		// 	&[	grid_ctr_x + cam_x, 
+		// 		0.0 + cam_y, 
+		// 		(grid_ctr_z * 0.4) + cam_z + -1.7],  // <-- second f32 sets z base
+		// 	&[	0.0 - (cam_x / 5.0), 
+		// 		0.0 - (cam_y / 5.0), 
+		// 		0.5 * -grid_ctr_z],  // <-- first f32 sets distant focus point
+		// 	&[0.0, 1.0, 0.0]
+		// );
 
-		// Model transformation matrix:
-		let grid_model = [
-			[1.0, 0.0, 0.0, 0.0],
-			[0.0, 1.0, 0.0, 0.0],
-			[0.0, 0.0, 1.0, 0.0],
-			[0.0, 0.0, 0.0, 1.0f32]
-		];
-
-		// Light position:
-		let light_pos = [-1.0, 0.4, -0.9f32];
-
-		// Model color:
-		let model_color = [
-			(f32::abs(f32::cos(f_c / 3.0) * 0.99)) + 0.001, 
-			(f32::abs(f32::sin(f_c / 2.0) * 0.99)) + 0.001, 
-			(f32::abs(f32::cos(f_c / 1.0) * 0.99)) + 0.001,
-		];
-
-		// Uniforms:
-		let mut uniforms = uniform! {		
-			model: grid_model,
-			view: view,
-			persp: persp,
-			u_light_pos: light_pos,
-			u_model_color: model_color,
-			grid_side: grid_side,
-			// diffuse_tex: &diffuse_texture,
-			// normal_tex: &normal_map,
-		};
-
-		//////////////////////////////// TEXT /////////////////////////////////
-
-		// let text_model_matrix = [
-		// 	[2.0 / text_width, 0.0, 0.0, 0.0,],
-		// 	[0.0, 2.0 * (width as f32) / (height as f32) / text_width, 0.0, 0.0,],
-		// 	[0.0, 0.0, 1.0, 0.0,],
-		// 	[-1.0, -1.0, 0.0, 1.0f32,],
+		// // Model transformation matrix:
+		// let grid_model = [
+		// 	[1.0, 0.0, 0.0, 0.0],
+		// 	[0.0, 1.0, 0.0, 0.0],
+		// 	[0.0, 0.0, 1.0, 0.0],
+		// 	[0.0, 0.0, 0.0, 1.0f32]
 		// ];
 
-		
-		// let text_scl = 0.019; // / ((width * height) as f32 / 1000000.0);
-		// // let text_x_scl = text_scl * 2.0 / text_width;
-		// // let text_y_scl = text_scl * 2.0 * (width as f32) / (height as f32) / text_width;
+		// // Light position:
+		// let light_pos = [-1.0, 0.4, -0.9f32];
 
-		// let text_x_scl = text_scl / (width as f32 / 1000.0);
-		// let text_y_scl = text_x_scl * (width as f32) / (height as f32);
-
-		// // FPS Text:
-		// let fps_text_matrix = [
-		// 	[text_x_scl, 0.0, 0.0, 0.0,],
-		// 	[0.0, text_y_scl, 0.0, 0.0,],
-		// 	[0.0, 0.0, 1.0, 0.0,],
-		// 	[-1.0, 1.0 - (2.0 * text_y_scl), 0.0, 1.0f32,],
+		// // Model color:
+		// let model_color = [
+		// 	(f32::abs(f32::cos(f_c / 3.0) * 0.99)) + 0.001, 
+		// 	(f32::abs(f32::sin(f_c / 2.0) * 0.99)) + 0.001, 
+		// 	(f32::abs(f32::cos(f_c / 1.0) * 0.99)) + 0.001,
 		// ];
-		// let fps_text = glium_text::TextDisplay::new(&text_system, &font, 
-		// 	&format!("FPS: {}", stats.fps()));
-		// glium_text::draw(&fps_text, &text_system, &mut target, fps_text_matrix, 
-		// 	(0.99, 0.99, 0.99, 1.0));
 
+		// // Uniforms:
+		// let mut uniforms = uniform! {		
+		// 	model: grid_model,
+		// 	view: view,
+		// 	persp: persp,
+		// 	u_light_pos: light_pos,
+		// 	u_model_color: model_color,
+		// 	grid_side: grid_side,
+		// 	// diffuse_tex: &diffuse_texture,
+		// 	// normal_tex: &normal_map,
+		// };
 
-		// // Grid Side Text:
-		// let gs_text_matrix = [
-		// 	[text_x_scl, 0.0, 0.0, 0.0,],
-		// 	[0.0, text_y_scl, 0.0, 0.0,],
-		// 	[0.0, 0.0, 1.0, 0.0,],
-		// 	[-1.0, 1.0 - (4.0 * text_y_scl), 0.0, 1.0f32,],
-		// ];
-		// let gs_text = glium_text::TextDisplay::new(&text_system, &font, 
-		// 	&format!("Grid: {gs} X {gs}", gs = grid_side));
-		// glium_text::draw(&gs_text, &text_system, &mut target, gs_text_matrix, 
-		// 	(0.99, 0.99, 0.99, 1.0));
+		// Draw hex grid:
+		hex_grid.draw(&mut target, f_c);
 
+		// Draw FPS and grid side text:
 		status_text.draw(&mut target, &stats, grid_side);
 
-
-		///////////////////////////////////////////////////////////////////////
-
-		// Draw:
-		target.draw((&hex_vertices, glium::vertex::EmptyInstanceAttributes { 
-			len: grid_count }), &hex_indices, &program, &uniforms, 
-			&params).unwrap();
+		// // Draw Grid:
+		// target.draw((&hex_vertices, glium::vertex::EmptyInstanceAttributes { 
+		// 	len: grid_count }), &hex_indices, &program, &uniforms, 
+		// 	&params).unwrap();
 
 		// Swap buffers:
 		target.finish().unwrap();
