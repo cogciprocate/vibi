@@ -1,7 +1,8 @@
 #![allow(dead_code, unused_variables)]
 use glium_text::{ self, TextSystem, FontTexture, TextDisplay };
 use glium::{ Surface };
-use glium::backend::glutin_backend::{ GlutinFacade };
+// use glium::backend::glutin_backend::{ GlutinFacade };
+use glium::backend::{ Facade };
 
 use super::win_stats::{ WinStats };
 
@@ -11,7 +12,7 @@ pub struct StatusText {
 }
 
 impl StatusText {
-	pub fn new(display: &GlutinFacade) -> StatusText {
+	pub fn new<F: Facade>(display: &F) -> StatusText {
 		// Text system (experimental):
 		let text_system = TextSystem::new(display);
 
@@ -45,7 +46,7 @@ impl StatusText {
 		let text_y_scl = text_x_scl * (width as f32) / (height as f32);
 
 		// FPS Text:
-		let fps_text_matrix = [
+		let fps_text_xform = [
 			[text_x_scl, 0.0, 0.0, 0.0,],
 			[0.0, text_y_scl, 0.0, 0.0,],
 			[0.0, 0.0, 1.0, 0.0,],
@@ -53,9 +54,9 @@ impl StatusText {
 		];
 
 		let fps_text = TextDisplay::new(&self.text_system, &self.font_texture, 
-			&format!("FPS: {}", stats.fps()));
+			&format!("FPS: {:.1}", stats.fps()));
 
-		glium_text::draw(&fps_text, &self.text_system, target, fps_text_matrix, 
+		glium_text::draw(&fps_text, &self.text_system, target, fps_text_xform, 
 			(0.99, 0.99, 0.99, 1.0));
 
 

@@ -10,7 +10,7 @@ path = "/home/nick/projects/bismit"
 git = "https://github.com/rust-lang/time.git"
 
 [dependencies]
-glium = "*"
+glium = "0.12"
 glium_text = "*"
 image = "*"
 piston_window = "*"

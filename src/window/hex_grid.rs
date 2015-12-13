@@ -1,11 +1,6 @@
 #![allow(dead_code, unused_variables)]
 use glium::backend::glutin_backend::{ GlutinFacade };
-use glium::{ self, Surface, Program, DrawParameters };
-use glium::vertex::{ VertexBuffer };
-use glium::index::{ IndexBuffer };
-
-const C_PINK: [f32; 3] = [0.9882, 0.4902, 0.7059];
-const C_ORANGE: [f32; 3] = [0.9607, 0.4745, 0.0];
+use glium::{ self, Surface, Program, DrawParameters, VertexBuffer, IndexBuffer };
 
 const GRID_SIDE: u32 = 64;
 const MAX_GRID_SIDE: u32 = 8192;
@@ -18,7 +13,6 @@ pub struct HexGrid<'d> {
 	indices: IndexBuffer<u16>,
 	program: Program,
 	params: DrawParameters<'d>,
-	yo: u8,
 	pub grid_side: u32,
 }
 
@@ -29,10 +23,10 @@ impl<'d> HexGrid<'d> {
 		let indices = hex_ibo(display);
 
 		// Create program:
-		let program = glium::Program::from_source(display, vertex_shader_src, fragment_shader_src, None).unwrap();
+		let program = Program::from_source(display, vertex_shader_src, fragment_shader_src, None).unwrap();
 
 		// Draw parameters:
-		let params = glium::DrawParameters {
+		let params = DrawParameters {
 			depth: glium::Depth {
 				test: glium::DepthTest::IfLess,
 				write: true,
@@ -48,12 +42,14 @@ impl<'d> HexGrid<'d> {
 			indices: indices,
 			program: program,
 			params: params,
-			yo: 0,
 			grid_side: GRID_SIDE,
 		}
 	}
 
-	pub fn draw<S: Surface>(&self, target: &mut S, f_c: f32) {
+	pub fn draw<S: Surface>(&self, target: &mut S, elapsed_ms: f64) {
+		// Set up our frame-countery-thing:
+		let f_c = (elapsed_ms / 4000.0) as f32;
+
 		// Get frame dimensions:
 		let (width, height) = target.get_dimensions();
 
@@ -136,9 +132,9 @@ static vertex_shader_src: &'static str = r#"
 	in vec3 color;
 	in vec3 normal;
 
-	out vec3 v_color;
-	out vec3 v_normal;
 	out vec3 v_position;
+	out vec3 v_color;
+	out vec3 v_normal;	
 
 	uniform uint grid_side;
 	uniform mat4 model;
@@ -208,27 +204,6 @@ static fragment_shader_src: &'static str = r#"
 
 
 
-
-
-
-fn persp_matrix(width: u32, height: u32, zoom: f32) -> [[f32; 4]; 4] {
-	let zfar = 1024.0;
-	let znear = 0.1;
-
-	// let (width, height) = target.get_dimensions();
-	let aspect_ratio = height as f32 / width as f32;
-	let fov: f32 = 3.141592 / zoom;	
-	let f = 1.0 / (fov / 2.0).tan();
-
-	[
-		[f *   aspect_ratio   ,    0.0,              0.0              ,   0.0],
-		[         0.0         ,     f ,              0.0              ,   0.0],
-		[         0.0         ,    0.0,  (zfar+znear)/(zfar-znear)    ,   1.0],
-		[         0.0         ,    0.0, -(2.0*zfar*znear)/(zfar-znear),   0.0],
-	]
-}
-
-
 fn hex_vbo(display: &GlutinFacade) -> glium::vertex::VertexBuffer<Vertex> {
 	let a = 0.5 / 10.0f32;
 	let s = 0.57735026919 / 10.0f32; // 1/sqrt(3)
@@ -271,6 +246,25 @@ impl Vertex {
 	}
 }
 implement_vertex!(Vertex, position, color, normal);
+
+
+
+fn persp_matrix(width: u32, height: u32, zoom: f32) -> [[f32; 4]; 4] {
+	let zfar = 1024.0;
+	let znear = 0.1;
+
+	// let (width, height) = target.get_dimensions();
+	let aspect_ratio = height as f32 / width as f32;
+	let fov: f32 = 3.141592 / zoom;	
+	let f = 1.0 / (fov / 2.0).tan();
+
+	[
+		[f *   aspect_ratio   ,    0.0,              0.0              ,   0.0],
+		[         0.0         ,     f ,              0.0              ,   0.0],
+		[         0.0         ,    0.0,  (zfar+znear)/(zfar-znear)    ,   1.0],
+		[         0.0         ,    0.0, -(2.0*zfar*znear)/(zfar-znear),   0.0],
+	]
+}
 
 
 
