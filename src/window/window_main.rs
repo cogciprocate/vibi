@@ -46,23 +46,24 @@ pub fn open(control_tx: Sender<CyCtl>, status_rx: Receiver<CySts>) {
 	let status_text = StatusText::new(&display);
 
 	// Primary user interface:
-	let ui = Ui::new(&display)
-		.element(UiElement::new([0.0, 0.0, 0.0], (0, 0), (999, 999)))
-		.element(UiElement::new([1.0, 1.0, 0.0], (0, 0), (999, 999)))
-		.element(UiElement::new([-1.0, -1.0, 0.0], (0, 0), (999, 999)))
+	let mut ui = Ui::new(&display)
+		// .element(UiElement::new([anchor: x, y, z], (offset: x, y), (scale: x, y)))
+		.element(UiElement::new([1.0, 1.0, 0.0], (-0.08, -0.08), (0.9, 0.9)))
+		.element(UiElement::new([-1.0, -1.0, 0.0], (0.08, 0.08), (0.9, 0.9)))
+		.element(UiElement::new([1.0, -1.0, 0.0], (-0.08, 0.08), (0.9, 0.9)))
+		.element(UiElement::new([1.0, -1.0, 0.0], (-0.22, 0.08), (0.9, 0.9)))
 		.init();
-
-	// Print random deets:
-	println!("\t==== Vibi Experimental Window ====\n\
-		\tPress 'Escape' or 'Q' to quit.\n\
-		\tPress 'Up Arrow' to double or 'Down Arrow' to halve grid size.\n\
-		\tPress 'Right Arrow' to increase or 'Left Arrow' to decrease grid size by one.");
 	
 	// Loop vars:
 	let mut cycle_status = CySts::new();
 	let mut stats = WinStats::new();
 	let mut close_window: bool = false;
 
+	// Print some stuff:
+	println!("\t==== Vibi Experimental Window ====\n\
+		\tPress 'Escape' or 'Q' to quit.\n\
+		\tPress 'Up Arrow' to double or 'Down Arrow' to halve grid size.\n\
+		\tPress 'Right Arrow' to increase or 'Left Arrow' to decrease grid size by one.");
 
 	// Event/Rendering loop:
 	loop {
@@ -78,10 +79,14 @@ pub fn open(control_tx: Sender<CyCtl>, status_rx: Receiver<CySts>) {
 
 		// Check input events:
 		for ev in display.poll_events() {
-			use glium::glutin::Event::{ Closed, KeyboardInput };
+			use glium::glutin::Event::{ Closed, KeyboardInput, Resized };
 			match ev {
 				Closed => {					
 					close_window = true;
+				},
+
+				Resized(..) => {
+					ui.resize()
 				},
 
 				KeyboardInput(state, code, vk_code_o) => {

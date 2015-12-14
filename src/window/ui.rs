@@ -90,11 +90,30 @@ impl<'d> Ui<'d> {
 			));
 		}
 
-		self.vbo = Some(VertexBuffer::new(self.display, &vertices).unwrap());
+		self.vbo = Some(VertexBuffer::dynamic(self.display, &vertices).unwrap());
 		self.ibo = Some(IndexBuffer::new(self.display, glium::index::PrimitiveType::TrianglesList, 
 			&indices).unwrap());
 
 		self
+	}
+
+	pub fn resize(&mut self) {
+		match self.vbo {
+			Some(ref mut vbo) => {
+				let mut vertices: Vec<UiVertex> = Vec::with_capacity(vbo.len());
+
+				for element in self.elements.iter() {
+					vertices.extend_from_slice(&element.vertices(
+						self.display.get_framebuffer_dimensions(), self.scale
+					));
+				}
+
+				vbo.write(&vertices);
+			},
+
+			None => panic!("Ui::resize(): Cannot resize until Ui has been \
+				initialized with .init()"),
+		}
 	}
 
 	pub fn draw<S: Surface>(&self, target: &mut S) {

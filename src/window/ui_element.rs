@@ -5,12 +5,12 @@ pub struct UiElement {
 	vertices: Vec<UiVertex>,
 	indices: Vec<u16>,
 	anchor_pos: [f32; 3],
-	offset: (i32, i32), 
-	size: (u32, u32),
+	offset: (f32, f32), 
+	size: (f32, f32),
 }
 
 impl UiElement {
-	pub fn new(anchor_pos: [f32; 3], offset: (i32, i32), size: (u32, u32)) -> UiElement {
+	pub fn new(anchor_pos: [f32; 3], offset: (f32, f32), size: (f32, f32)) -> UiElement {
 		verify_pos(anchor_pos);
 		// NOTE: width(x): 1.15470053838 (2/sqrt(3)), height(y): 1.0
 		let scale =  0.1;
@@ -60,26 +60,28 @@ impl UiElement {
 		// let scale_vec: [f32; 2] = 
 
 		// -- Position --
-		let window_center_xy: (i32, i32) = 
-			(window_dims.0 as i32 / 2, window_dims.1 as i32 / 2);
+		let window_center_xy: (f32, f32) = (
+			window_dims.0 as f32 / 2.0, 
+			window_dims.1 as f32 / 2.0,
+		);
 
-		let anchor_xy: (i32, i32) = (
-			(self.anchor_pos[0] * window_center_xy.0 as f32) as i32,
-			(self.anchor_pos[1] * window_center_xy.1 as f32) as i32,
+		let anchor_xy: (f32, f32) = (
+			(self.anchor_pos[0] * window_center_xy.0),
+			(self.anchor_pos[1] * window_center_xy.1),
 		);
 
 		println!("### anchor_xy: {:?}", anchor_xy);
 
-		let element_center_xy: (i32, i32) = (
-			anchor_xy.0 + self.offset.0,
-			anchor_xy.1 + self.offset.1,
+		let element_center_xy: (f32, f32) = (
+			anchor_xy.0 / window_center_xy.1,
+			anchor_xy.1 / window_center_xy.1,
 		);
 
 		// [FIXME]: Handle aspect ratio ourselves?... not until dims are handled.
 		// Aspect ratio handled by 'Ui' so give x_coord in terms of y_dim.
 		let shift_vec: [f32; 3] = [
-			element_center_xy.0 as f32 / window_center_xy.1 as f32,
-			element_center_xy.1 as f32 / window_center_xy.1 as f32,
+			element_center_xy.0 + self.offset.0,
+			element_center_xy.1 + self.offset.1,
 			0.0,
 		];
 		
