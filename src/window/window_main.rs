@@ -2,13 +2,13 @@
 use std::f32;
 use std::thread;
 // use std::time::{ Duration as StdDuration };
-use time::{ self, Timespec, Duration };
-use std::io::{ Cursor };
-use std::sync::mpsc::{ Receiver, Sender };
-use glium::{ self, DisplayBuild, Surface };
-use glium::backend::glutin_backend::{ GlutinFacade };
+use time::{self, Timespec, Duration};
+use std::io::{Cursor};
+use std::sync::mpsc::{Receiver, Sender};
+use glium::{self, DisplayBuild, Surface};
+use glium::backend::glutin_backend::{GlutinFacade};
 use image;
-use find_folder::{ Search };
+use find_folder::{Search};
 use glium_text;
 use glium::glutin;
 // use piston_window::{ PistonWindow, WindowSettings, };
@@ -37,7 +37,7 @@ pub fn open(control_tx: Sender<CyCtl>, status_rx: Receiver<CySts>) {
 		.with_vsync()
 		// .with_transparency(true)
 		// .with_fullscreen(glium::glutin::get_primary_monitor())
-		.build_glium().unwrap();	
+		.build_glium().unwrap();
 
 	// Hex grid:
 	let mut hex_grid = HexGrid::new(&display);
@@ -48,11 +48,12 @@ pub fn open(control_tx: Sender<CyCtl>, status_rx: Receiver<CySts>) {
 	// Primary user interface:
 	let mut ui = Ui::new(&display)
 		// .element(UiElement::new([anchor: x, y, z], (offset: x, y), (scale: x, y)))
-		.element(UiElement::new([1.0, 1.0, 0.0], (-0.08, -0.08), (0.9, 0.9)))
-		.element(UiElement::new([-1.0, -1.0, 0.0], (0.08, 0.08), (0.9, 0.9)))
-		.element(UiElement::new([1.0, -1.0, 0.0], (-0.08, 0.08), (0.9, 0.9)))
-		.element(UiElement::new([1.0, -1.0, 0.0], (-0.22, 0.08), (0.9, 0.9)))
+		// .element(UiElement::hex_button([1.0, 1.0, 0.0], (-0.06, -0.06), 0.06, 0.0, "yo")
+		// .element(UiElement::hex_button([-1.0, -1.0, 0.0], (0.06, 0.06), 0.06, 0.0, "yo")
+		.element(UiElement::hex_button([1.0, -1.0, 0.0], (-0.20, 0.06), 0.06, 2.0, "YueEoeAo".to_string()))
+		.element(UiElement::hex_button([1.0, -1.0, 0.0], (-0.56, 0.06), 0.06, 2.0, "Yo".to_string()))
 		.init();
+
 	
 	// Loop vars:
 	let mut cycle_status = CySts::new();

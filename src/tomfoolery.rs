@@ -1,15 +1,15 @@
 use std::thread;
 use std::sync::mpsc;
-use time::{ Timespec };
+use time::{Timespec};
 
 
 
 
 #[allow(dead_code)]
 fn tomfoolery(ts: &Timespec) {
-	use std::thread::{ self, JoinHandle };
-	use std::sync::{ Arc, Mutex };
-	use std::time::{ Duration };
+	use std::thread::{self, JoinHandle};
+	use std::sync::{Arc, Mutex};
+	use std::time::{Duration};
 
 	const TCOUNT: usize = 3;
 

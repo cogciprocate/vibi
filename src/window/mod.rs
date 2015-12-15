@@ -1,10 +1,10 @@
 
-pub use self::win_stats::{ WinStats };
-pub use self::status_text::{ StatusText };
-pub use self::hex_grid::{ HexGrid };
-pub use self::ui::{ Ui };
-pub use self::ui_element::{ UiElement };
-pub use self::ui_vertex::{ UiVertex };
+pub use self::win_stats::{WinStats};
+pub use self::status_text::{StatusText};
+pub use self::hex_grid::{HexGrid};
+pub use self::ui::{Ui};
+pub use self::ui_element::{UiElement};
+pub use self::ui_vertex::{UiVertex};
 
 mod win_stats;
 mod status_text;

@@ -1,4 +1,4 @@
-use time::{ self, Timespec, Duration };
+use time::{self, Timespec, Duration};
 
 
 pub struct WinStats {

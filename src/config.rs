@@ -1,7 +1,7 @@
-use bismit::cortex::{ Cortex };
-use bismit::map::{ self, LayerTags };
-use bismit::proto::{ ProtolayerMap, ProtolayerMaps, ProtoareaMaps, Axonal, Spatial, Horizontal, 
-	Sensory, Thalamic, Protocell, Protofilter, Protoinput };
+use bismit::cortex::{Cortex};
+use bismit::map::{self, LayerTags};
+use bismit::proto::{ProtolayerMap, ProtolayerMaps, ProtoareaMaps, Axonal, Spatial, Horizontal, 
+	Sensory, Thalamic, Protocell, Protofilter, Protoinput};
 
 
 /* Eventually move defines to a config file or some such */

@@ -1,6 +1,6 @@
 #![allow(dead_code, unused_variables)]
-use glium::backend::glutin_backend::{ GlutinFacade };
-use glium::{ self, Surface, Program, DrawParameters, VertexBuffer, IndexBuffer };
+use glium::backend::glutin_backend::{GlutinFacade};
+use glium::{self, Surface, Program, DrawParameters, VertexBuffer, IndexBuffer};
 
 const GRID_SIDE: u32 = 64;
 const MAX_GRID_SIDE: u32 = 8192;

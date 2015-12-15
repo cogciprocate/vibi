@@ -1,8 +1,10 @@
 #![allow(dead_code, unused_variables)]
-use glium::backend::glutin_backend::{ GlutinFacade };
-use glium::{ self, VertexBuffer, IndexBuffer, Program, DrawParameters, Surface, };
-use glium::vertex::{ EmptyInstanceAttributes as EIAttribs };
-use super::{ UiVertex, UiElement };
+// use std::ops::{Deref};
+use glium_text::{self, TextSystem, FontTexture, TextDisplay};
+use glium::backend::glutin_backend::{GlutinFacade};
+use glium::{self, VertexBuffer, IndexBuffer, Program, DrawParameters, Surface,};
+use glium::vertex::{EmptyInstanceAttributes as EIAttribs};
+use super::{UiVertex, UiElement};
 
 const TWOSR3: f32 = 1.15470053838;
 
@@ -14,8 +16,8 @@ pub struct Ui<'d> {
 	params: DrawParameters<'d>,
 	display: &'d GlutinFacade,
 	scale: f32,
-	// perspective: [[f32; 4]; 4],
-	// models: Vec<([[f32; 4]; 4], [f32; 3])>,
+	text_system: TextSystem,
+	font_texture: FontTexture,
 }
 
 impl<'d> Ui<'d> {
@@ -39,22 +41,14 @@ impl<'d> Ui<'d> {
 			.. Default::default()
 		};
 
-		// let perspective = [
-		// 	[ ar, 0.0, 0.0, 0.0],
-		// 	[0.0, 1.0, 0.0, 0.0],
-		// 	[0.0, 0.0, 1.0, 1.0],
-		// 	[0.0, 0.0, 0.0, 1.0f32]
-		// ];
+		// Glium text renderer:
+		let text_system = TextSystem::new(display);
 
-		// let mut models = Vec::new();
-
-		// models.push((
-		// 	[ 	[0.1, 0.0, 0.0, 0.0],
-		// 	  	[0.0, 0.1, 0.0, 0.0],
-		// 	  	[0.0, 0.0, 1.0, 0.0],
-		// 	  	[1.0, -1.0 + (0.1), 0.0, 1.0f32], ],
-		// 	super::C_ORANGE
-		// ));
+		// Text font:
+		let font_size = 24;
+		let font_texture = FontTexture::new(display, &include_bytes!(
+				"/home/nick/projects/vibi/assets/fonts/NotoSans/NotoSans-Regular.ttf"
+			)[..], font_size).unwrap();
 
 		Ui { 
 			vbo: vbo,
@@ -64,6 +58,8 @@ impl<'d> Ui<'d> {
 			params: params,
 			display: display,
 			scale: scale,
+			text_system: text_system,
+			font_texture: font_texture,
 			// perspective: perspective,
 			// models: models,
 		}
@@ -78,16 +74,18 @@ impl<'d> Ui<'d> {
 		self
 	}
 
-	pub fn init(mut self) -> Ui<'d> {
+	pub fn init( mut self) -> Ui<'d> {
 		let mut vertices: Vec<UiVertex> = Vec::new();
 		let mut indices: Vec<u16> = Vec::new();
 
-		for element in self.elements.iter() {
+		for element in self.elements.iter_mut() {
 			indices.extend_from_slice(&element.indices(vertices.len() as u16));
 
 			vertices.extend_from_slice(&element.vertices(
 				self.display.get_framebuffer_dimensions(), self.scale
 			));
+
+			// element.init(&self.text_system, &self.font_texture);
 		}
 
 		self.vbo = Some(VertexBuffer::dynamic(self.display, &vertices).unwrap());
@@ -102,7 +100,7 @@ impl<'d> Ui<'d> {
 			Some(ref mut vbo) => {
 				let mut vertices: Vec<UiVertex> = Vec::with_capacity(vbo.len());
 
-				for element in self.elements.iter() {
+				for element in self.elements.iter_mut() {
 					vertices.extend_from_slice(&element.vertices(
 						self.display.get_framebuffer_dimensions(), self.scale
 					));
@@ -126,18 +124,18 @@ impl<'d> Ui<'d> {
 
 		let ar = height as f32 / width as f32;	
 
-		let perspective = [
-			[ ar, 0.0, 0.0, 0.0],
-			[0.0, 1.0, 0.0, 0.0],
-			[0.0, 0.0, 1.0, 1.0],
-			[0.0, 0.0, 0.0, 1.0f32]
-		];
 		// let perspective = [
-		// 	[1.0, 0.0, 0.0, 0.0],
+		// 	[ ar, 0.0, 0.0, 0.0],
 		// 	[0.0, 1.0, 0.0, 0.0],
 		// 	[0.0, 0.0, 1.0, 1.0],
 		// 	[0.0, 0.0, 0.0, 1.0f32]
 		// ];
+		let perspective = [
+			[1.0, 0.0, 0.0, 0.0],
+			[0.0, 1.0, 0.0, 0.0],
+			[0.0, 0.0, 1.0, 1.0],
+			[0.0, 0.0, 0.0, 1.0f32]
+		];
 
 		// let model = 
 		// 	[ 	[0.1, 0.0, 0.0, 0.0],
@@ -158,11 +156,52 @@ impl<'d> Ui<'d> {
 			// grid_side: self.grid_side,
 			// diffuse_tex: &diffuse_texture,
 			// normal_tex: &normal_map,
-		};		
+		};
 
-		// Draw Grid:
+		// Draw elements:
 		target.draw((self.vbo.as_ref().unwrap(), EIAttribs { len: 1 }), self.ibo.as_ref().unwrap(), 
 			&self.program, &uniforms, &self.params).unwrap();
+
+
+		//////////////////////// DRAW TEXT ////////////////////////
+		let (width, height) = target.get_dimensions();
+		
+		let text_scale = 0.45;
+
+		// let text_x_scl = text_scl / (width as f32 / 1000.0);
+		// let text_y_scl = text_x_scl * (width as f32) / (height as f32);
+
+		for element in self.elements.iter() {
+			let text_display = TextDisplay::new(&self.text_system, &self.font_texture, 
+				element.text());
+
+			let ele_pos = element.position();
+			let ele_scl = element.scale();
+
+			let text_width = text_display.get_width();
+
+			let txt_scl: [f32; 3] = [
+				ele_scl[0] * text_scale, 
+				ele_scl[1] * text_scale, 
+				0.0
+			];
+
+			let txt_ofs: [f32; 3] = [
+				(-ele_scl[0] * text_width / 2.0) * text_scale, 
+				(-ele_scl[1] / 2.0) * text_scale, // -0.01, 
+				0.0
+			];
+
+			let matrix = [
+				[txt_scl[0], 0.0, 0.0, 0.0,],
+				[0.0, txt_scl[1], 0.0, 0.0,],
+				[0.0, 0.0, 1.0, 0.0,],
+				[ele_pos[0] + txt_ofs[0], ele_pos[1] + txt_ofs[1], 0.0, 1.0f32,],
+			];
+
+			glium_text::draw(&text_display, &self.text_system, target, matrix, 
+				(0.99, 0.99, 0.99, 1.0));
+		}
 	}
 }
 

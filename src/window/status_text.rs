@@ -1,11 +1,15 @@
+// <<<<< THIS MODULE IS MARKED FOR DEPRICATION >>>>>
+
 #![allow(dead_code, unused_variables)]
-use glium_text::{ self, TextSystem, FontTexture, TextDisplay };
-use glium::{ Surface };
+use glium_text::{self, TextSystem, FontTexture, TextDisplay};
+use glium::{Surface};
 // use glium::backend::glutin_backend::{ GlutinFacade };
-use glium::backend::{ Facade };
+use glium::backend::{Facade};
 
-use super::win_stats::{ WinStats };
+use super::win_stats::{WinStats};
 
+
+// TODO: DEPRICATE
 pub struct StatusText {
 	text_system: TextSystem,
 	font_texture: FontTexture,

@@ -1,9 +1,9 @@
-use std::io::{ self, Write };
-use time::{ self, Timespec, Duration };
-use std::sync::mpsc::{ Sender, Receiver };
+use std::io::{self, Write};
+use time::{self, Timespec, Duration};
+use std::sync::mpsc::{Sender, Receiver};
 
-use bismit::cortex::{ self, Cortex };
-use bismit::input_source::{ InputGanglion };
+use bismit::cortex::{self, Cortex};
+use bismit::input_source::{InputGanglion};
 use config;
 
 use interactive::{ self as iact, output_czar };
