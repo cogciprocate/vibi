@@ -47,11 +47,11 @@ pub fn open(control_tx: Sender<CyCtl>, status_rx: Receiver<CySts>) {
 
 	// Primary user interface:
 	let mut ui = Ui::new(&display)
-		// .element(UiElement::new([anchor: x, y, z], (offset: x, y), (scale: x, y)))
+		// .element(UiElement::hex_button([anchor: x, y, z], (offset: x, y), scale, extra_width, text))
 		// .element(UiElement::hex_button([1.0, 1.0, 0.0], (-0.06, -0.06), 0.06, 0.0, "yo")
 		// .element(UiElement::hex_button([-1.0, -1.0, 0.0], (0.06, 0.06), 0.06, 0.0, "yo")
-		.element(UiElement::hex_button([1.0, -1.0, 0.0], (-0.20, 0.06), 0.06, 2.0, "YueEoeAo".to_string()))
-		.element(UiElement::hex_button([1.0, -1.0, 0.0], (-0.56, 0.06), 0.06, 2.0, "Yo".to_string()))
+		.element(UiElement::hex_button([1.0, -1.0, 0.0], (-0.52, 0.06), 0.06, 2.0, "Settings".to_string()))
+		.element(UiElement::hex_button([1.0, -1.0, 0.0], (-0.18, 0.06), 0.06, 2.0, "Exit".to_string()))
 		.init();
 
 	

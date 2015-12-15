@@ -1,5 +1,5 @@
 #![allow(dead_code)]
-// use glium_text::{TextSystem, FontTexture};
+use glium_text::{TextSystem, FontTexture, TextDisplay};
 use super::{UiVertex};
 
 pub struct UiElement {
@@ -8,11 +8,13 @@ pub struct UiElement {
 	anchor_pos: [f32; 3],
 	offset: (f32, f32), 
 	scale: (f32, f32),
-	position_vec: [f32; 3],
 	scale_vec: [f32; 3],
-	// font_texture: Option<FontTexture>,
-	// text_display: Option<TextDisplay<&'f FontTexture>>,
+	position_vec: [f32; 3],	
 	text: String,
+	text_scale: f32,
+	text_width: f32,
+	txt_scl: [f32; 3],
+	txt_pos: [f32; 3],
 }
 
 impl UiElement {
@@ -28,11 +30,13 @@ impl UiElement {
 			anchor_pos: anchor_pos,
 			offset: offset,
 			scale: scale,
-			// font_texture: None,
-			// text_display: None,
-			text: text,
-			position_vec: [0.0, 0.0, 0.0], 
 			scale_vec: [0.0, 0.0, 0.0],
+			position_vec: [0.0, 0.0, 0.0],
+			text: text,
+			text_scale: 0.45,
+			text_width: 1.0,
+			txt_scl: [0.0, 0.0, 0.0], 
+			txt_pos: [0.0, 0.0, 0.0],
 		}
 	}
 
@@ -67,22 +71,6 @@ impl UiElement {
 		UiElement::new(anchor_pos, offset, (scale, scale), vertices, indices, text,)
 	}
 
-	// pub fn init(mut self, text_sys: &TextSystem, font_tex: FontTexture,
-	// 		) -> UiElement
-	// {
-	// 	self.font_texture = Some(font_tex);
-	// 	self.text_display = Some(TextDisplay::new(text_sys, self.font_texture.as_ref().unwrap(), &self.text));
-	// 	self
-	// }
-
-	// pub fn init(&mut self, text_sys: &TextSystem, font_tex: &'f FontTexture,
-	// 		) -> UiElement
-	// {
-	// 	self.text_display = Some(TextDisplay::new(text_sys, font_tex, &self.text));
-	// 	// self
-	// }
-
-
 	pub fn vertices_raw(&self) -> &[UiVertex] {
 		&self.vertices[..]
 	}
@@ -94,42 +82,31 @@ impl UiElement {
 	pub fn vertices(&mut self, window_dims: (u32, u32), scale: f32) -> Vec<UiVertex> {
 		let ar = window_dims.0 as f32 / window_dims.1 as f32;	
 
-		// -- Scale --
 		self.scale_vec = [self.scale.0 * scale / ar, self.scale.1 * scale, 1.0];
-
-		// -- Position --
-		// let window_center_xy: (u32, u32) = (
-		// 	window_dims.0 / 2, 
-		// 	window_dims.1 / 2,
-		// );
-
-		// let anchor_xy: (f32, f32) = (
-		// 	(self.anchor_pos[0]),
-		// 	(self.anchor_pos[1]),
-		// );
-
-		// println!("### anchor_xy: {:?}", anchor_xy);
-
-		// [FIXME]: Handle aspect ratio ourselves?... not until dims are handled.
-		// Aspect ratio handled by 'Ui' so scale x_coord in terms of y_dim for now (forever?).
-		// let element_center_xy: (f32, f32) = (
-		// 	anchor_xy.0,
-		// 	anchor_xy.1,
-		// );
 		
 		self.position_vec = [
 			self.anchor_pos[0] + (self.offset.0 / ar),
 			self.anchor_pos[1] + self.offset.1,
 			0.0,
 		];
-		
+
+		self.txt_scl = [
+			self.scale_vec[0] * self.text_scale, 
+			self.scale_vec[1] * self.text_scale, 
+			0.0
+		];
+
+		self.txt_pos = [
+			((-self.scale_vec[0] * self.text_width / 2.0) * self.text_scale) + self.position_vec[0], 
+			((-self.scale_vec[1] / 2.0) * self.text_scale) + self.position_vec[1],
+			0.0
+		];
 
 		// [FIXME]: TODO: Convert all of this to a collect():
 		let mut vertices = Vec::with_capacity(self.vertices.len());
 
 		for &vertex in self.vertices.iter() {
 			vertices.push(vertex.transform(&self.scale_vec, &self.position_vec));
-			// vertices.push(vertex.shift(&shift_vec));
 		}
 
 		vertices
@@ -146,6 +123,11 @@ impl UiElement {
 		indices_shifted
 	}
 
+	pub fn set_text_width(&mut self, ts: &TextSystem, ft: &FontTexture) {
+		let text_display = TextDisplay::new(ts, ft, &self.text);
+		self.text_width = text_display.get_width();
+	}
+
 	pub fn position(&self) -> [f32; 3] {
 		self.position_vec
 	}
@@ -156,6 +138,15 @@ impl UiElement {
 
 	pub fn text(&self) -> &str {
 		&self.text
+	}
+
+	pub fn text_matrix(&self) -> [[f32; 4]; 4] {
+		[	
+			[self.txt_scl[0], 0.0, 0.0, 0.0,],
+			[0.0, self.txt_scl[1], 0.0, 0.0,],
+			[0.0, 0.0, 1.0, 0.0,],
+			[self.txt_pos[0], self.txt_pos[1], 0.0, 1.0f32,], 
+		]
 	}
 }
 
@@ -168,34 +159,3 @@ fn verify_position(position: [f32; 3]) {
 			position[0], position[1], position[2])
 	);
 }
-
-
-// fn vbo(display: &GlutinFacade) -> VertexBuffer<UiVertex> {
-// 	// NOTE: width(x): 1.15470053838 (2/sqrt(3)), height(y): 1.0
-// 	let a = 0.5;
-// 	let s = 0.57735026919; // 1/sqrt(3)
-// 	let hs = s / 2.0f32;
-
-// 	glium::vertex::VertexBuffer::new(display, &[
-// 			UiVertex::new([ 0.0, 	 0.0, 	 0.0], [0.4, 0.4, 0.4,], [0.0, 0.0, -1.0]),
-// 			UiVertex::new([-hs, 	 a,  	 0.0], [0.7, 0.7, 0.2,], [0.0, 0.0, -1.0]),
-// 			UiVertex::new([ hs, 	 a,  	 0.0], [0.2, 0.7, 0.7,], [0.0, 0.0, -1.0]),
-// 			UiVertex::new([ s, 	 0.0,  	 0.0], [0.7, 0.2, 0.7,], [0.0, 0.0, -1.0]),
-// 			UiVertex::new([ hs, 	-a, 	 0.0], [0.7, 0.7, 0.2,], [0.0, 0.0, -1.0]),
-// 			UiVertex::new([-hs, 	-a,  	 0.0], [0.2, 0.7, 0.7,], [0.0, 0.0, -1.0]),
-// 			UiVertex::new([-s, 	 0.0,  	 0.0], [0.7, 0.2, 0.7,], [0.0, 0.0, -1.0]),
-// 		]).unwrap()
-// }
-
-
-// fn ibo(display: &GlutinFacade) -> IndexBuffer<u16> {
-// 	glium::IndexBuffer::new(display, glium::index::PrimitiveType::TrianglesList, &[
-// 			0, 1, 2,
-// 			2, 3, 0,
-// 			0, 3, 4,
-// 			4, 5, 0,
-// 			0, 5, 6,
-// 			6, 1, 0u16,
-// 		]).unwrap()
-// }
-

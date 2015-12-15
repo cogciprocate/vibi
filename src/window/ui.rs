@@ -37,7 +37,6 @@ impl<'d> Ui<'d> {
 				.. Default::default()
 			},
 			// backface_culling: glium::draw_parameters::BackfaceCullingMode::CullCounterClockwise,
-			backface_culling: glium::draw_parameters::BackfaceCullingMode::CullingDisabled, // <-- default
 			.. Default::default()
 		};
 
@@ -60,8 +59,6 @@ impl<'d> Ui<'d> {
 			scale: scale,
 			text_system: text_system,
 			font_texture: font_texture,
-			// perspective: perspective,
-			// models: models,
 		}
 	}
 
@@ -79,13 +76,13 @@ impl<'d> Ui<'d> {
 		let mut indices: Vec<u16> = Vec::new();
 
 		for element in self.elements.iter_mut() {
+			element.set_text_width(&self.text_system, &self.font_texture);
+
 			indices.extend_from_slice(&element.indices(vertices.len() as u16));
 
 			vertices.extend_from_slice(&element.vertices(
 				self.display.get_framebuffer_dimensions(), self.scale
-			));
-
-			// element.init(&self.text_system, &self.font_texture);
+			));			
 		}
 
 		self.vbo = Some(VertexBuffer::dynamic(self.display, &vertices).unwrap());
@@ -119,88 +116,24 @@ impl<'d> Ui<'d> {
 			panic!("Ui::draw(): Buffers not initialized.") 
 		}
 
-		// Get frame dimensions:
-		let (width, height) = target.get_dimensions();
-
-		let ar = height as f32 / width as f32;	
-
-		// let perspective = [
-		// 	[ ar, 0.0, 0.0, 0.0],
-		// 	[0.0, 1.0, 0.0, 0.0],
-		// 	[0.0, 0.0, 1.0, 1.0],
-		// 	[0.0, 0.0, 0.0, 1.0f32]
-		// ];
-		let perspective = [
-			[1.0, 0.0, 0.0, 0.0],
-			[0.0, 1.0, 0.0, 0.0],
-			[0.0, 0.0, 1.0, 1.0],
-			[0.0, 0.0, 0.0, 1.0f32]
-		];
-
-		// let model = 
-		// 	[ 	[0.1, 0.0, 0.0, 0.0],
-		// 	  	[0.0, 0.1, 0.0, 0.0],
-		// 	  	[0.0, 0.0, 1.0, 0.0],
-		// 	  	[(1.0 - (TWOSR3 * 0.05)) / ar, -1.0 + (0.1), 0.0, 1.0f32], ];
-
-		// let model_color = [1.0, 1.0, 1.0f32];
 		let model_color = super::C_ORANGE;
 
 		// Uniforms:
-		let uniforms = uniform! {		
-			// model: model,
-			// view: view,
-			persp: perspective,
-			// u_light_pos: light_pos,
+		let uniforms = uniform! {
 			u_model_color: model_color,
-			// grid_side: self.grid_side,
-			// diffuse_tex: &diffuse_texture,
-			// normal_tex: &normal_map,
 		};
 
 		// Draw elements:
 		target.draw((self.vbo.as_ref().unwrap(), EIAttribs { len: 1 }), self.ibo.as_ref().unwrap(), 
 			&self.program, &uniforms, &self.params).unwrap();
 
-
-		//////////////////////// DRAW TEXT ////////////////////////
-		let (width, height) = target.get_dimensions();
-		
-		let text_scale = 0.45;
-
-		// let text_x_scl = text_scl / (width as f32 / 1000.0);
-		// let text_y_scl = text_x_scl * (width as f32) / (height as f32);
-
+		// Draw element text:
 		for element in self.elements.iter() {
 			let text_display = TextDisplay::new(&self.text_system, &self.font_texture, 
 				element.text());
 
-			let ele_pos = element.position();
-			let ele_scl = element.scale();
-
-			let text_width = text_display.get_width();
-
-			let txt_scl: [f32; 3] = [
-				ele_scl[0] * text_scale, 
-				ele_scl[1] * text_scale, 
-				0.0
-			];
-
-			let txt_ofs: [f32; 3] = [
-				(-ele_scl[0] * text_width / 2.0) * text_scale, 
-				(-ele_scl[1] / 2.0) * text_scale, // -0.01, 
-				0.0
-			];
-
-			let matrix = [
-				[txt_scl[0], 0.0, 0.0, 0.0,],
-				[0.0, txt_scl[1], 0.0, 0.0,],
-				[0.0, 0.0, 1.0, 0.0,],
-				[ele_pos[0] + txt_ofs[0], ele_pos[1] + txt_ofs[1], 0.0, 1.0f32,],
-			];
-
-			glium_text::draw(&text_display, &self.text_system, target, matrix, 
-				(0.99, 0.99, 0.99, 1.0));
+			glium_text::draw(&text_display, &self.text_system, target, 
+				element.text_matrix(), (0.99, 0.99, 0.99, 1.0));
 		}
 	}
 }
@@ -223,11 +156,11 @@ static vertex_shader_src: &'static str = r#"
 	// uniform uint grid_side;
 	// uniform mat4 model;
 	// uniform mat4 view;
-	uniform mat4 persp;
+	// uniform mat4 persp;
 
 	void main() {
-		// gl_Position = vec4(position, 1.0);
-		gl_Position = persp /** model*/ * vec4(position, 1.0);
+		gl_Position = vec4(position, 1.0);
+		// gl_Position = persp * model * vec4(position, 1.0);
 
 		// v_normal = transpose(inverse(mat3(model_view))) * normal;
 		// v_color = color;
@@ -275,74 +208,3 @@ static fragment_shader_src: &'static str = r#"
 		color = vec4(u_model_color, 1.0);
 	};
 "#;
-
-
-// fn persp_matrix(width: u32, height: u32, /*zoom: f32*/) -> [[f32; 4]; 4] {
-// 	// let zfar = 1024.0;
-// 	// let znear = 0.1;
-
-// 	// let (width, height) = target.get_dimensions();
-// 	let aspect_ratio = height as f32 / width as f32;
-// 	// let fov: f32 = 3.141592 / zoom;	
-// 	// let f = 1.0 / (fov / 2.0).tan();
-
-// 	// [
-// 	// 	[f *   aspect_ratio   ,    0.0,              0.0              ,   0.0],
-// 	// 	[         0.0         ,     f ,              0.0              ,   0.0],
-// 	// 	[         0.0         ,    0.0,  (zfar+znear)/(zfar-znear)    ,   1.0],
-// 	// 	[         0.0         ,    0.0, -(2.0*zfar*znear)/(zfar-znear),   0.0],
-// 	// ]
-
-// 	[
-// 		[	   aspect_ratio   ,    0.0,              0.0              ,   0.0],
-// 		[         0.0         ,    1.0,              0.0              ,   0.0],
-// 		[         0.0         ,    0.0,  			1.0    			,   1.0],
-// 		[         0.0         ,    0.0, 			0.0 			,   1.0f32],
-// 	]
-// }
-
-
-// fn vbo(display: &GlutinFacade) -> VertexBuffer<Vertex> {
-// 	// NOTE: width(x): 1.15470053838 (2/sqrt(3)), height(y): 1.0
-// 	let a = 0.5;
-// 	let s = 0.57735026919; // 1/sqrt(3)
-// 	let hs = s / 2.0f32;
-
-// 	glium::vertex::VertexBuffer::new(display, &[
-// 			Vertex::new([ 0.0, 	 0.0, 	 0.0], [0.4, 0.4, 0.4,], [0.0, 0.0, -1.0]),
-// 			Vertex::new([-hs, 	 a,  	 0.0], [0.7, 0.7, 0.2,], [0.0, 0.0, -1.0]),
-// 			Vertex::new([ hs, 	 a,  	 0.0], [0.2, 0.7, 0.7,], [0.0, 0.0, -1.0]),
-// 			Vertex::new([ s, 	 0.0,  	 0.0], [0.7, 0.2, 0.7,], [0.0, 0.0, -1.0]),
-// 			Vertex::new([ hs, 	-a, 	 0.0], [0.7, 0.7, 0.2,], [0.0, 0.0, -1.0]),
-// 			Vertex::new([-hs, 	-a,  	 0.0], [0.2, 0.7, 0.7,], [0.0, 0.0, -1.0]),
-// 			Vertex::new([-s, 	 0.0,  	 0.0], [0.7, 0.2, 0.7,], [0.0, 0.0, -1.0]),
-// 		]).unwrap()
-// }
-
-
-// fn ibo(display: &GlutinFacade) -> IndexBuffer<u16> {
-// 	glium::IndexBuffer::new(display, glium::index::PrimitiveType::TrianglesList, &[
-// 			0, 1, 2,
-// 			2, 3, 0,
-// 			0, 3, 4,
-// 			4, 5, 0,
-// 			0, 5, 6,
-// 			6, 1, 0u16,
-// 		]).unwrap()
-// }
-
-
-// #[derive(Copy, Clone)]
-// struct Vertex {
-// 	position: [f32; 3],
-// 	color: [f32; 3],
-// 	normal: [f32; 3],
-// }
-
-// impl Vertex {
-// 	fn new(position: [f32; 3], color: [f32; 3], normal: [f32; 3]) -> Vertex {
-// 		Vertex { position: position, color: color, normal: normal }
-// 	}
-// }
-// implement_vertex!(Vertex, position, color, normal);
-
