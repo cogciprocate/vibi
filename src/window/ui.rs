@@ -1,11 +1,11 @@
 #![allow(dead_code, unused_variables)]
 // use std::ops::{Deref};
 use glium_text::{self, TextSystem, FontTexture, TextDisplay};
-use glium::backend::glutin_backend::{GlutinFacade};
-use glium::{self, VertexBuffer, IndexBuffer, Program, DrawParameters, Surface,};
+use glium::backend::glutin_backend::GlutinFacade;
+use glium::{self, VertexBuffer, IndexBuffer, Program, DrawParameters, Surface};
 use glium::vertex::{EmptyInstanceAttributes as EIAttribs};
-use glium::glutin::{Event};
-use super::{UiVertex, UiElement, Window};
+use glium::glutin::Event;
+use super::{UiVertex, UiElement, Window, MouseState};
 
 const TWOSR3: f32 = 1.15470053838;
 
@@ -19,6 +19,8 @@ pub struct Ui<'d> {
 	scale: f32,
 	text_system: TextSystem,
 	font_texture: FontTexture,
+	mouse_state: MouseState,
+	mouse_focus: Option<usize>,
 }
 
 impl<'d> Ui<'d> {
@@ -60,6 +62,8 @@ impl<'d> Ui<'d> {
 			scale: scale,
 			text_system: text_system,
 			font_texture: font_texture,
+			mouse_state: MouseState::new(),
+			mouse_focus: None,
 		}
 	}
 
@@ -93,7 +97,7 @@ impl<'d> Ui<'d> {
 		self
 	}
 
-	pub fn resize(&mut self) {
+	pub fn refresh_vertices(&mut self) {
 		match self.vbo {
 			Some(ref mut vbo) => {
 				let mut vertices: Vec<UiVertex> = Vec::with_capacity(vbo.len());
@@ -113,21 +117,22 @@ impl<'d> Ui<'d> {
 	}
 
 	pub fn handle_event(&mut self, event: Event, window: &mut Window) {
-		use glium::glutin::Event::{ Closed, KeyboardInput, Resized };
+		use glium::glutin::Event::{Closed, Resized, KeyboardInput, MouseInput, MouseMoved};
+		use glium::glutin::ElementState::{Released, Pressed};
+
 		match event {
 			Closed => {					
 				window.close_pending = true;
 			},
 
 			Resized(..) => {
-				self.resize()
+				self.refresh_vertices()
 			},
 
-			KeyboardInput(state, _, vk_code_o) => {
-				use glium::glutin::ElementState::{ Released, /*Pressed*/ };
-				if let Released = state {
+			KeyboardInput(state, _, vk_code_o) => {				
+				if let Pressed = state {
 					if let Some(vk_code) = vk_code_o {
-						use glium::glutin::VirtualKeyCode::{ Q, Escape, Up, Down, Left, Right };
+						use glium::glutin::VirtualKeyCode::{Q, Escape, Up, Down, Left, Right};
 						match vk_code {
 							Q | Escape => window.close_pending = true,
 							Up => if window.grid_size < super::MAX_GRID_SIZE { window.grid_size *= 2; },
@@ -140,11 +145,23 @@ impl<'d> Ui<'d> {
 				}
 			},
 
+			MouseInput(state, button) => {
+				if let Released = state {
+					use glium::glutin::MouseButton::{Left};
+					match button {
+						Left => self.handle_mouse_click(window),
+						_ => ()
+					}
+				}
+			}
+
+			MouseMoved(p) => self.mouse_state.update_position(p),
+
 			_ => ()
 		}
 	}
 
-	pub fn draw<S: Surface>(&self, target: &mut S) {
+	pub fn draw<S: Surface>(&mut self, target: &mut S) {
 		if self.vbo.is_none() || self.ibo.is_none() { 
 			panic!("Ui::draw(): Buffers not initialized.") 
 		}
@@ -155,6 +172,28 @@ impl<'d> Ui<'d> {
 		let uniforms = uniform! {
 			u_model_color: model_color,
 		};
+
+		// Update elements:
+		if !self.mouse_state.is_stale() {
+			// Determine which element has mouse focus (by index):
+			let current_focus = self.focused_element_idx(target);
+
+			if current_focus != self.mouse_focus {
+				if let Some(idx) = self.mouse_focus {
+					self.elements[idx].set_color(super::C_ORANGE);
+				}
+
+				if let Some(idx) = current_focus {
+					// println!(" ####    Element '{}' has focus.", idx);
+					self.elements[idx].set_color(super::C_PINK);
+				}
+
+				self.mouse_focus = current_focus;
+
+				// [FIXME]: Temporary: Make something which doesn't need to rewrite every vertex.
+				self.refresh_vertices();
+			}
+		}
 
 		// Draw elements:
 		target.draw((self.vbo.as_ref().unwrap(), EIAttribs { len: 1 }), self.ibo.as_ref().unwrap(), 
@@ -168,6 +207,37 @@ impl<'d> Ui<'d> {
 			glium_text::draw(&text_display, &self.text_system, target, 
 				element.text_matrix(), (0.99, 0.99, 0.99, 1.0));
 		}
+	}
+
+	pub fn mouse_state(&self) -> &MouseState {
+		&self.mouse_state
+	}
+
+	pub fn set_input_stale(&mut self) {
+		self.mouse_state.set_stale();
+	}
+
+	pub fn input_is_stale(&self) -> bool {
+		self.mouse_state.is_stale()
+	}
+
+	fn focused_element_idx<S: Surface>(&self, target: &mut S) -> Option<usize> {
+		let mut idx = 0;
+
+		for element in self.elements.iter() {
+			if element.has_mouse_focus(self.mouse_state.surface_position(target)) {
+				// println!("Element [{}] has focus.", idx);
+				return Some(idx);
+			}
+
+			idx += 1;
+		} 
+
+		None
+	}
+
+	fn handle_mouse_click(&mut self, window: &mut Window) {
+		
 	}
 }
 
@@ -183,7 +253,7 @@ static vertex_shader_src: &'static str = r#"
 	in vec3 normal;
 
 	out vec3 v_position;
-	// out vec3 v_color;
+	out vec3 v_color;
 	// out vec3 v_normal;	
 
 	// uniform uint grid_side;
@@ -196,7 +266,7 @@ static vertex_shader_src: &'static str = r#"
 		// gl_Position = persp * model * vec4(position, 1.0);
 
 		// v_normal = transpose(inverse(mat3(model_view))) * normal;
-		// v_color = color;
+		v_color = color;
 		// v_position = gl_Position.xyz / gl_Position.w;
 	};
 "#;
@@ -207,14 +277,14 @@ static vertex_shader_src: &'static str = r#"
 static fragment_shader_src: &'static str = r#"
 	#version 330
 
-	// in vec3 v_color; // <-- currently unused (using uniform atm)
+	in vec3 v_color;
 	// in vec3 v_normal;
 	// in vec3 v_position;
 
 	out vec4 color;
 
 	// uniform vec3 u_light_pos;
-	uniform vec3 u_model_color;
+	// uniform vec3 u_model_color;
 
 	// const float ambient_strength = 0.1;
 	// const vec3 ambient_color = vec3(0.9, 0.9, 0.9);
@@ -238,6 +308,6 @@ static fragment_shader_src: &'static str = r#"
 		// color = vec4((ambient_color * u_model_color) + diffuse_ampl
 		// 	* diffuse_color + specular * specular_color, 1.0);	
 
-		color = vec4(u_model_color, 1.0);
+		color = vec4(v_color, 1.0);
 	};
 "#;

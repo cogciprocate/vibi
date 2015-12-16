@@ -1,12 +1,13 @@
-pub use self::window_stats::{WindowStats};
-pub use self::status_text::{StatusText};
-pub use self::hex_grid::{HexGrid};
-pub use self::ui::{Ui};
-pub use self::ui_element::{UiElement};
-pub use self::ui_vertex::{UiVertex};
+pub use self::window_stats::WindowStats;
+pub use self::status_text::StatusText;
+pub use self::hex_grid::HexGrid;
+pub use self::ui::Ui;
+pub use self::ui_element::UiElement;
+pub use self::ui_vertex::UiVertex;
+pub use self::mouse_state::MouseState;
 
 use std::sync::mpsc::{Receiver, Sender};
-use loop_cycles::{ CyCtl, CySts };
+use loop_cycles::{CyCtl, CySts};
 
 mod window_stats;
 mod status_text;
@@ -14,12 +15,13 @@ mod hex_grid;
 mod ui;
 mod ui_element;
 mod ui_vertex;
+mod mouse_state;
 // mod conrod;
 // mod window_grid;
 // pub mod window_main;
 
-// const C_PINK: [f32; 3] = [0.990, 0.490, 0.700];
-const C_ORANGE: [f32; 3] = [0.960, 0.400, 0.0];
+pub const C_PINK: [f32; 3] = [0.990, 0.490, 0.700];
+pub const C_ORANGE: [f32; 3] = [0.960, 0.400, 0.0];
 
 pub const INIT_GRID_SIZE: u32 = 64;
 pub const MAX_GRID_SIZE: u32 = 8192;
@@ -65,8 +67,10 @@ impl Window {
 			// .element(UiElement::hex_button([anchor: x, y, z], (offset: x, y), scale, extra_width, text))
 			// .element(UiElement::hex_button([1.0, 1.0, 0.0], (-0.06, -0.06), 0.06, 0.0, "yo")
 			// .element(UiElement::hex_button([-1.0, -1.0, 0.0], (0.06, 0.06), 0.06, 0.0, "yo")
-			.element(UiElement::hex_button([1.0, -1.0, 0.0], (-0.52, 0.06), 0.06, 2.0, "Settings".to_string()))
-			.element(UiElement::hex_button([1.0, -1.0, 0.0], (-0.18, 0.06), 0.06, 2.0, "Exit".to_string()))
+			.element(UiElement::hex_button([1.0, -1.0, 0.0], (-0.52, 0.06), 0.06, 2.0, 
+				"Settings".to_string(), C_ORANGE))
+			.element(UiElement::hex_button([1.0, -1.0, 0.0], (-0.18, 0.06), 0.06, 2.0, 
+				"Exit".to_string(), C_ORANGE))
 			.init();
 
 		
@@ -86,6 +90,7 @@ impl Window {
 
 		// Event/Rendering loop:
 		loop {
+			ui.set_input_stale();
 			// Check cycle status:
 			loop {
 				match status_rx.try_recv() {
@@ -125,6 +130,16 @@ impl Window {
 				control_tx.send(CyCtl::Exit).expect("Exit button control tx");
 				break;
 			}
+
+
+			/////////// DEBUG STUFF ////////////
+				// if !ui.input_is_stale() {
+				// 	println!("##### Mouse position: {:?}", ui.mouse_state().position());
+				// }
+
+
+
+			////////////////////////////////////
 		}
 	}
 }

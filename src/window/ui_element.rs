@@ -5,6 +5,7 @@ use super::{UiVertex};
 pub struct UiElement {
 	vertices: Vec<UiVertex>,
 	indices: Vec<u16>,
+	radii: (f32, f32),
 	anchor_pos: [f32; 3],
 	offset: (f32, f32), 
 	scale: (f32, f32),
@@ -18,8 +19,8 @@ pub struct UiElement {
 }
 
 impl UiElement {
-	pub fn new(anchor_pos: [f32; 3], offset: (f32, f32), scale: (f32, f32),
-				vertices: Vec<UiVertex>,  indices: Vec<u16>, text: String,
+	pub fn new(anchor_pos: [f32; 3], offset: (f32, f32), scale: (f32, f32), vertices: Vec<UiVertex>, 
+				 indices: Vec<u16>, text: String, radii: (f32, f32),
 			) -> UiElement
 	{
 		verify_position(anchor_pos);
@@ -27,6 +28,7 @@ impl UiElement {
 		UiElement { 
 			vertices: vertices, 
 			indices: indices,
+			radii: radii,
 			anchor_pos: anchor_pos,
 			offset: offset,
 			scale: scale,
@@ -36,27 +38,27 @@ impl UiElement {
 			text_scale: 0.45,
 			text_width: 1.0,
 			txt_scl: [0.0, 0.0, 0.0], 
-			txt_pos: [0.0, 0.0, 0.0],
+			txt_pos: [0.0, 0.0, 0.0],			
 		}
 	}
 
 	pub fn hex_button(anchor_pos: [f32; 3], offset: (f32, f32), scale: f32, extra_width: f32,
-			text: String) -> UiElement
+			text: String, color: [f32; 3]) -> UiElement
 	{
 		// NOTE: width(x): 1.15470053838 (2/sqrt(3)), height(y): 1.0
 		let ew = extra_width;
 		let a = 0.5;
 		let s = 0.57735026919; // 1/sqrt(3)
-		let hs = s / 2.0;
+		let hs = s * 0.5;
 
 		let vertices = vec![
-			UiVertex::new([ 0.0, 		 0.0, 	 0.0], [0.4, 0.4, 0.4,], [0.0, 0.0, -1.0]),
-			UiVertex::new([-(hs + ew),	 a,  	 0.0], [0.7, 0.7, 0.2,], [0.0, 0.0, -1.0]),
-			UiVertex::new([ hs + ew, 	 a,  	 0.0], [0.2, 0.7, 0.7,], [0.0, 0.0, -1.0]),
-			UiVertex::new([ s + ew, 	 0.0,  	 0.0], [0.7, 0.2, 0.7,], [0.0, 0.0, -1.0]),
-			UiVertex::new([ hs + ew, 	-a, 	 0.0], [0.7, 0.7, 0.2,], [0.0, 0.0, -1.0]),
-			UiVertex::new([-(hs + ew), 	-a,  	 0.0], [0.2, 0.7, 0.7,], [0.0, 0.0, -1.0]),
-			UiVertex::new([-(s + ew),  	 0.0,  	 0.0], [0.7, 0.2, 0.7,], [0.0, 0.0, -1.0]),
+			UiVertex::new([ 0.0, 		 0.0, 	 0.0], color, [0.0, 0.0, -1.0]),
+			UiVertex::new([-(hs + ew),	 a,  	 0.0], color, [0.0, 0.0, -1.0]),
+			UiVertex::new([ hs + ew, 	 a,  	 0.0], color, [0.0, 0.0, -1.0]),
+			UiVertex::new([ s + ew, 	 0.0,  	 0.0], color, [0.0, 0.0, -1.0]),
+			UiVertex::new([ hs + ew, 	-a, 	 0.0], color, [0.0, 0.0, -1.0]),
+			UiVertex::new([-(hs + ew), 	-a,  	 0.0], color, [0.0, 0.0, -1.0]),
+			UiVertex::new([-(s + ew),  	 0.0,  	 0.0], color, [0.0, 0.0, -1.0]),
 		];
 
 		let indices = vec![
@@ -68,7 +70,11 @@ impl UiElement {
 			6, 1, 0u16,
 		];
 
-		UiElement::new(anchor_pos, offset, (scale, scale), vertices, indices, text,)
+		// Distance from center to right edge (splitting the difference):
+		let x_radius = ew + (s * 0.75);
+		let y_radius = a;
+
+		UiElement::new(anchor_pos, offset, (scale, scale), vertices, indices, text, (x_radius, y_radius))
 	}
 
 	pub fn vertices_raw(&self) -> &[UiVertex] {
@@ -140,6 +146,12 @@ impl UiElement {
 		&self.text
 	}
 
+	pub fn set_color(&mut self, color: [f32; 3]) {
+		for vertex in self.vertices.iter_mut() {
+			vertex.set_color(color);
+		}
+	}
+
 	pub fn text_matrix(&self) -> [[f32; 4]; 4] {
 		[	
 			[self.txt_scl[0], 0.0, 0.0, 0.0,],
@@ -147,6 +159,35 @@ impl UiElement {
 			[0.0, 0.0, 1.0, 0.0,],
 			[self.txt_pos[0], self.txt_pos[1], 0.0, 1.0f32,], 
 		]
+	}
+
+	pub fn has_mouse_focus(&self, mouse_pos: (f32, f32)) -> bool {
+		// print!("    ");
+		// print!("Top: {:.2}, ", self.top_edge());
+		// print!("Bottom: {:.2}, ", self.bottom_edge());
+		// print!("Left: {:.2}, ", self.left_edge());
+		// print!("Right: {:.2}, ", self.right_edge());
+		// print!("{{ Mouse ({:.2}, {:.2}) }}", mouse_pos.0, mouse_pos.1);
+		// print!("\n");
+
+		mouse_pos.0 >= self.left_edge() && mouse_pos.0 <= self.right_edge()
+			&& mouse_pos.1 <= self.top_edge() && mouse_pos.1 >= self.bottom_edge()
+	}
+
+	fn left_edge(&self) -> f32 {
+		self.position_vec[0] - (self.radii.0 * self.scale_vec[0])
+	}
+
+	fn right_edge(&self) -> f32 {
+		self.position_vec[0] + (self.radii.0 * self.scale_vec[0])
+	}
+
+	fn top_edge(&self) -> f32 {
+		self.position_vec[1] + (self.radii.1 * self.scale_vec[1])
+	}
+
+	fn bottom_edge(&self) -> f32 {
+		self.position_vec[1] - (self.radii.1 * self.scale_vec[1])
 	}
 }
 

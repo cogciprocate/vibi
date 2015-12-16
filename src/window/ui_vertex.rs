@@ -34,6 +34,10 @@ impl UiVertex {
 		// let position = shift(&self.position, shift_by);
 		UiVertex { position: position, ..self.clone() }
 	}
+
+	pub fn set_color(&mut self, color: [f32; 3]) {
+		self.color = color;
+	}
 }
 
 implement_vertex!(UiVertex, position, color, normal);
