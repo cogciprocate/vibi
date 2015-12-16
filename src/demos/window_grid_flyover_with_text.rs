@@ -14,7 +14,7 @@ use glium::glutin;
 
 // use interactive as iact;
 use loop_cycles::{ CyCtl, CySts };
-use win_stats::{ WinStats };
+use window_stats::{ WindowStats };
 
 const C_PINK: [f32; 3] = [0.9882, 0.4902, 0.7059];
 const C_ORANGE: [f32; 3] = [0.9607, 0.4745, 0.0];
@@ -164,7 +164,7 @@ pub fn window(control_tx: Sender<CyCtl>, status_rx: Receiver<CySts>) {
 	// let mut i: usize = 0;
 	let mut cycle_status = CySts::new();
 	let mut f_c: f32 = -0.5;
-	let mut stats = WinStats::new();
+	let mut stats = WindowStats::new();
 	let mut exit_app: bool = false;
 	let mut grid_side = GRID_SIDE;
 

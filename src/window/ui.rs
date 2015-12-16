@@ -4,7 +4,8 @@ use glium_text::{self, TextSystem, FontTexture, TextDisplay};
 use glium::backend::glutin_backend::{GlutinFacade};
 use glium::{self, VertexBuffer, IndexBuffer, Program, DrawParameters, Surface,};
 use glium::vertex::{EmptyInstanceAttributes as EIAttribs};
-use super::{UiVertex, UiElement};
+use glium::glutin::{Event};
+use super::{UiVertex, UiElement, Window};
 
 const TWOSR3: f32 = 1.15470053838;
 
@@ -108,6 +109,38 @@ impl<'d> Ui<'d> {
 
 			None => panic!("Ui::resize(): Cannot resize until Ui has been \
 				initialized with .init()"),
+		}
+	}
+
+	pub fn handle_event(&mut self, event: Event, window: &mut Window) {
+		use glium::glutin::Event::{ Closed, KeyboardInput, Resized };
+		match event {
+			Closed => {					
+				window.close_pending = true;
+			},
+
+			Resized(..) => {
+				self.resize()
+			},
+
+			KeyboardInput(state, _, vk_code_o) => {
+				use glium::glutin::ElementState::{ Released, /*Pressed*/ };
+				if let Released = state {
+					if let Some(vk_code) = vk_code_o {
+						use glium::glutin::VirtualKeyCode::{ Q, Escape, Up, Down, Left, Right };
+						match vk_code {
+							Q | Escape => window.close_pending = true,
+							Up => if window.grid_size < super::MAX_GRID_SIZE { window.grid_size *= 2; },
+							Down => if window.grid_size >= 4 { window.grid_size /= 2; },
+							Right => if window.grid_size < super::MAX_GRID_SIZE { window.grid_size += 1; },
+							Left => if window.grid_size > 2 { window.grid_size -= 1; },
+							_ => (),
+						}
+					}
+				}
+			},
+
+			_ => ()
 		}
 	}
 

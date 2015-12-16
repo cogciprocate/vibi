@@ -11,7 +11,7 @@ use piston_window::{ PistonWindow, Glyphs, Size };
 use interactive as iact;
 use loop_cycles::{ CyCtl, CySts };
 use widgets::{ HexButton, /*HexGrid, DrinkingClock*/ };
-use win_stats::{ WinStats };
+use window_stats::{ WindowStats };
 
 const SHOW_FPS: bool = true;
 
@@ -40,7 +40,7 @@ pub fn create_ui(window: PistonWindow) -> Ui<Glyphs> {
 
 
 pub fn draw_buttons(ui: &mut Ui<Glyphs>, cycle_status: &mut CySts, win_size: &Size, 
-			control_tx: &mut Sender<CyCtl>, stats: &WinStats, close_window: &mut bool,
+			control_tx: &mut Sender<CyCtl>, stats: &WindowStats, close_window: &mut bool,
 			mut iters_text: &mut String
 		) 
 {

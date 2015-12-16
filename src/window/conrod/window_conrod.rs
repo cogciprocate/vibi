@@ -12,7 +12,7 @@ use piston_window::{ Flip, TextureSettings, Texture, image, clear };
 
 use loop_cycles::{ CyCtl, CySts };
 use conrod_draw;
-use win_stats::{ WinStats };
+use window_stats::{ WindowStats };
 
 
 pub fn window(mut control_tx: Sender<CyCtl>, status_rx: Receiver<CySts>) {
@@ -43,7 +43,7 @@ pub fn window(mut control_tx: Sender<CyCtl>, status_rx: Receiver<CySts>) {
 	let mut iters = "1".to_string();
 	let mut cycle_status = CySts::new();
 	let mut close_window = false;
-	let mut stats = WinStats::new();
+	let mut stats = WindowStats::new();
 
 	for e in window {
 		if let Some(KeyButton::Keyboard(key)) = e.press_args() {

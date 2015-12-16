@@ -2,8 +2,6 @@
 use glium::backend::glutin_backend::{GlutinFacade};
 use glium::{self, Surface, Program, DrawParameters, VertexBuffer, IndexBuffer};
 
-const GRID_SIDE: u32 = 64;
-const MAX_GRID_SIDE: u32 = 8192;
 const HEX_X: f32 = 0.086602540378 + 0.01;
 const HEX_Y: f32 = 0.05 + 0.01;
 
@@ -13,7 +11,7 @@ pub struct HexGrid<'d> {
 	indices: IndexBuffer<u16>,
 	program: Program,
 	params: DrawParameters<'d>,
-	pub grid_side: u32,
+	// pub grid_side: u32,
 }
 
 impl<'d> HexGrid<'d> {
@@ -42,11 +40,11 @@ impl<'d> HexGrid<'d> {
 			indices: indices,
 			program: program,
 			params: params,
-			grid_side: GRID_SIDE,
+			// grid_side: GRID_SIDE,
 		}
 	}
 
-	pub fn draw<S: Surface>(&self, target: &mut S, elapsed_ms: f64) {
+	pub fn draw<S: Surface>(&self, target: &mut S, grid_size: u32, elapsed_ms: f64) {
 		// Set up our frame-countery-thing:
 		let f_c = (elapsed_ms / 4000.0) as f32;
 
@@ -54,8 +52,8 @@ impl<'d> HexGrid<'d> {
 		let (width, height) = target.get_dimensions();
 
 		// Center of hex grid:
-		let grid_ctr_x = HEX_X * (self.grid_side as f32 - 1.0);
-		let grid_top_y = (HEX_Y * (self.grid_side as f32 - 1.0)) / 2.0;
+		let grid_ctr_x = HEX_X * (grid_size as f32 - 1.0);
+		let grid_top_y = (HEX_Y * (grid_size as f32 - 1.0)) / 2.0;
 		let grid_ctr_z = -grid_ctr_x * 1.5;
 
 		// Grid count:
@@ -63,7 +61,7 @@ impl<'d> HexGrid<'d> {
 		// let ii = i / 1000;
 		// let grid_count = if (ii / GRID_COUNT) & 1 == 1 {
 		// 	GRID_COUNT - (ii % GRID_COUNT) } else { (ii % GRID_COUNT) };
-		let grid_count = (self.grid_side * self.grid_side) as usize;	
+		let grid_count = (grid_size * grid_size) as usize;	
 
 		// Perspective transformation matrix:
 		let persp = persp_matrix(width, height, 3.0);
@@ -109,7 +107,7 @@ impl<'d> HexGrid<'d> {
 			persp: persp,
 			u_light_pos: light_pos,
 			u_model_color: model_color,
-			grid_side: self.grid_side,
+			grid_side: grid_size,
 			// diffuse_tex: &diffuse_texture,
 			// normal_tex: &normal_map,
 		};

@@ -6,7 +6,7 @@ use glium::{Surface};
 // use glium::backend::glutin_backend::{ GlutinFacade };
 use glium::backend::{Facade};
 
-use super::win_stats::{WinStats};
+use super::window_stats::{WindowStats};
 
 
 // TODO: DEPRICATE
@@ -32,7 +32,7 @@ impl StatusText {
 		}
 	}
 
-	pub fn draw<F: Surface>(&self, target: &mut F, stats: &WinStats, grid_side: u32) {
+	pub fn draw<F: Surface>(&self, target: &mut F, stats: &WindowStats, grid_side: u32) {
 		// let text_model_matrix = [
 		// 	[2.0 / text_width, 0.0, 0.0, 0.0,],
 		// 	[0.0, 2.0 * (width as f32) / (height as f32) / text_width, 0.0, 0.0,],

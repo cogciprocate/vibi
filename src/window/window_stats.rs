@@ -1,7 +1,7 @@
 use time::{self, Timespec, Duration};
 
 
-pub struct WinStats {
+pub struct WindowStats {
 	pub frame_count: usize,
 	pub start_time: Timespec,
 	prev_event: Timespec,
@@ -9,9 +9,9 @@ pub struct WinStats {
 }
 
 #[allow(dead_code)]
-impl WinStats {
-	pub fn new() -> WinStats {
-		WinStats {
+impl WindowStats {
+	pub fn new() -> WindowStats {
+		WindowStats {
 			frame_count: 0usize,
 			start_time: time::get_time(),
 			prev_event: time::get_time(),
