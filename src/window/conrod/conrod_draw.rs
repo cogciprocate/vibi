@@ -10,8 +10,8 @@ use piston_window::{ PistonWindow, Glyphs, Size };
 
 use interactive as iact;
 use loop_cycles::{ CyCtl, CySts };
-use widgets::{ HexButton, /*HexGrid, DrinkingClock*/ };
-use window_stats::{ WindowStats };
+use super::widgets::{ HexButton, /*HexGrid,*/ /*DrinkingClock*/ };
+use super::super::window_stats::{ WindowStats };
 
 const SHOW_FPS: bool = true;
 

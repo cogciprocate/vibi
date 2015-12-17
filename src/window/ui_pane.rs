@@ -5,11 +5,12 @@ use glium::backend::glutin_backend::GlutinFacade;
 use glium::{self, VertexBuffer, IndexBuffer, Program, DrawParameters, Surface};
 use glium::vertex::{EmptyInstanceAttributes as EIAttribs};
 use glium::glutin::Event;
-use super::{UiVertex, UiElement, Window, MouseState};
+use super::{UiVertex, UiElement, MainWindow, MouseState};
 
 const TWOSR3: f32 = 1.15470053838;
+const DEFAULT_UI_SCALE: f32 = 0.8;
 
-pub struct Ui<'d> {
+pub struct UiPane<'d> {
 	vbo: Option<VertexBuffer<UiVertex>>,
 	ibo: Option<IndexBuffer<u16>>,
 	elements: Vec<UiElement>,
@@ -20,12 +21,12 @@ pub struct Ui<'d> {
 	text_system: TextSystem,
 	font_texture: FontTexture,
 	mouse_state: MouseState,
-	mouse_focus: Option<usize>,
+	mouse_focused: Option<usize>,
 }
 
-impl<'d> Ui<'d> {
-	pub fn new(display: &'d GlutinFacade) -> Ui<'d> {
-		let scale = 1.0;
+impl<'d> UiPane<'d> {
+	pub fn new(display: &'d GlutinFacade) -> UiPane<'d> {
+		let scale = DEFAULT_UI_SCALE;
 		let vbo = None;
 		let ibo = None;
 
@@ -47,12 +48,13 @@ impl<'d> Ui<'d> {
 		let text_system = TextSystem::new(display);
 
 		// Text font:
-		let font_size = 24;
+		let font_size = 36;
 		let font_texture = FontTexture::new(display, &include_bytes!(
+				// "/home/nick/projects/vibi/assets/fonts/nanum/NanumBarunGothic.ttf"
 				"/home/nick/projects/vibi/assets/fonts/NotoSans/NotoSans-Regular.ttf"
 			)[..], font_size).unwrap();
 
-		Ui { 
+		UiPane { 
 			vbo: vbo,
 			ibo: ibo,
 			elements: Vec::new(),
@@ -63,11 +65,11 @@ impl<'d> Ui<'d> {
 			text_system: text_system,
 			font_texture: font_texture,
 			mouse_state: MouseState::new(),
-			mouse_focus: None,
+			mouse_focused: None,
 		}
 	}
 
-	pub fn element(mut self, element: UiElement) -> Ui<'d> {
+	pub fn element(mut self, element: UiElement) -> UiPane<'d> {
 		if self.vbo.is_some() || self.ibo.is_some() { 
 			panic!("Ui::element(): [FIXME]: Cannot (yet) add element after initialization.") 
 		}
@@ -76,7 +78,7 @@ impl<'d> Ui<'d> {
 		self
 	}
 
-	pub fn init( mut self) -> Ui<'d> {
+	pub fn init( mut self) -> UiPane<'d> {
 		let mut vertices: Vec<UiVertex> = Vec::new();
 		let mut indices: Vec<u16> = Vec::new();
 
@@ -85,8 +87,10 @@ impl<'d> Ui<'d> {
 
 			indices.extend_from_slice(&element.indices(vertices.len() as u16));
 
+			let vertices_idz = vertices.len();
+
 			vertices.extend_from_slice(&element.vertices(
-				self.display.get_framebuffer_dimensions(), self.scale
+				self.display.get_framebuffer_dimensions(), self.scale, vertices_idz
 			));			
 		}
 
@@ -97,26 +101,29 @@ impl<'d> Ui<'d> {
 		self
 	}
 
+	/// Recalculates positions of vertices and updates any other properties such as color.
 	pub fn refresh_vertices(&mut self) {
 		match self.vbo {
 			Some(ref mut vbo) => {
 				let mut vertices: Vec<UiVertex> = Vec::with_capacity(vbo.len());
 
 				for element in self.elements.iter_mut() {
+					let vertices_idz = vertices.len();
+
 					vertices.extend_from_slice(&element.vertices(
-						self.display.get_framebuffer_dimensions(), self.scale
+						self.display.get_framebuffer_dimensions(), self.scale, vertices_idz,
 					));
 				}
 
 				vbo.write(&vertices);
 			},
 
-			None => panic!("Ui::resize(): Cannot resize until Ui has been \
+			None => panic!("Ui::resize(): Cannot refresh until Ui has been \
 				initialized with .init()"),
 		}
 	}
 
-	pub fn handle_event(&mut self, event: Event, window: &mut Window) {
+	pub fn handle_event(&mut self, event: Event, window: &mut MainWindow) {
 		use glium::glutin::Event::{Closed, Resized, KeyboardInput, MouseInput, MouseMoved};
 		use glium::glutin::ElementState::{Released, Pressed};
 
@@ -178,8 +185,8 @@ impl<'d> Ui<'d> {
 			// Determine which element has mouse focus (by index):
 			let current_focus = self.focused_element_idx(target);
 
-			if current_focus != self.mouse_focus {
-				if let Some(idx) = self.mouse_focus {
+			if current_focus != self.mouse_focused {
+				if let Some(idx) = self.mouse_focused {
 					self.elements[idx].set_color(super::C_ORANGE);
 				}
 
@@ -188,7 +195,7 @@ impl<'d> Ui<'d> {
 					self.elements[idx].set_color(super::C_PINK);
 				}
 
-				self.mouse_focus = current_focus;
+				self.mouse_focused = current_focus;
 
 				// [FIXME]: Temporary: Make something which doesn't need to rewrite every vertex.
 				self.refresh_vertices();
@@ -236,8 +243,12 @@ impl<'d> Ui<'d> {
 		None
 	}
 
-	fn handle_mouse_click(&mut self, window: &mut Window) {
-		
+	fn handle_mouse_click(&mut self, window: &mut MainWindow) {
+		// println!("Mouse clicked. ");
+		if let Some(ele_idx) = self.mouse_focused {
+			// print!("   Clicking element: {}... ", ele_idx);
+			self.elements[ele_idx].click(window);
+		}
 	}
 }
 

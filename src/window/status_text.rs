@@ -21,7 +21,7 @@ impl StatusText {
 		let text_system = TextSystem::new(display);
 
 		// Font:
-		let font_size = 24;
+		let font_size = 12;
 		let font_texture = FontTexture::new(display, &include_bytes!(
 				"/home/nick/projects/vibi/assets/fonts/NotoSans/NotoSans-Regular.ttf"
 			)[..], font_size).unwrap();
@@ -42,7 +42,7 @@ impl StatusText {
 
 		let (width, height) = target.get_dimensions();
 		
-		let text_scl = 0.019; // / ((width * height) as f32 / 1000000.0);
+		let text_scl = 0.018; // / ((width * height) as f32 / 1000000.0);
 		// let text_x_scl = text_scl * 2.0 / text_width;
 		// let text_y_scl = text_scl * 2.0 * (width as f32) / (height as f32) / text_width;
 
@@ -54,7 +54,7 @@ impl StatusText {
 			[text_x_scl, 0.0, 0.0, 0.0,],
 			[0.0, text_y_scl, 0.0, 0.0,],
 			[0.0, 0.0, 1.0, 0.0,],
-			[-1.0, 1.0 - (2.0 * text_y_scl), 0.0, 1.0f32,],
+			[-1.0 + (6 as f32 / width as f32), 1.0 - (26 as f32 / height as f32), 0.0, 1.0f32,],
 		];
 
 		let fps_text = TextDisplay::new(&self.text_system, &self.font_texture, 
@@ -69,7 +69,7 @@ impl StatusText {
 			[text_x_scl, 0.0, 0.0, 0.0,],
 			[0.0, text_y_scl, 0.0, 0.0,],
 			[0.0, 0.0, 1.0, 0.0,],
-			[-1.0, 1.0 - (4.0 * text_y_scl), 0.0, 1.0f32,],
+			[-1.0 + (6 as f32 / width as f32), 1.0 - (56 as f32 / height as f32), 0.0, 1.0f32,],
 		];
 
 		let gs_text = TextDisplay::new(&self.text_system, &self.font_texture, 

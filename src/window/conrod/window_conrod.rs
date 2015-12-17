@@ -11,11 +11,11 @@ use piston_window::{ Flip, TextureSettings, Texture, image, clear };
 
 
 use loop_cycles::{ CyCtl, CySts };
-use conrod_draw;
-use window_stats::{ WindowStats };
+use super::conrod_draw;
+use super::super::window_stats::{ WindowStats };
 
 
-pub fn window(mut control_tx: Sender<CyCtl>, status_rx: Receiver<CySts>) {
+pub fn open(mut control_tx: Sender<CyCtl>, status_rx: Receiver<CySts>) {
 	let win_size_init = Size { width: 1200, height: 800 };
 
 	let window: PistonWindow = WindowSettings::new("Vibi", win_size_init)
