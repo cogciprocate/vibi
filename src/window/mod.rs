@@ -38,3 +38,11 @@ pub enum TextAlign {
 	Left,
 	Right,
 }
+
+
+// /// Shifts a list of indices by `shift_by`.
+// pub fn shift_indices(indices: &mut Vec<u16>, shift_by: u16) {
+// 	for index in indices.iter_mut() {
+// 		*index += shift_by;
+// 	}
+// }

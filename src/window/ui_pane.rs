@@ -36,7 +36,7 @@ impl<'d> UiPane<'d> {
 		// Draw parameters:
 		let params = DrawParameters {
 			depth: glium::Depth {
-				test: glium::DepthTest::IfLess,
+				test: glium::DepthTest::IfLessOrEqual,
 				write: true,
 				.. Default::default()
 			},

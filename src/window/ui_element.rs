@@ -7,56 +7,82 @@ use super::{UiVertex, TextAlign, MainWindow};
 pub const TEXT_SCALE: f32 = 0.54;
 pub const DEFAULT_SCALE: f32 = 0.06;
 
+struct TextProperties {
+	string: String,
+	base_scale: f32,	
+	base_offset: (f32, f32),
+	align: TextAlign,
+	cur_scale: (f32, f32),
+	cur_position: (f32, f32),
+	cur_raw_width: f32,	
+}
+
+impl TextProperties {
+	fn new(string: String) -> TextProperties {
+		TextProperties {
+			string: string,
+			base_scale: TEXT_SCALE,
+			cur_raw_width: 0.0,
+			cur_scale: (0.0, 0.0), 
+			cur_position: (0.0, 0.0),
+			base_offset: (0.0, 0.0),
+			align: TextAlign::Center,
+		}
+	}
+}
+
 // [FIXME]: TODO: 
 // - Revamp 'new()' into builder style functions.
 // - Clean up and consolidate stored positions, scales, etc.
 pub struct UiElement {
 	click_action: Option<Box<FnMut(&mut MainWindow)>>,
-	vertices_idz: Option<usize>,
-	vertices: Vec<UiVertex>,
-	indices: Vec<u16>,
-	radii: (f32, f32),
+	vertices_pane_idz: Option<usize>,
+	vertices_raw: Vec<UiVertex>,
+	indices_raw: Vec<u16>,
+	mouse_radii: (f32, f32),
 	anchor_pos: [f32; 3],
-	offset: [f32; 3], 
-	scale: (f32, f32),
-	scale_vec: [f32; 3],
-	position_vec: [f32; 3],
-	text: String,
-	text_scale: f32,
-	text_width: f32,
-	txt_scl: (f32, f32),
-	txt_pos: (f32, f32),
-	txt_ofs: (f32, f32),
-	txt_align: TextAlign,
+	anchor_ofs: [f32; 3], 
+	element_scale: (f32, f32),
+	text: TextProperties,
+	text_string: String,
+	// text_scale: f32,
+	// text_width: f32,
+	// txt_scl: (f32, f32),
+	// txt_pos: (f32, f32),
+	// txt_ofs: (f32, f32),
+	// txt_align: TextAlign,
 	sub_elements: Vec<UiElement>,
+	cur_scale: [f32; 3],
+	cur_position: [f32; 3],
 }
 
 impl<'a> UiElement {
-	pub fn new(anchor_pos: [f32; 3], offset: [f32; 3], scale: (f32, f32), vertices: Vec<UiVertex>, 
-				 indices: Vec<u16>, text: String, radii: (f32, f32),
+	pub fn new(anchor_pos: [f32; 3], anchor_ofs: [f32; 3], element_scale: (f32, f32), vertices_raw: Vec<UiVertex>, 
+				 indices_raw: Vec<u16>, text: String, mouse_radii: (f32, f32),
 			) -> UiElement
 	{
 		verify_position(anchor_pos);
 
 		UiElement { 
 			click_action: None,
-			vertices_idz: None,
-			vertices: vertices, 
-			indices: indices,
-			radii: radii,
+			vertices_pane_idz: None,
+			vertices_raw: vertices_raw, 
+			indices_raw: indices_raw,
+			mouse_radii: mouse_radii,
 			anchor_pos: anchor_pos,
-			offset: offset,
-			scale: scale,
-			scale_vec: [0.0, 0.0, 0.0],
-			position_vec: [0.0, 0.0, 0.0],
-			text: text,
-			text_scale: TEXT_SCALE,
-			text_width: 1.0,
-			txt_scl: (0.0, 0.0), 
-			txt_pos: (0.0, 0.0),
-			txt_ofs: (0.0, 0.0),
-			txt_align: TextAlign::Center,
-			sub_elements: Vec::with_capacity(0),		
+			anchor_ofs: anchor_ofs,
+			element_scale: element_scale,
+			text: TextProperties::new(text.clone()),
+			text_string: text,
+			// text_scale: TEXT_SCALE,
+			// text_width: 0.0,
+			// txt_scl: (0.0, 0.0), 
+			// txt_pos: (0.0, 0.0),
+			// txt_ofs: (0.0, 0.0),
+			// txt_align: TextAlign::Center,
+			sub_elements: Vec::with_capacity(0),
+			cur_scale: [0.0, 0.0, 0.0],
+			cur_position: [0.0, 0.0, 0.0],	
 		}
 	}
 
@@ -71,50 +97,54 @@ impl<'a> UiElement {
 		self
 	}
 
-	pub fn text_offset(mut self, txt_ofs: (f32, f32)) -> UiElement {
-		self.txt_ofs = txt_ofs;
+	pub fn text_offset(mut self, base_offset: (f32, f32)) -> UiElement {
+		self.text.base_offset = base_offset;
 		self
 	}
 
 	pub fn vertices_raw(&self) -> &[UiVertex] {
-		&self.vertices[..]
+		&self.vertices_raw[..]
 	}
 
 	pub fn indices_raw(&self) -> &[u16] {
-		&self.indices[..]
+		&self.indices_raw[..]
 	}
 
-	pub fn vertices(&mut self, window_dims: (u32, u32), scale: f32, vertices_idz: usize) -> Vec<UiVertex> {
-		self.vertices_idz = Some(vertices_idz);
+	pub fn vertices(&mut self, window_dims: (u32, u32), ui_scale: f32, vertices_pane_idz: usize) -> Vec<UiVertex> {
+		self.vertices_pane_idz = Some(vertices_pane_idz);
 		let ar = window_dims.0 as f32 / window_dims.1 as f32;	
 
-		self.scale_vec = [self.scale.0 * scale / ar, self.scale.1 * scale, 1.0];
+		self.cur_scale = [self.element_scale.0 * ui_scale / ar, self.element_scale.1 * ui_scale, ui_scale];
 		
-		self.position_vec = [
-			self.anchor_pos[0] + ((self.offset[0] / ar) * scale),
-			self.anchor_pos[1] + (self.offset[1] * scale),
-			0.0,
+		self.cur_position = [
+			self.anchor_pos[0] + ((self.anchor_ofs[0] / ar) * ui_scale),
+			self.anchor_pos[1] + (self.anchor_ofs[1] * ui_scale),
+			(self.anchor_pos[2] + self.anchor_ofs[2]) * ui_scale,
 		];
 
-		self.txt_scl = (
-			self.scale_vec[0] * self.text_scale, 
-			self.scale_vec[1] * self.text_scale
+		self.text.cur_scale = (
+			self.cur_scale[0] * self.text.base_scale, 
+			self.cur_scale[1] * self.text.base_scale
 		);
 
-		self.txt_pos = (
-			((-self.scale_vec[0] * self.text_width / 2.0) * self.text_scale) 
-				+ self.position_vec[0]
-				+ (self.txt_ofs.0 * self.scale_vec[0]), 
-			((-self.scale_vec[1] / 2.0) * self.text_scale) 
-				+ self.position_vec[1]
-				+ (self.txt_ofs.1 * self.scale_vec[1]), 
+		self.text.cur_position = (
+			((-self.cur_scale[0] * self.text.cur_raw_width / 2.0) * self.text.base_scale) 
+				+ self.cur_position[0]
+				+ (self.text.base_offset.0 * self.cur_scale[0]), 
+			((-self.cur_scale[1] / 2.0) * self.text.base_scale) 
+				+ self.cur_position[1]
+				+ (self.text.base_offset.1 * self.cur_scale[1]), 
 		);
 
 		// [FIXME]: TODO: Convert all of this to a collect():
-		let mut vertices = Vec::with_capacity(self.vertices.len());
+		let mut vertices = Vec::with_capacity(self.vertices_raw.len());
 
-		for &vertex in self.vertices.iter() {
-			vertices.push(vertex.transform(&self.scale_vec, &self.position_vec));
+		// print!("\nVertices positions:  ");
+
+		for &vertex in self.vertices_raw.iter() {
+			let new_vertex = vertex.transform(&self.cur_scale, &self.cur_position);
+			// print!("{:?}", vertex.position());
+			vertices.push(new_vertex);
 		}
 
 		vertices
@@ -122,44 +152,46 @@ impl<'a> UiElement {
 
 	/// Returns the list of indices with 'shift_by' added to each one.
 	pub fn indices(&self, shift_by: u16) -> Vec<u16> {
-		let mut indices_shifted = Vec::with_capacity(self.indices.len());
+		self.indices_raw.iter().map(|&ind| ind + shift_by).collect()
 
-		for &index in self.indices.iter() {
-			indices_shifted.push(index + shift_by);
-		}
+		// let mut indices_shifted = Vec::with_capacity(self.indices.len());
 
-		indices_shifted
+		// for &index in self.indices.iter() {
+		// 	indices_shifted.push(index + shift_by);
+		// }
+
+		// indices_shifted
 	}
 
 	pub fn set_text_width(&mut self, ts: &TextSystem, ft: &FontTexture) {
-		let text_display = TextDisplay::new(ts, ft, &self.text);
-		self.text_width = text_display.get_width();
+		let text_display = TextDisplay::new(ts, ft, &self.text.string);
+		self.text.cur_raw_width = text_display.get_width();
 	}
 
 	pub fn position(&self) -> [f32; 3] {
-		self.position_vec
+		self.cur_position
 	}
 
 	pub fn scale(&self) -> [f32; 3] {
-		self.scale_vec
+		self.cur_scale
 	}
 
 	pub fn text(&self) -> &str {
-		&self.text
+		&self.text.string
 	}
 
 	pub fn set_color(&mut self, color: [f32; 3]) {
-		for vertex in self.vertices.iter_mut() {
+		for vertex in self.vertices_raw.iter_mut() {
 			vertex.set_color(color);
 		}
 	}
 
 	pub fn text_matrix(&self) -> [[f32; 4]; 4] {
 		[	
-			[self.txt_scl.0, 0.0, 0.0, 0.0,],
-			[0.0, self.txt_scl.1, 0.0, 0.0,],
+			[self.text.cur_scale.0, 0.0, 0.0, 0.0,],
+			[0.0, self.text.cur_scale.1, 0.0, 0.0,],
 			[0.0, 0.0, 1.0, 0.0,],
-			[self.txt_pos.0, self.txt_pos.1, 0.0, 1.0f32,], 
+			[self.text.cur_position.0, self.text.cur_position.1, 0.0, 1.0f32,], 
 		]
 	}
 
@@ -183,19 +215,19 @@ impl<'a> UiElement {
 	}
 
 	fn left_edge(&self) -> f32 {
-		self.position_vec[0] - (self.radii.0 * self.scale_vec[0])
+		self.cur_position[0] - (self.mouse_radii.0 * self.cur_scale[0])
 	}
 
 	fn right_edge(&self) -> f32 {
-		self.position_vec[0] + (self.radii.0 * self.scale_vec[0])
+		self.cur_position[0] + (self.mouse_radii.0 * self.cur_scale[0])
 	}
 
 	fn top_edge(&self) -> f32 {
-		self.position_vec[1] + (self.radii.1 * self.scale_vec[1])
+		self.cur_position[1] + (self.mouse_radii.1 * self.cur_scale[1])
 	}
 
 	fn bottom_edge(&self) -> f32 {
-		self.position_vec[1] - (self.radii.1 * self.scale_vec[1])
+		self.cur_position[1] - (self.mouse_radii.1 * self.cur_scale[1])
 	}
 }
 

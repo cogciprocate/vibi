@@ -38,6 +38,11 @@ impl UiVertex {
 	pub fn set_color(&mut self, color: [f32; 3]) {
 		self.color = color;
 	}
+
+	#[allow(dead_code)]
+	pub fn position(&self) -> &[f32; 3] {
+		&self.position
+	}
 }
 
 implement_vertex!(UiVertex, position, color, normal);

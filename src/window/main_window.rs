@@ -57,6 +57,14 @@ impl MainWindow {
 				}))
 			)
 
+			// .element(HexButton::new([1.0, 1.0, 0.0], (-0.32, -0.12), 2.5, 
+			// 		"Ahem".to_string(), [0.3, 0.3, 0.3])
+			// 	.click_action(Box::new(|_| { 
+			// 			// println!("Shrinking Grid..."); 
+			// 			// window.grid_size += 1;
+			// 	}))
+			// )
+
 			.element(HexButton::new([1.0, 1.0, 0.0], (-0.22, -0.17), 2.5, 
 					"- Grid Size".to_string(), C_ORANGE)
 				.click_action(Box::new(|window| { 
