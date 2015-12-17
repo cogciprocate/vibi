@@ -2,7 +2,6 @@
 
 use glium_text::{TextSystem, FontTexture, TextDisplay};
 use window::{self, UiVertex, TextAlign, MainWindow};
-// use window::MainWindow;
 
 pub const TEXT_SCALE: f32 = 0.54;
 pub const DEFAULT_SCALE: f32 = 0.06;
@@ -14,7 +13,6 @@ pub const DEFAULT_SCALE: f32 = 0.06;
 
 	- 'idz' is, as always, the index of item[0] within a larger set (think memory location).
 
-
 */
 
 
@@ -25,7 +23,6 @@ pub struct UiElement {
 	text: TextProperties,
 	sub_elements: Vec<UiElement>,
 	click_action: Option<Box<FnMut(&mut MainWindow)>>,
-	// vertices_pane_idz: Option<usize>,
 	vertices_raw: Vec<UiVertex>,
 	indices_raw: Vec<u16>,
 	mouse_radii: (f32, f32),
@@ -47,7 +44,6 @@ impl<'a> UiElement {
 			text: TextProperties::new("".to_string()),
 			sub_elements: Vec::with_capacity(0),
 			click_action: None,
-			// vertices_pane_idz: None,
 			vertices_raw: vertices_raw, 
 			indices_raw: indices_raw,
 			mouse_radii: mouse_radii,
@@ -89,8 +85,7 @@ impl<'a> UiElement {
 		&self.indices_raw[..]
 	}
 
-	pub fn vertices(&mut self, window_dims: (u32, u32), ui_scale: f32, /*vertices_pane_idz: usize*/) -> Vec<UiVertex> {
-		// self.vertices_pane_idz = Some(vertices_pane_idz);
+	pub fn vertices(&mut self, window_dims: (u32, u32), ui_scale: f32) -> Vec<UiVertex> {
 		let ar = window_dims.0 as f32 / window_dims.1 as f32;	
 
 		self.cur_scale = [self.base_scale.0 * ui_scale / ar, self.base_scale.1 * ui_scale, ui_scale];
@@ -114,17 +109,6 @@ impl<'a> UiElement {
 				+ self.cur_position[1]
 				+ (self.text.element_offset.1 * self.cur_scale[1]), 
 		);
-
-		// // [FIXME]: TODO: Convert all of this to a collect():
-		// let mut vertices = Vec::with_capacity(self.vertices_raw.len());
-
-		// // print!("\nVertices positions:  ");
-
-		// for &vertex in self.vertices_raw.iter() {
-		// 	let new_vertex = vertex.transform(&self.cur_scale, &self.cur_position);
-		// 	// print!("{:?}", vertex.position());
-		// 	vertices.push(new_vertex);
-		// }
 
 		let mut vertices: Vec<UiVertex> = self.vertices_raw.iter().map(
 			|&vrt| vrt.transform(&self.cur_scale, &self.cur_position)).collect();
@@ -175,25 +159,10 @@ impl<'a> UiElement {
 	}
 
 	pub fn text_matrix(&self) -> [[f32; 4]; 4] {
-		// [	
-		// 	[self.text.cur_scale.0, 0.0, 0.0, 0.0,],
-		// 	[0.0, self.text.cur_scale.1, 0.0, 0.0,],
-		// 	[0.0, 0.0, 1.0, 0.0,],
-		// 	[self.text.cur_position.0, self.text.cur_position.1, 0.0, 1.0f32,], 
-		// ]
-
 		self.text.matrix()
 	}
 
 	pub fn has_mouse_focus(&self, mouse_pos: (f32, f32)) -> bool {
-		// print!("    ");
-		// print!("Top: {:.2}, ", self.top_edge());
-		// print!("Bottom: {:.2}, ", self.bottom_edge());
-		// print!("Left: {:.2}, ", self.left_edge());
-		// print!("Right: {:.2}, ", self.right_edge());
-		// print!("{{ Mouse ({:.2}, {:.2}) }}", mouse_pos.0, mouse_pos.1);
-		// print!("\n");
-
 		mouse_pos.0 >= self.left_edge() && mouse_pos.0 <= self.right_edge()
 			&& mouse_pos.1 <= self.top_edge() && mouse_pos.1 >= self.bottom_edge()
 	}
