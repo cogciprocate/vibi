@@ -45,12 +45,6 @@ pub struct UiElement {
 	element_scale: (f32, f32),
 	text: TextProperties,
 	text_string: String,
-	// text_scale: f32,
-	// text_width: f32,
-	// txt_scl: (f32, f32),
-	// txt_pos: (f32, f32),
-	// txt_ofs: (f32, f32),
-	// txt_align: TextAlign,
 	sub_elements: Vec<UiElement>,
 	cur_scale: [f32; 3],
 	cur_position: [f32; 3],
@@ -74,12 +68,6 @@ impl<'a> UiElement {
 			element_scale: element_scale,
 			text: TextProperties::new(text.clone()),
 			text_string: text,
-			// text_scale: TEXT_SCALE,
-			// text_width: 0.0,
-			// txt_scl: (0.0, 0.0), 
-			// txt_pos: (0.0, 0.0),
-			// txt_ofs: (0.0, 0.0),
-			// txt_align: TextAlign::Center,
 			sub_elements: Vec::with_capacity(0),
 			cur_scale: [0.0, 0.0, 0.0],
 			cur_position: [0.0, 0.0, 0.0],	
@@ -153,14 +141,6 @@ impl<'a> UiElement {
 	/// Returns the list of indices with 'shift_by' added to each one.
 	pub fn indices(&self, shift_by: u16) -> Vec<u16> {
 		self.indices_raw.iter().map(|&ind| ind + shift_by).collect()
-
-		// let mut indices_shifted = Vec::with_capacity(self.indices.len());
-
-		// for &index in self.indices.iter() {
-		// 	indices_shifted.push(index + shift_by);
-		// }
-
-		// indices_shifted
 	}
 
 	pub fn set_text_width(&mut self, ts: &TextSystem, ft: &FontTexture) {
