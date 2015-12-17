@@ -7,7 +7,7 @@ extern crate find_folder;
 extern crate num;
 extern crate vecmath;
 extern crate rustc_serialize;
-#[macro_use] extern crate conrod;
+// #[macro_use] extern crate conrod;
 // extern crate piston_window;
 // extern crate elmesque;
 // extern crate gfx_graphics;
@@ -24,7 +24,6 @@ mod config;
 mod loop_cycles;
 mod window;
 
-// mod window_conrod;
 // mod conrod_draw;
 // mod widgets;
 
@@ -43,7 +42,8 @@ fn main() {
 	let (control_tx, control_rx) = mpsc::channel();
 
 	let th_win = thread::Builder::new().name("win".to_string()).spawn(move || {
-		window::Window::open(control_tx, status_rx);
+		window::MainWindow::open(control_tx, status_rx);
+		// window::conrod::window_conrod::open(control_tx, status_rx);
 	}).expect("Error creating 'win' thread");
 
 	// let th_vis = thread::Builder::new().name("vis".to_string()).spawn(move || {
