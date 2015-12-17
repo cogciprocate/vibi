@@ -1,6 +1,5 @@
 
 use window::{shapes, UiElement};
-use super::DEFAULT_SCALE;
 
 pub struct HexButton;
 
@@ -10,7 +9,7 @@ impl HexButton {
 	{
 		let (vertices, indices, radii) = shapes::hexagon_panel(1.0, extra_width, 0.0, color);
 
-		UiElement::new(anchor_pos, [offset.0, offset.1, 0.0], (DEFAULT_SCALE, DEFAULT_SCALE), 
-			vertices, indices, text, radii)
+		UiElement::new(anchor_pos, [offset.0, offset.1, 0.0], vertices, indices, radii)
+			.text(text)
 	}
 }

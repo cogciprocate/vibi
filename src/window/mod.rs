@@ -32,6 +32,8 @@ pub const C_ORANGE: [f32; 3] = [0.960, 0.400, 0.0];
 pub const INIT_GRID_SIZE: u32 = 64;
 pub const MAX_GRID_SIZE: u32 = 8192;
 
+pub const SUBDEPTH: f32 = -0.01;
+
 #[allow(dead_code)]
 pub enum TextAlign {
 	Center,

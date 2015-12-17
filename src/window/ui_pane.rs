@@ -87,10 +87,10 @@ impl<'d> UiPane<'d> {
 
 			indices.extend_from_slice(&element.indices(vertices.len() as u16));
 
-			let vertices_idz = vertices.len();
+			// let vertices_idz = vertices.len();
 
 			vertices.extend_from_slice(&element.vertices(
-				self.display.get_framebuffer_dimensions(), self.scale, vertices_idz
+				self.display.get_framebuffer_dimensions(), self.scale, /*vertices_idz*/
 			));			
 		}
 
@@ -108,10 +108,10 @@ impl<'d> UiPane<'d> {
 				let mut vertices: Vec<UiVertex> = Vec::with_capacity(vbo.len());
 
 				for element in self.elements.iter_mut() {
-					let vertices_idz = vertices.len();
+					// let vertices_idz = vertices.len();
 
 					vertices.extend_from_slice(&element.vertices(
-						self.display.get_framebuffer_dimensions(), self.scale, vertices_idz,
+						self.display.get_framebuffer_dimensions(), self.scale, /*vertices_idz,*/
 					));
 				}
 
@@ -209,7 +209,7 @@ impl<'d> UiPane<'d> {
 		// Draw element text:
 		for element in self.elements.iter() {
 			let text_display = TextDisplay::new(&self.text_system, &self.font_texture, 
-				element.text());
+				element.get_text());
 
 			glium_text::draw(&text_display, &self.text_system, target, 
 				element.text_matrix(), (0.99, 0.99, 0.99, 1.0));

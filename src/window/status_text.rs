@@ -49,22 +49,23 @@ impl StatusText {
 		let text_x_scl = text_scl / (width as f32 / 1000.0);
 		let text_y_scl = text_x_scl * (width as f32) / (height as f32);
 
-		// FPS Text:
-		let fps_text_xform = [
+
+		////////////////// Window //////////////////
+		let gs_text_matrix = [
 			[text_x_scl, 0.0, 0.0, 0.0,],
 			[0.0, text_y_scl, 0.0, 0.0,],
 			[0.0, 0.0, 1.0, 0.0,],
 			[-1.0 + (6 as f32 / width as f32), 1.0 - (26 as f32 / height as f32), 0.0, 1.0f32,],
 		];
 
-		let fps_text = TextDisplay::new(&self.text_system, &self.font_texture, 
-			&format!("FPS: {:.1}", stats.fps()));
+		let gs_text = TextDisplay::new(&self.text_system, &self.font_texture, 
+			&format!("Window: {} X {}", width, height));
 
-		glium_text::draw(&fps_text, &self.text_system, target, fps_text_xform, 
+		glium_text::draw(&gs_text, &self.text_system, target, gs_text_matrix, 
 			(0.99, 0.99, 0.99, 1.0));
 
 
-		// Grid Side Text:
+		////////////////// Grid //////////////////
 		let gs_text_matrix = [
 			[text_x_scl, 0.0, 0.0, 0.0,],
 			[0.0, text_y_scl, 0.0, 0.0,],
@@ -78,6 +79,20 @@ impl StatusText {
 		glium_text::draw(&gs_text, &self.text_system, target, gs_text_matrix, 
 			(0.99, 0.99, 0.99, 1.0));
 
+
+		///////////////////// FPS ////////////////////
+		let fps_text_xform = [
+			[text_x_scl, 0.0, 0.0, 0.0,],
+			[0.0, text_y_scl, 0.0, 0.0,],
+			[0.0, 0.0, 1.0, 0.0,],
+			[-1.0 + (6 as f32 / width as f32), 1.0 - (86 as f32 / height as f32), 0.0, 1.0f32,],
+		];
+
+		let fps_text = TextDisplay::new(&self.text_system, &self.font_texture, 
+			&format!("FPS: {:.1}", stats.fps()));
+
+		glium_text::draw(&fps_text, &self.text_system, target, fps_text_xform, 
+			(0.99, 0.99, 0.99, 1.0));
 
 	}
 }
