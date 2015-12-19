@@ -5,7 +5,7 @@ use glium::backend::glutin_backend::GlutinFacade;
 use glium::{self, VertexBuffer, IndexBuffer, Program, DrawParameters, Surface};
 use glium::vertex::{EmptyInstanceAttributes as EIAttribs};
 use glium::glutin::{ElementState, MouseButton, Event, VirtualKeyCode};
-use super::{UiVertex, UiElement, MainWindow, MouseState, MouseInputEventResult};
+use super::{UiVertex, UiElement, MainWindow, MouseState, KeyboardState, MouseInputEventResult};
 
 const TWOSR3: f32 = 1.15470053838;
 const DEFAULT_UI_SCALE: f32 = 0.9;
@@ -21,6 +21,7 @@ pub struct UiPane<'d> {
 	text_system: TextSystem,
 	font_texture: FontTexture,
 	mouse_state: MouseState,
+	keybd_state: KeyboardState,
 	mouse_focused: Option<usize>,
 	keybd_focused: Option<usize>,
 }
@@ -66,6 +67,7 @@ impl<'d> UiPane<'d> {
 			text_system: text_system,
 			font_texture: font_texture,
 			mouse_state: MouseState::new(),
+			keybd_state: KeyboardState::new(),
 			mouse_focused: None,
 			keybd_focused: None,
 		}
@@ -92,7 +94,7 @@ impl<'d> UiPane<'d> {
 			// let vertices_idz = vertices.len();
 
 			vertices.extend_from_slice(&element.vertices(
-				self.display.get_framebuffer_dimensions(), self.scale, /*vertices_idz*/
+				self.display.get_framebuffer_dimensions(), self.scale,
 			));			
 		}
 
@@ -113,7 +115,7 @@ impl<'d> UiPane<'d> {
 					// let vertices_idz = vertices.len();
 
 					vertices.extend_from_slice(&element.vertices(
-						self.display.get_framebuffer_dimensions(), self.scale, /*vertices_idz,*/
+						self.display.get_framebuffer_dimensions(), self.scale,
 					));
 				}
 
@@ -138,8 +140,8 @@ impl<'d> UiPane<'d> {
 				self.refresh_vertices()
 			},
 
-			KeyboardInput(state, _, vk_code) => {
-				self.handle_keyboard_input(state, vk_code, window);
+			KeyboardInput(key_state, _, vk_code) => {
+				self.handle_keyboard_input(key_state, vk_code, window);
 			},
 
 			MouseInput(state, button) => {
@@ -192,17 +194,19 @@ impl<'d> UiPane<'d> {
 		println!("    Keyboard Focus: {:?}", self.keybd_focused);
 	}
 	
-	fn handle_keyboard_input(&mut self, state: ElementState, vk_code: Option<VirtualKeyCode>,
+	fn handle_keyboard_input(&mut self, key_state: ElementState, vk_code: Option<VirtualKeyCode>,
 				window: &mut MainWindow) 
 	{
-		if let Some(ele_idx) = self.keybd_focused {
-			self.elements[ele_idx].handle_keyboard_input(state, vk_code, window);
-		} else {
-			if let ElementState::Pressed = state {
-				if let Some(vkc) = vk_code {
-					use glium::glutin::VirtualKeyCode::*;
+		// Update keyboard state (modifiers, etc.):
+		self.keybd_state.update(key_state, vk_code);
+
+		// Handle any hotkey combinations which may have occurred:
+		if self.keybd_state.control {
+			if let ElementState::Pressed = key_state {
+				if let Some(vkc) = vk_code {		
+					use glium::glutin::VirtualKeyCode::*;			
 					match vkc {
-						Q | Escape => window.close_pending = true,
+						Q => window.close_pending = true,
 						Up => if window.grid_size < super::MAX_GRID_SIZE { window.grid_size *= 2; },
 						Down => if window.grid_size >= 4 { window.grid_size /= 2; },
 						Right => if window.grid_size < super::MAX_GRID_SIZE { window.grid_size += 1; },
@@ -210,6 +214,11 @@ impl<'d> UiPane<'d> {
 						_ => (),
 					}
 				}
+			}
+		} else {
+			// Pass input to the element that has keyboard focus, if any:
+			if let Some(ele_idx) = self.keybd_focused {
+				self.elements[ele_idx].handle_keyboard_input(key_state, vk_code, &self.keybd_state, window);
 			}
 		}
 	}
@@ -276,10 +285,10 @@ impl<'d> UiPane<'d> {
 		self.mouse_state.is_stale()
 	}
 
-	fn focused_element_idx<S: Surface>(&self, target: &mut S) -> Option<usize> {
+	fn focused_element_idx<S: Surface>(&mut self, target: &mut S) -> Option<usize> {
 		let mut idx = 0;
 
-		for element in self.elements.iter() {
+		for element in self.elements.iter_mut() {
 			if element.has_mouse_focus(self.mouse_state.surface_position(target)) {
 				// println!("Element [{}] has focus.", idx);
 				return Some(idx);

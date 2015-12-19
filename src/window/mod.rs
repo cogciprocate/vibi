@@ -8,6 +8,7 @@ pub use self::mouse_state::MouseState;
 pub use self::controls::{HexButton, TextBox};
 pub use self::main_window::MainWindow;
 pub use self::text_properties::TextProperties;
+pub use self::keyboard_state::KeyboardState;
 
 mod window_stats;
 mod status_text;
@@ -17,6 +18,7 @@ mod ui_element;
 mod ui_vertex;
 mod text_properties;
 mod mouse_state;
+mod keyboard_state;
 mod controls;
 mod main_window;
 pub mod util;
@@ -33,15 +35,19 @@ use glium::glutin::{ElementState, MouseButton, VirtualKeyCode};
 
 pub const C_PINK: [f32; 3] = [0.990, 0.490, 0.700];
 pub const C_ORANGE: [f32; 3] = [0.960, 0.400, 0.0];
+// pub const C_BLACK: (f32, f32, f32, f32) = (0.01, 0.01, 0.01, 1.0);
+pub const C_BLACK: [f32; 3] = [0.001, 0.001, 0.001];
+
 
 pub const INIT_GRID_SIZE: u32 = 64;
 pub const MAX_GRID_SIZE: u32 = 8192;
 
-pub const SUBDEPTH: f32 = -0.01;
+pub const SUBDEPTH: f32 = -0.015625;
+pub const SUBSUBDEPTH: f32 = 0.000244140625;
 
 pub type MouseInputHandler = Box<FnMut(ElementState, MouseButton, 
 	&mut MainWindow) -> MouseInputEventResult>;
-pub type KeyboardInputHandler = Box<FnMut(ElementState, Option<VirtualKeyCode>, 
+pub type KeyboardInputHandler = Box<FnMut(ElementState, Option<VirtualKeyCode>, &KeyboardState,
 	&mut MainWindow) -> KeyboardInputEventResult>;
 
 #[allow(dead_code)]
@@ -58,7 +64,8 @@ pub enum MouseInputEventResult {
 
 pub enum KeyboardInputEventResult {
 	None,
-	AppendCharacterToTextString(char),
+	PushTextString(char),
+	PopTextString,
 }
 
 

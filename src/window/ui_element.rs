@@ -4,7 +4,7 @@ use glium::Surface;
 use glium_text::{self, TextSystem, FontTexture, TextDisplay};
 use glium::glutin::{ElementState, MouseButton, VirtualKeyCode};
 use window::{self, UiVertex, MainWindow, TextProperties, HandlerOption, MouseInputHandler, 
-	KeyboardInputHandler, MouseInputEventResult, KeyboardInputEventResult};
+	KeyboardInputHandler, MouseInputEventResult, KeyboardInputEventResult, KeyboardState};
 
 pub const ELEMENT_BASE_SCALE: f32 = 0.07;
 
@@ -17,6 +17,12 @@ pub const ELEMENT_BASE_SCALE: f32 = 0.07;
 
 *********/
 
+pub struct UiElementBorder {
+	thickness: f32,
+	// color: (f32, f32, f32, f32),
+	color: [f32; 3],
+}
+
 
 // [FIXME]: TODO: 
 // - Revamp 'new()' into builder style functions.
@@ -28,22 +34,26 @@ pub struct UiElement {
 	vertices_raw: Vec<UiVertex>,
 	indices_raw: Vec<u16>,
 	mouse_radii: (f32, f32),
+	has_mouse_focus: bool,
 	has_keybd_focus: bool,
-	anchor_pos: [f32; 3],
+	anchor_point: [f32; 3],
 	anchor_ofs: [f32; 3], 
 	base_scale: (f32, f32),
 	cur_scale: [f32; 3],
-	cur_position: [f32; 3],
+	cur_center_pos: [f32; 3],		
+	border: Option<UiElementBorder>,
 	mouse_input_handler: HandlerOption<MouseInputHandler>,
 	keyboard_input_handler: HandlerOption<KeyboardInputHandler>,
 }
 
 impl<'a> UiElement {
-	pub fn new(anchor_pos: [f32; 3], anchor_ofs: [f32; 3], vertices_raw: Vec<UiVertex>, 
+	pub fn new(anchor_point: [f32; 3], anchor_ofs: [f32; 3], vertices_raw: Vec<UiVertex>, 
 				 indices_raw: Vec<u16>, mouse_radii: (f32, f32),
 			) -> UiElement
 	{
-		verify_position(anchor_pos);
+		verify_position(anchor_point);
+
+		// let border = Some(UiElementBorder { thickness: 0.05, color: window::C_BLACK });
 
 		UiElement { 
 			text: TextProperties::new(""),
@@ -51,12 +61,14 @@ impl<'a> UiElement {
 			vertices_raw: vertices_raw, 
 			indices_raw: indices_raw,
 			mouse_radii: mouse_radii,
+			has_mouse_focus: false,
 			has_keybd_focus: false,
-			anchor_pos: anchor_pos,
+			anchor_point: anchor_point,
 			anchor_ofs: anchor_ofs,
-			base_scale: (ELEMENT_BASE_SCALE, ELEMENT_BASE_SCALE),			
+			base_scale: (ELEMENT_BASE_SCALE, ELEMENT_BASE_SCALE),
 			cur_scale: [0.0, 0.0, 0.0],
-			cur_position: [0.0, 0.0, 0.0],	
+			cur_center_pos: [0.0, 0.0, 0.0],		
+			border: None,
 			mouse_input_handler: HandlerOption::None,
 			keyboard_input_handler: HandlerOption::None,
 		}
@@ -78,7 +90,7 @@ impl<'a> UiElement {
 	}
 
 	pub fn sub(mut self, mut sub_element: UiElement, handles_keyb: bool) -> UiElement {
-		sub_element.anchor_pos[2] += window::SUBDEPTH;
+		sub_element.anchor_point[2] += window::SUBDEPTH;
 		self.sub_elements.reserve_exact(1);
 
 		if handles_keyb {
@@ -111,6 +123,11 @@ impl<'a> UiElement {
 		self
 	}
 
+	pub fn border(mut self, thickness: f32, color: [f32; 3]) -> UiElement {
+		self.border = Some(UiElementBorder { thickness: thickness, color: color });
+		self
+	}
+
 	pub fn vertices_raw(&self) -> &[UiVertex] {
 		&self.vertices_raw[..]
 	}
@@ -124,28 +141,78 @@ impl<'a> UiElement {
 
 		self.cur_scale = [self.base_scale.0 * ui_scale / ar, self.base_scale.1 * ui_scale, ui_scale];
 		
-		self.cur_position = [
-			self.anchor_pos[0] + ((self.anchor_ofs[0] / ar) * ui_scale),
-			self.anchor_pos[1] + (self.anchor_ofs[1] * ui_scale),
-			(self.anchor_pos[2] + self.anchor_ofs[2]) * ui_scale,
+		self.cur_center_pos = [
+			self.anchor_point[0] + ((self.anchor_ofs[0] / ar) * ui_scale),
+			self.anchor_point[1] + (self.anchor_ofs[1] * ui_scale),
+			(self.anchor_point[2] + self.anchor_ofs[2]) * ui_scale,
 		];
+
+		// let (scl, pos) = shift_and_scale(&self.anchor_point, &self.anchor_ofs, &self.base_scale,	
+		// 	window_dims, ui_scale);
+		// self.cur_scale = scl;
+		// self.cur_center_pos = pos;
 
 		self.text.cur_scale = (
 			self.cur_scale[0] * self.text.base_scale, 
-			self.cur_scale[1] * self.text.base_scale
+			self.cur_scale[1] * self.text.base_scale,
 		);
 
-		self.text.cur_position = (
+		self.text.cur_center_pos = (
 			((-self.cur_scale[0] * self.text.raw_width / 2.0) * self.text.base_scale) 
-				+ self.cur_position[0]
+				+ self.cur_center_pos[0]
 				+ (self.text.element_offset.0 * self.cur_scale[0]), 
 			((-self.cur_scale[1] / 2.0) * self.text.base_scale) 
-				+ self.cur_position[1]
+				+ self.cur_center_pos[1]
 				+ (self.text.element_offset.1 * self.cur_scale[1]), 
 		);
 
+		// Add vertices for this element's shape:
 		let mut vertices: Vec<UiVertex> = self.vertices_raw.iter().map(
-			|&vrt| vrt.transform(&self.cur_scale, &self.cur_position)).collect();
+			|&vrt| vrt.transform(&self.cur_scale, &self.cur_center_pos)).collect();
+
+		// If we have a border, create a "shadow" of our shape...
+		// if self.border_thickness > 0.0 {
+		if let Some(ref border) = self.border {
+			// // Add 'thickness' to the border by scaling our shape up:
+			// let b_scl = [
+			// 	self.cur_scale[0] * (1.0 + border.thickness), 
+			// 	self.cur_scale[1] * (1.0 + border.thickness),
+			// 	1.0,
+			// ];
+
+			// // Position the border shape behind our normal shape in the z-buffer:
+			// let b_pos = [
+			// 	self.cur_center_pos[0],
+			// 	self.cur_center_pos[1],
+			// 	self.cur_center_pos[2] + window::SUBSUBDEPTH,
+			// ];
+
+
+			let b_scale = [
+				self.base_scale.0 * ui_scale / ar, 
+				self.base_scale.1 * ui_scale, 
+				ui_scale,
+			];
+		
+			let b_center_pos = [
+				self.anchor_point[0] + ((self.anchor_ofs[0] / ar) * ui_scale),
+				self.anchor_point[1] + (self.anchor_ofs[1] * ui_scale),
+				((self.anchor_point[2] + self.anchor_ofs[2]) * ui_scale) + window::SUBSUBDEPTH,
+			];
+
+			// let border_vertices: Vec<UiVertex> = self.vertices_raw.iter().map(|&vrt| 
+			// 	vrt.transform(&border_scale, &border_position).color(border.color)).collect();
+
+			// let (b_scl, b_pos) = shift_and_scale(&border_anchor_point, &self.anchor_ofs, 
+			// 	&border_base_scale,	window_dims, ui_scale);
+
+			let border_vertices: Vec<UiVertex> = self.vertices_raw.iter().map(|&vrt| 
+					vrt.border_of(border.thickness)
+						.transform(&b_scale, &b_center_pos).color(border.color)
+				).collect();
+
+			vertices.extend_from_slice(&border_vertices);
+		}
 
 		for sub_ele in self.sub_elements.iter_mut() {
 			vertices.extend_from_slice(&sub_ele.vertices(window_dims.clone(), ui_scale));
@@ -154,15 +221,25 @@ impl<'a> UiElement {
 		vertices
 	}
 
-	/// Returns the list of indices with 'shift_by' added to each one.
-	pub fn indices(&self, shift_by: u16) -> Vec<u16> {
-		let mut indices: Vec<u16> = self.indices_raw.iter().map(|&ind| ind + shift_by).collect();
+	/// Returns the list of indices with 'vertex_idz' added to each one.
+	pub fn indices(&self, mut vertex_idz: u16) -> Vec<u16> {
+		// Add indices for this element's shape:
+		let mut indices: Vec<u16> = self.indices_raw.iter().map(|&ind| ind + vertex_idz).collect();
+		vertex_idz += self.vertices_raw.len() as u16;
 
-		let mut sub_shift_by = shift_by + (self.vertices_raw.len() as u16);
+		// Add indices for our border (shadow of normal shape), if applicable:
+		if let Some(_) = self.border {
+			let border_indices: Vec<u16> = 
+				self.indices_raw.iter().map(|&ind| ind + vertex_idz).collect();
 
+			indices.extend_from_slice(&border_indices);
+			vertex_idz += self.vertices_raw.len() as u16;
+		}
+
+		// Add indices for each sub_element, if any:
 		for sub_ele in self.sub_elements.iter() {
-			indices.extend_from_slice(&sub_ele.indices(sub_shift_by));
-			sub_shift_by += sub_ele.vertices_raw.len() as u16;
+			indices.extend_from_slice(&sub_ele.indices(vertex_idz));
+			vertex_idz += sub_ele.vertices_raw.len() as u16;
 		}
 
 		indices
@@ -187,7 +264,7 @@ impl<'a> UiElement {
 	}
 
 	pub fn position(&self) -> [f32; 3] {
-		self.cur_position
+		self.cur_center_pos
 	}
 
 	pub fn scale(&self) -> [f32; 3] {
@@ -212,9 +289,11 @@ impl<'a> UiElement {
 		self.text.matrix()
 	}
 
-	pub fn has_mouse_focus(&self, mouse_pos: (f32, f32)) -> bool {
-		mouse_pos.0 >= self.left_edge() && mouse_pos.0 <= self.right_edge()
-			&& mouse_pos.1 <= self.top_edge() && mouse_pos.1 >= self.bottom_edge()
+	pub fn has_mouse_focus(&mut self, mouse_pos: (f32, f32)) -> bool {
+		self.has_mouse_focus = mouse_pos.0 >= self.left_edge() && mouse_pos.0 <= self.right_edge()
+			&& mouse_pos.1 <= self.top_edge() && mouse_pos.1 >= self.bottom_edge();
+
+		self.has_mouse_focus
 	}
 
 	pub fn set_keybd_focus(&mut self, has_focus: bool) {
@@ -236,28 +315,29 @@ impl<'a> UiElement {
 	// [FIXME]: Unused Vars.
 	// [FIXME]: Error message (set up result type).
 	#[allow(unused_variables)]
-	pub fn handle_keyboard_input(&mut self, state: ElementState, vk_code: Option<VirtualKeyCode>, 
-				window: &mut MainWindow) -> KeyboardInputEventResult 
+	pub fn handle_keyboard_input(&mut self, key_state: ElementState, vk_code: Option<VirtualKeyCode>, 
+				kb_state: &KeyboardState, window: &mut MainWindow) -> KeyboardInputEventResult 
 	{
 		let result = match self.keyboard_input_handler {
-			HandlerOption::Fn(ref mut kih) => kih(state, vk_code, window),
+			HandlerOption::Fn(ref mut kih) => kih(key_state, vk_code, kb_state, window),
 			HandlerOption::Sub(ele_idx) => {
 				assert!(ele_idx < self.sub_elements.len(), "{}UiElement::handle_keyboard_input(): {}:{}",
 					module_path!(), column!(), line!());
-				print!("        Passing keyboard input, '{:?}::{:?}', to sub element '{}' --->", 
-					state, vk_code, ele_idx);
-				self.sub_elements[ele_idx].handle_keyboard_input(state, vk_code, window);
+				// print!("        Passing keyboard input, '{:?}::{:?}', to sub element '{}' --->", 
+				// 	key_state, vk_code, ele_idx);
+				self.sub_elements[ele_idx].handle_keyboard_input(key_state, vk_code, kb_state, window);
 				KeyboardInputEventResult::None
 			},
 			_ => KeyboardInputEventResult::None,
 		};
 
 		match result {
-			KeyboardInputEventResult::AppendCharacterToTextString(c) => {
-				println!("        KeyboardInputEventResult: {}", c);
+			KeyboardInputEventResult::PushTextString(c) => {
+				// println!("        KeyboardInputEventResult: {}", c);
 				self.text.string.push(c);
 			},
-			_ => ()
+			KeyboardInputEventResult::PopTextString => { self.text.string.pop(); },
+			_ => (),
 		}
 
 		result
@@ -266,23 +346,40 @@ impl<'a> UiElement {
 
 	///////// [FIXME]: CACHE THIS STUFF PROPERLY ////////// 
 	fn left_edge(&self) -> f32 {
-		self.cur_position[0] - (self.mouse_radii.0 * self.cur_scale[0])
+		self.cur_center_pos[0] - (self.mouse_radii.0 * self.cur_scale[0])
 	}
 
 	fn right_edge(&self) -> f32 {
-		self.cur_position[0] + (self.mouse_radii.0 * self.cur_scale[0])
+		self.cur_center_pos[0] + (self.mouse_radii.0 * self.cur_scale[0])
 	}
 
 	fn top_edge(&self) -> f32 {
-		self.cur_position[1] + (self.mouse_radii.1 * self.cur_scale[1])
+		self.cur_center_pos[1] + (self.mouse_radii.1 * self.cur_scale[1])
 	}
 
 	fn bottom_edge(&self) -> f32 {
-		self.cur_position[1] - (self.mouse_radii.1 * self.cur_scale[1])
+		self.cur_center_pos[1] - (self.mouse_radii.1 * self.cur_scale[1])
 	}
 	//////////////////////////////////////
 
 }
+
+// fn shift_and_scale(anchor_point: &[f32; 3], anchor_ofs: &[f32; 3], base_scale: &(f32, f32),
+// 			window_dims: (u32, u32), ui_scale: f32) 
+// 		-> ([f32; 3], [f32; 3])
+// {
+// 	let ar = window_dims.0 as f32 / window_dims.1 as f32;	
+
+// 	let cur_scale = [(base_scale.0 * ui_scale) / ar, base_scale.1 * ui_scale, 1.0];
+	
+// 	let cur_center_pos = [
+// 		anchor_point[0] + ((anchor_ofs[0] / ar) * ui_scale),
+// 		anchor_point[1] + (anchor_ofs[1] * ui_scale),
+// 		(anchor_point[2] + anchor_ofs[2]) * ui_scale,
+// 	];
+
+// 	(cur_scale, cur_center_pos)
+// }
 
 
 // Ensure position is within -1.0 and 1.0 for x and y dims.

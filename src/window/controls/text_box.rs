@@ -1,5 +1,5 @@
 // use super::{};
-use window::{util, shapes, UiElement, MouseInputEventResult, KeyboardInputEventResult};
+use window::{self, util, shapes, UiElement, MouseInputEventResult, KeyboardInputEventResult};
 use glium::glutin::{ElementState};
 
 pub struct TextBox;
@@ -36,16 +36,26 @@ impl TextField {
 
 		UiElement::new(anchor_pos, new_offset, rect.0, rect.1, rect.2)
 		.text_string("TextField")
-		.text_offset((-(rect.2).0, 0.0))
-		.keyboard_input_handler(Box::new(|state, vk_code, _| {
-				if let ElementState::Pressed = state {
-					if let Some(c) = util::map_vkc(vk_code) {
-						println!("    VirtualKeyCode: {:?} => {:?}", vk_code, c);
-						return KeyboardInputEventResult::AppendCharacterToTextString(c);
-					}
-				}
+		.text_offset((-(rect.2).0 + 0.16, 0.0))
+		.keyboard_input_handler(Box::new(|key_state, vk_code, kb_state, _| {
+			if let ElementState::Pressed = key_state {
+				use glium::glutin::VirtualKeyCode::*;
+				match vk_code {
+					Some(Back) => return KeyboardInputEventResult::PopTextString,
 
-				KeyboardInputEventResult::None
-			}))
+					_ => {
+						if let Some(mut c) = util::map_vkc(vk_code) {					
+							// println!("    VirtualKeyCode: {:?} => {:?}", vk_code, c);
+							if kb_state.shift { c = c.to_uppercase().next().unwrap_or(c); }
+
+							return KeyboardInputEventResult::PushTextString(c);
+						}
+					},
+				}
+			}
+
+			KeyboardInputEventResult::None
+		}))
+		.border(0.05, window::C_BLACK)
 	}
 }

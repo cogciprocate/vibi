@@ -3,6 +3,7 @@ use glium::Surface;
 // Mouse frame history size (assumed to always be 2):
 const FRAMES: usize = 2;
 
+// [FIXME]: TODO: Consider changing 'is_stale' to 'is_fresh'. Currently being used as such.
 pub struct MouseState {
 	position: [(i32, i32); FRAMES],
 	frame: u8,

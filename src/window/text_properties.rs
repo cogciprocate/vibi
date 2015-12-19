@@ -14,7 +14,7 @@ pub struct TextProperties {
 	pub align: TextAlign,
 	pub raw_width: f32,	
 	pub cur_scale: (f32, f32),
-	pub cur_position: (f32, f32),
+	pub cur_center_pos: (f32, f32),
 }
 
 impl TextProperties {
@@ -30,7 +30,7 @@ impl TextProperties {
 			align: TextAlign::Center,
 			raw_width: 0.0,
 			cur_scale: (0.0, 0.0), 
-			cur_position: (0.0, 0.0),
+			cur_center_pos: (0.0, 0.0),
 		}
 	}
 
@@ -45,8 +45,8 @@ impl TextProperties {
 			[0.0, self.cur_scale.1, 0.0, 0.0,],
 			[0.0, 0.0, 1.0, 0.0,],
 			[	
-				self.cur_position.0, 
-				self.cur_position.1, 
+				self.cur_center_pos.0, 
+				self.cur_center_pos.1, 
 				0.0, 1.0f32,
 			], 	
 		]

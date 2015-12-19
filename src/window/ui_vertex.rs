@@ -1,4 +1,7 @@
 
+// [FIXME]: TODO: 
+// - Seriously revamp this a fix all the extra allocations etc.
+//    - ^ kinda halfway done...
 #[derive(Copy, Clone)]
 pub struct UiVertex {
 	position: [f32; 3],
@@ -12,27 +15,45 @@ impl UiVertex {
 		UiVertex { position: position, color: color, normal: normal }
 	}
 
-	// TODO: DEPRICATE
-	#[allow(dead_code)]
-	pub fn shifted(position: [f32; 3], color: [f32; 3], normal: [f32; 3], shift_by: &[f32; 3]
-			) -> UiVertex 
-	{
-		let shifted_position = shift(&position, shift_by);
+	// // TODO: DEPRICATE
+	// #[allow(dead_code)]
+	// pub fn shifted(position: [f32; 3], color: [f32; 3], normal: [f32; 3], shift_by: &[f32; 3]
+	// 		) -> UiVertex 
+	// {
+	// 	let shifted_position = shift(&position, shift_by);
 
-		UiVertex::new(shifted_position, color, normal)
+	// 	UiVertex::new(shifted_position, color, normal)
+	// }
+
+	pub fn scale(mut self, scale_by: &[f32; 3]) -> UiVertex {
+		// UiVertex { position: scale(&self.position, scale_by), color: self.color, normal: self.normal }
+		self.position = scale(&self.position, scale_by);
+		self
 	}
 
-	// TODO: DEPRICATE
-	#[allow(dead_code)]
-	pub fn shift(&self, shift_by: &[f32; 3]) -> UiVertex {
-		UiVertex::shifted(self.position, self.color, self.normal, shift_by)
+	pub fn shift(mut self, shift_by: &[f32; 3]) -> UiVertex {
+		// UiVertex::shifted(self.position, self.color, self.normal, shift_by)
+		self.position = shift(&self.position, shift_by);
+		self
+	}	
+
+	pub fn color(mut self, color: [f32; 3]) -> UiVertex {
+		self.color = color;
+		self
 	}
 
 	// TODO: Convert to taking a matrix argument.
-	pub fn transform(&self, scale_by: &[f32; 3], shift_by: &[f32; 3]) -> UiVertex {
-		let position = shift(&scale(&self.position, scale_by), shift_by);
-		// let position = shift(&self.position, shift_by);
-		UiVertex { position: position, ..self.clone() }
+	pub fn transform(self, scale_by: &[f32; 3], shift_by: &[f32; 3]) -> UiVertex {
+		// let position = shift(&scale(&self.position, scale_by), shift_by);
+		// // let position = shift(&self.position, shift_by);
+		// UiVertex { position: position, ..self.clone() }
+		self.scale(scale_by).shift(shift_by)
+	}
+
+	pub fn border_of(mut self, thickness: f32) -> UiVertex {
+		self.position[0] = rim_job(self.position[0], thickness);
+		self.position[1] = rim_job(self.position[1], thickness);
+		self
 	}
 
 	pub fn set_color(&mut self, color: [f32; 3]) {
@@ -47,6 +68,16 @@ impl UiVertex {
 
 implement_vertex!(UiVertex, position, color, normal);
 
+
+fn rim_job(coord: f32, thickness: f32) -> f32 {
+	if coord > 0.0 {
+		coord + thickness
+	} else if coord < 0.0 {
+		coord - thickness
+	} else {
+		coord
+	}
+}
 
 // TODO: Combine into transform().
 fn shift(position: &[f32; 3], shift_by: &[f32; 3]) -> [f32; 3] {
