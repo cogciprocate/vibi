@@ -3,7 +3,7 @@ use loop_cycles::{CyCtl, CySts};
 use glium::{self, DisplayBuild, Surface};
 
 use super::{C_ORANGE, INIT_GRID_SIZE, WindowStats, HexGrid, StatusText,
-	UiPane, TextBox, HexButton};
+	UiPane, TextBox, HexButton, MouseInputEventResult};
 
 
 pub struct MainWindow {
@@ -49,38 +49,41 @@ impl MainWindow {
 		let mut ui = UiPane::new(&display)
 			// KEY: ::hex_button([anchor: x, y, z], (offset: x, y), extra_width, text, color, click handler))
 			
-			.element(HexButton::new([1.0, 1.0, 0.0], (-0.22, -0.07), 2.5, 
-					"+ Grid Size".to_string(), C_ORANGE)
-				.click_action(Box::new(|window| { 
+			.element(HexButton::new([1.0, 1.0, 0.0], (-0.25, -0.07), 2.5, 
+					"+ Grid Size", C_ORANGE)
+				.mouse_input_handler(Box::new(|_, _, window| { 
 						// println!("Shrinking Grid..."); 
 						window.grid_size += 1;
+						MouseInputEventResult::None
 				}))
 			)
 
 			// .element(HexButton::new([1.0, 1.0, 0.0], (-0.32, -0.12), 2.5, 
 			// 		"Ahem".to_string(), [0.3, 0.3, 0.3])
-			// 	.click_action(Box::new(|_| { 
+			// 	.mouse_input_handler(Box::new(|_| { 
 			// 			// println!("Shrinking Grid..."); 
 			// 			// window.grid_size += 1;
 			// 	}))
 			// )
 
-			.element(HexButton::new([1.0, 1.0, 0.0], (-0.22, -0.17), 2.5, 
-					"- Grid Size".to_string(), C_ORANGE)
-				.click_action(Box::new(|window| { 
+			.element(HexButton::new([1.0, 1.0, 0.0], (-0.25, -0.17), 2.5, 
+					"- Grid Size", C_ORANGE)
+				.mouse_input_handler(Box::new(|_, _, window| { 
 					// println!("Shrinking Grid..."); 
 					window.grid_size -= 1;
+					MouseInputEventResult::None
 				}))
 			)
 
-			.element(TextBox::new([-1.0, -1.0, 0.0], (0.34, 0.50), 4.5, 
-					"Iters:".to_string(), C_ORANGE,))
+			.element(TextBox::new([1.0, -1.0, 0.0], (-0.39, 0.50), 4.5, 
+					"Iters:", C_ORANGE,))
 
-			.element(HexButton::new([1.0, -1.0, 0.0], (-0.18, 0.07), 1.8, 
-					"Exit".to_string(), C_ORANGE)
-				.click_action(Box::new(|window| { 
+			.element(HexButton::new([1.0, -1.0, 0.0], (-0.20, 0.07), 1.8, 
+					"Exit", C_ORANGE)
+				.mouse_input_handler(Box::new(|_, _, window| { 
 					// println!("Exit clicked."); 
 					window.close_pending = true;
+					MouseInputEventResult::None
 				}))
 			)
 

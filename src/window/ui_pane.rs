@@ -1,14 +1,14 @@
 #![allow(dead_code, unused_variables)]
 // use std::ops::{Deref};
-use glium_text::{self, TextSystem, FontTexture, TextDisplay};
+use glium_text::{TextSystem, FontTexture};
 use glium::backend::glutin_backend::GlutinFacade;
 use glium::{self, VertexBuffer, IndexBuffer, Program, DrawParameters, Surface};
 use glium::vertex::{EmptyInstanceAttributes as EIAttribs};
-use glium::glutin::Event;
-use super::{UiVertex, UiElement, MainWindow, MouseState};
+use glium::glutin::{ElementState, MouseButton, Event, VirtualKeyCode};
+use super::{UiVertex, UiElement, MainWindow, MouseState, MouseInputEventResult};
 
 const TWOSR3: f32 = 1.15470053838;
-const DEFAULT_UI_SCALE: f32 = 0.8;
+const DEFAULT_UI_SCALE: f32 = 0.9;
 
 pub struct UiPane<'d> {
 	vbo: Option<VertexBuffer<UiVertex>>,
@@ -22,6 +22,7 @@ pub struct UiPane<'d> {
 	font_texture: FontTexture,
 	mouse_state: MouseState,
 	mouse_focused: Option<usize>,
+	keybd_focused: Option<usize>,
 }
 
 impl<'d> UiPane<'d> {
@@ -48,10 +49,10 @@ impl<'d> UiPane<'d> {
 		let text_system = TextSystem::new(display);
 
 		// Text font:
-		let font_size = 36;
+		let font_size = 24;
 		let font_texture = FontTexture::new(display, &include_bytes!(
 				// "/home/nick/projects/vibi/assets/fonts/nanum/NanumBarunGothic.ttf"
-				"/home/nick/projects/vibi/assets/fonts/NotoSans/NotoSans-Regular.ttf"
+				"/home/nick/projects/vibi/assets/fonts/NotoSans/NotoSans-Bold.ttf"
 			)[..], font_size).unwrap();
 
 		UiPane { 
@@ -66,6 +67,7 @@ impl<'d> UiPane<'d> {
 			font_texture: font_texture,
 			mouse_state: MouseState::new(),
 			mouse_focused: None,
+			keybd_focused: None,
 		}
 	}
 
@@ -125,7 +127,7 @@ impl<'d> UiPane<'d> {
 
 	pub fn handle_event(&mut self, event: Event, window: &mut MainWindow) {
 		use glium::glutin::Event::{Closed, Resized, KeyboardInput, MouseInput, MouseMoved};
-		use glium::glutin::ElementState::{Released, Pressed};
+		// use glium::glutin::ElementState::{Released, Pressed};
 
 		match event {
 			Closed => {					
@@ -136,27 +138,15 @@ impl<'d> UiPane<'d> {
 				self.refresh_vertices()
 			},
 
-			KeyboardInput(state, _, vk_code_o) => {				
-				if let Pressed = state {
-					if let Some(vk_code) = vk_code_o {
-						use glium::glutin::VirtualKeyCode::{Q, Escape, Up, Down, Left, Right};
-						match vk_code {
-							Q | Escape => window.close_pending = true,
-							Up => if window.grid_size < super::MAX_GRID_SIZE { window.grid_size *= 2; },
-							Down => if window.grid_size >= 4 { window.grid_size /= 2; },
-							Right => if window.grid_size < super::MAX_GRID_SIZE { window.grid_size += 1; },
-							Left => if window.grid_size > 2 { window.grid_size -= 1; },
-							_ => (),
-						}
-					}
-				}
+			KeyboardInput(state, _, vk_code) => {
+				self.handle_keyboard_input(state, vk_code, window);
 			},
 
 			MouseInput(state, button) => {
-				if let Released = state {
+				if let ElementState::Released = state {
 					use glium::glutin::MouseButton::{Left};
 					match button {
-						Left => self.handle_mouse_click(window),
+						Left => self.handle_mouse_input(state, button, window),
 						_ => ()
 					}
 				}
@@ -165,6 +155,62 @@ impl<'d> UiPane<'d> {
 			MouseMoved(p) => self.mouse_state.update_position(p),
 
 			_ => ()
+		}
+	}
+
+	fn handle_mouse_input(&mut self, state: ElementState, button: MouseButton, 
+				window: &mut MainWindow)
+	{
+		// println!("Mouse clicked. ");
+		match self.mouse_focused {
+			Some(ele_idx) => {
+				// print!("   Clicking element: {}... ", ele_idx);				
+				match self.elements[ele_idx].handle_mouse_input(state, button, window) {
+					MouseInputEventResult::RequestKeyboardFocus(on_off) => {
+						if on_off { 							
+							self.keybd_focused = Some(ele_idx);
+							self.elements[ele_idx].set_keybd_focus(true);
+						} else {
+							self.keybd_focused = None;
+							self.elements[ele_idx].set_keybd_focus(false);
+						}						
+					},
+					_ => (),
+				}
+			},
+			_ => {
+				self.keybd_focused = match self.keybd_focused {
+					Some(ele_idx) => {
+						self.elements[ele_idx].set_keybd_focus(false);
+						None
+					},
+					None => None,
+				}
+			}
+		};
+
+		println!("    Keyboard Focus: {:?}", self.keybd_focused);
+	}
+	
+	fn handle_keyboard_input(&mut self, state: ElementState, vk_code: Option<VirtualKeyCode>,
+				window: &mut MainWindow) 
+	{
+		if let Some(ele_idx) = self.keybd_focused {
+			self.elements[ele_idx].handle_keyboard_input(state, vk_code, window);
+		} else {
+			if let ElementState::Pressed = state {
+				if let Some(vkc) = vk_code {
+					use glium::glutin::VirtualKeyCode::*;
+					match vkc {
+						Q | Escape => window.close_pending = true,
+						Up => if window.grid_size < super::MAX_GRID_SIZE { window.grid_size *= 2; },
+						Down => if window.grid_size >= 4 { window.grid_size /= 2; },
+						Right => if window.grid_size < super::MAX_GRID_SIZE { window.grid_size += 1; },
+						Left => if window.grid_size > 2 { window.grid_size -= 1; },
+						_ => (),
+					}
+				}
+			}
 		}
 	}
 
@@ -208,11 +254,13 @@ impl<'d> UiPane<'d> {
 
 		// Draw element text:
 		for element in self.elements.iter() {
-			let text_display = TextDisplay::new(&self.text_system, &self.font_texture, 
-				element.get_text());
+			element.draw_text(&self.text_system, target, &self.font_texture);
 
-			glium_text::draw(&text_display, &self.text_system, target, 
-				element.text_matrix(), (0.99, 0.99, 0.99, 1.0));
+			// let text_display = TextDisplay::new(&self.text_system, &self.font_texture, 
+			// 	element.get_text());
+
+			// glium_text::draw(&text_display, &self.text_system, target, 
+			// 	element.text_matrix(), element.text().get_color());
 		}
 	}
 
@@ -241,15 +289,7 @@ impl<'d> UiPane<'d> {
 		} 
 
 		None
-	}
-
-	fn handle_mouse_click(&mut self, window: &mut MainWindow) {
-		// println!("Mouse clicked. ");
-		if let Some(ele_idx) = self.mouse_focused {
-			// print!("   Clicking element: {}... ", ele_idx);
-			self.elements[ele_idx].click(window);
-		}
-	}
+	}	
 }
 
 
