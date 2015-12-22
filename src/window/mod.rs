@@ -4,6 +4,7 @@ pub use self::hex_grid::HexGrid;
 pub use self::ui_pane::UiPane;
 pub use self::ui_element::UiElement;
 pub use self::ui_vertex::UiVertex;
+pub use self::ui_shape_2d::UiShape2d;
 pub use self::mouse_state::MouseState;
 pub use self::controls::{HexButton, TextBox};
 pub use self::main_window::MainWindow;
@@ -22,7 +23,7 @@ mod keyboard_state;
 mod controls;
 mod main_window;
 pub mod util;
-pub mod shapes;
+pub mod ui_shape_2d;
 // pub mod conrod;
 // mod window_grid;
 // pub mod window_main;
@@ -33,10 +34,13 @@ pub mod shapes;
 use std::fmt::{Debug, Formatter, Error};
 use glium::glutin::{ElementState, MouseButton, VirtualKeyCode};
 
-pub const C_PINK: [f32; 3] = [0.990, 0.490, 0.700];
-pub const C_ORANGE: [f32; 3] = [0.960, 0.400, 0.0];
+#[allow(dead_code)]
+pub const C_PINK: [f32; 4] = [0.990, 0.490, 0.700, 1.0];
+#[allow(dead_code)]
+pub const C_ORANGE: [f32; 4] = [0.960, 0.400, 0.0, 1.0];
 // pub const C_BLACK: (f32, f32, f32, f32) = (0.01, 0.01, 0.01, 1.0);
-pub const C_BLACK: [f32; 3] = [0.001, 0.001, 0.001];
+#[allow(dead_code)]
+pub const C_BLACK: [f32; 4] = [0.001, 0.001, 0.001, 1.0];
 
 
 pub const INIT_GRID_SIZE: u32 = 64;

@@ -10,23 +10,23 @@ path = "/home/nick/projects/bismit"
 git = "https://github.com/rust-lang/time.git"
 
 [dependencies]
+# -- 0.12 currently required  to work with glium_text -- yeah wtf...
 glium = "0.12"
 glium_text = "*"
 image = "*"
-piston_window = "*"
-piston2d-opengl_graphics = "*"
-conrod = "0.23"
 find_folder = "*"
 elmesque = "*"
 num = "*"
 vecmath = "*"
 rustc-serialize = "*"
 
+# piston_window = "*"
+# piston2d-opengl_graphics = "*"
+# conrod = "0.23"
 # piston = "0.16.0"
 # pistoncore-glutin_window = "0.20.0"
 # piston-viewport = "0.2.0"
 # piston2d-gfx_graphics = "0.13.0"
-
 # gfx = "0.8.1"
 # cgmath = "*"
 

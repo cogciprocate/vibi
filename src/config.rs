@@ -120,9 +120,9 @@ pub fn define_pamaps() -> ProtoareaMaps {
 
 pub fn disable_stuff(cortex: &mut Cortex) {
 
-	/* ************************* */
-	/* ***** DISABLE STUFF ***** */	
-	/* ************************* */
+	/* ######################### */
+	/* ##### DISABLE STUFF ##### */	
+	/* ######################### */
 	for (_, area) in &mut cortex.areas {
 		// area.psal_mut().dens_mut().syns_mut().set_offs_to_zero_temp();
 		// area.bypass_inhib = true;

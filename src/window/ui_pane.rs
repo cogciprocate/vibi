@@ -1,6 +1,6 @@
 #![allow(dead_code, unused_variables)]
 // use std::ops::{Deref};
-use glium_text::{TextSystem, FontTexture};
+use glium_text::{self, TextSystem, FontTexture, TextDisplay};
 use glium::backend::glutin_backend::GlutinFacade;
 use glium::{self, VertexBuffer, IndexBuffer, Program, DrawParameters, Surface};
 use glium::vertex::{EmptyInstanceAttributes as EIAttribs};
@@ -191,7 +191,7 @@ impl<'d> UiPane<'d> {
 			}
 		};
 
-		println!("    Keyboard Focus: {:?}", self.keybd_focused);
+		// println!("    Keyboard Focus: {:?}", self.keybd_focused);
 	}
 	
 	fn handle_keyboard_input(&mut self, key_state: ElementState, vk_code: Option<VirtualKeyCode>,
@@ -238,19 +238,23 @@ impl<'d> UiPane<'d> {
 		// Update elements:
 		if !self.mouse_state.is_stale() {
 			// Determine which element has mouse focus (by index):
-			let current_focus = self.focused_element_idx(target);
+			let newly_focused = self.focused_element_idx(target);
 
-			if current_focus != self.mouse_focused {
+			if newly_focused != self.mouse_focused {
+				// Not focused.
 				if let Some(idx) = self.mouse_focused {
-					self.elements[idx].set_color(super::C_ORANGE);
+					// self.elements[idx].set_color(super::C_ORANGE);
+					self.elements[idx].set_mouse_focus(false);
 				}
 
-				if let Some(idx) = current_focus {
+				// Focused.
+				if let Some(idx) = newly_focused {
 					// println!(" ####    Element '{}' has focus.", idx);
-					self.elements[idx].set_color(super::C_PINK);
+					// self.elements[idx].set_color(super::C_PINK);
+					self.elements[idx].set_mouse_focus(true);
 				}
 
-				self.mouse_focused = current_focus;
+				self.mouse_focused = newly_focused;
 
 				// [FIXME]: Temporary: Make something which doesn't need to rewrite every vertex.
 				self.refresh_vertices();
@@ -265,11 +269,11 @@ impl<'d> UiPane<'d> {
 		for element in self.elements.iter() {
 			element.draw_text(&self.text_system, target, &self.font_texture);
 
-			// let text_display = TextDisplay::new(&self.text_system, &self.font_texture, 
-			// 	element.get_text());
+			let text_display = TextDisplay::new(&self.text_system, &self.font_texture, 
+				element.get_text());
 
-			// glium_text::draw(&text_display, &self.text_system, target, 
-			// 	element.text_matrix(), element.text().get_color());
+			glium_text::draw(&text_display, &self.text_system, target, 
+				element.text_matrix(), element.text().get_color());
 		}
 	}
 
@@ -309,12 +313,12 @@ static vertex_shader_src: &'static str = r#"
 	#version 330
 
 	in vec3 position;
-	in vec3 color;
-	in vec3 normal;
+	in vec4 color;
+	in vec2 xy_normal;
 
 	out vec3 v_position;
-	out vec3 v_color;
-	// out vec3 v_normal;	
+	out vec4 v_color;
+	// out vec2 v_xy_normal;	
 
 	// uniform uint grid_side;
 	// uniform mat4 model;
@@ -325,7 +329,7 @@ static vertex_shader_src: &'static str = r#"
 		gl_Position = vec4(position, 1.0);
 		// gl_Position = persp * model * vec4(position, 1.0);
 
-		// v_normal = transpose(inverse(mat3(model_view))) * normal;
+		// v_xy_normal = transpose(inverse(mat3(model_view))) * xy_normal;
 		v_color = color;
 		// v_position = gl_Position.xyz / gl_Position.w;
 	};
@@ -337,8 +341,8 @@ static vertex_shader_src: &'static str = r#"
 static fragment_shader_src: &'static str = r#"
 	#version 330
 
-	in vec3 v_color;
-	// in vec3 v_normal;
+	in vec4 v_color;
+	// in vec2 v_xy_normal;
 	// in vec3 v_position;
 
 	out vec4 color;
@@ -358,16 +362,17 @@ static fragment_shader_src: &'static str = r#"
 	// const vec3 model_color = vec3(0.9882, 0.4902, 0.7059);
 
 	void main() {
-		// float diffuse_ampl = max(dot(normalize(v_normal), normalize(u_light_pos)), 0.0);
+		// float diffuse_ampl = max(dot(normalize(v_xy_normal), normalize(u_light_pos)), 0.0);
 
 		// vec3 camera_dir = normalize(-v_position);
 		// vec3 half_direction = normalize(normalize(u_light_pos) + camera_dir);
-		// float specular = pow(max(dot(half_direction, normalize(v_normal)), 0.0), 
+		// float specular = pow(max(dot(half_direction, normalize(v_xy_normal)), 0.0), 
 		// 	specular_coeff);
 
 		// color = vec4((ambient_color * u_model_color) + diffuse_ampl
 		// 	* diffuse_color + specular * specular_color, 1.0);	
 
-		color = vec4(v_color, 1.0);
+		// color = vec4(v_color, 1.0);
+		color = v_color;
 	};
 "#;

@@ -3,24 +3,34 @@
 use glium::Surface;
 use glium_text::{self, TextSystem, FontTexture, TextDisplay};
 use glium::glutin::{ElementState, MouseButton, VirtualKeyCode};
-use window::{self, UiVertex, MainWindow, TextProperties, HandlerOption, MouseInputHandler, 
+use window::{self, UiVertex, UiShape2d, MainWindow, TextProperties, HandlerOption, MouseInputHandler, 
 	KeyboardInputHandler, MouseInputEventResult, KeyboardInputEventResult, KeyboardState};
 
 pub const ELEMENT_BASE_SCALE: f32 = 0.07;
 
-/*********
+/* ////
 	Notes:
 	- 'raw' is intended to mean something based on a position which is unscaled by the screen and generally has a height of roughly 1.0f32.
 	- 'cur' is a pre-calculated value containing information about the current screen state (such as its size) and is used as a cached value.
 
 	- 'idz' is, as always, the index of item[0] within a larger set (think memory location).
 
-*********/
+//// */
+
+// pub struct UiElementBorderToggle {
+
+// }
 
 pub struct UiElementBorder {
 	thickness: f32,
 	// color: (f32, f32, f32, f32),
-	color: [f32; 3],
+	color: [f32; 4],
+}
+
+impl UiElementBorder {
+	pub fn thin_black() -> UiElementBorder {
+		UiElementBorder { thickness: 0.05, color: window::C_BLACK }
+	}
 }
 
 
@@ -31,9 +41,10 @@ pub struct UiElement {
 	// kind: UiElementKind,
 	text: TextProperties,
 	sub_elements: Vec<UiElement>,	
-	vertices_raw: Vec<UiVertex>,
-	indices_raw: Vec<u16>,
-	mouse_radii: (f32, f32),
+	// vertices_raw: Vec<UiVertex>,
+	// indices_raw: Vec<u16>,
+	// mouse_radii: (f32, f32),
+	shape: UiShape2d,
 	has_mouse_focus: bool,
 	has_keybd_focus: bool,
 	anchor_point: [f32; 3],
@@ -48,7 +59,7 @@ pub struct UiElement {
 
 impl<'a> UiElement {
 	pub fn new(anchor_point: [f32; 3], anchor_ofs: [f32; 3], vertices_raw: Vec<UiVertex>, 
-				 indices_raw: Vec<u16>, mouse_radii: (f32, f32),
+				 indices_raw: Vec<u16>, mouse_radii: (f32, f32), shape: UiShape2d,
 			) -> UiElement
 	{
 		verify_position(anchor_point);
@@ -58,9 +69,10 @@ impl<'a> UiElement {
 		UiElement { 
 			text: TextProperties::new(""),
 			sub_elements: Vec::with_capacity(0),
-			vertices_raw: vertices_raw, 
-			indices_raw: indices_raw,
-			mouse_radii: mouse_radii,
+			// vertices_raw: vertices_raw, 
+			// indices_raw: indices_raw,
+			// mouse_radii: mouse_radii,
+			shape: shape,
 			has_mouse_focus: false,
 			has_keybd_focus: false,
 			anchor_point: anchor_point,
@@ -68,7 +80,15 @@ impl<'a> UiElement {
 			base_scale: (ELEMENT_BASE_SCALE, ELEMENT_BASE_SCALE),
 			cur_scale: [0.0, 0.0, 0.0],
 			cur_center_pos: [0.0, 0.0, 0.0],		
-			border: None,
+			
+			// ***** OLD
+			// border: None,
+			// ***** OLD
+
+			// ***** NEW
+			border: Some(UiElementBorder { thickness: 0.00, color: window::C_BLACK }),
+			// **** NEW
+
 			mouse_input_handler: HandlerOption::None,
 			keyboard_input_handler: HandlerOption::None,
 		}
@@ -123,17 +143,19 @@ impl<'a> UiElement {
 		self
 	}
 
-	pub fn border(mut self, thickness: f32, color: [f32; 3]) -> UiElement {
+	pub fn border(mut self, thickness: f32, color: [f32; 4]) -> UiElement {
 		self.border = Some(UiElementBorder { thickness: thickness, color: color });
 		self
 	}
 
 	pub fn vertices_raw(&self) -> &[UiVertex] {
-		&self.vertices_raw[..]
+		// &self.vertices_raw[..]
+		&self.shape.vertices[..]
 	}
 
 	pub fn indices_raw(&self) -> &[u16] {
-		&self.indices_raw[..]
+		// &self.indices_raw[..]
+		&self.shape.indices[..]
 	}
 
 	pub fn vertices(&mut self, window_dims: (u32, u32), ui_scale: f32) -> Vec<UiVertex> {
@@ -167,7 +189,7 @@ impl<'a> UiElement {
 		);
 
 		// Add vertices for this element's shape:
-		let mut vertices: Vec<UiVertex> = self.vertices_raw.iter().map(
+		let mut vertices: Vec<UiVertex> = self.shape.vertices.iter().map(
 			|&vrt| vrt.transform(&self.cur_scale, &self.cur_center_pos)).collect();
 
 		// If we have a border, create a "shadow" of our shape...
@@ -200,13 +222,13 @@ impl<'a> UiElement {
 				((self.anchor_point[2] + self.anchor_ofs[2]) * ui_scale) + window::SUBSUBDEPTH,
 			];
 
-			// let border_vertices: Vec<UiVertex> = self.vertices_raw.iter().map(|&vrt| 
+			// let border_vertices: Vec<UiVertex> = self.shape.vertices.iter().map(|&vrt| 
 			// 	vrt.transform(&border_scale, &border_position).color(border.color)).collect();
 
 			// let (b_scl, b_pos) = shift_and_scale(&border_anchor_point, &self.anchor_ofs, 
 			// 	&border_base_scale,	window_dims, ui_scale);
 
-			let border_vertices: Vec<UiVertex> = self.vertices_raw.iter().map(|&vrt| 
+			let border_vertices: Vec<UiVertex> = self.shape.vertices.iter().map(|&vrt| 
 					vrt.border_of(border.thickness)
 						.transform(&b_scale, &b_center_pos).color(border.color)
 				).collect();
@@ -224,22 +246,22 @@ impl<'a> UiElement {
 	/// Returns the list of indices with 'vertex_idz' added to each one.
 	pub fn indices(&self, mut vertex_idz: u16) -> Vec<u16> {
 		// Add indices for this element's shape:
-		let mut indices: Vec<u16> = self.indices_raw.iter().map(|&ind| ind + vertex_idz).collect();
-		vertex_idz += self.vertices_raw.len() as u16;
+		let mut indices: Vec<u16> = self.shape.indices.iter().map(|&ind| ind + vertex_idz).collect();
+		vertex_idz += self.shape.vertices.len() as u16;
 
 		// Add indices for our border (shadow of normal shape), if applicable:
 		if let Some(_) = self.border {
 			let border_indices: Vec<u16> = 
-				self.indices_raw.iter().map(|&ind| ind + vertex_idz).collect();
+				self.shape.indices.iter().map(|&ind| ind + vertex_idz).collect();
 
 			indices.extend_from_slice(&border_indices);
-			vertex_idz += self.vertices_raw.len() as u16;
+			vertex_idz += self.shape.vertices.len() as u16;
 		}
 
 		// Add indices for each sub_element, if any:
 		for sub_ele in self.sub_elements.iter() {
 			indices.extend_from_slice(&sub_ele.indices(vertex_idz));
-			vertex_idz += sub_ele.vertices_raw.len() as u16;
+			vertex_idz += sub_ele.shape.vertices.len() as u16;
 		}
 
 		indices
@@ -279,9 +301,48 @@ impl<'a> UiElement {
 		&self.text
 	}
 
-	pub fn set_color(&mut self, color: [f32; 3]) {
-		for vertex in self.vertices_raw.iter_mut() {
-			vertex.set_color(color);
+	// #[allow(dead_code)]
+	// pub fn set_color(&mut self, color: [f32; 3]) {
+	// 	for vertex in self.shape.vertices.iter_mut() {
+	// 		vertex.set_color(color);
+	// 	}
+	// }
+
+	/// Sets whether or not the mouse cursor is hovering over this element.
+	// [FIXME]: PENDING FUTURE INVESTIGATION:
+	// ADDING OR REMOVING A BORDER TO THE LIST OF VERTICES CAUSES A CRASH.
+	// INVESTIGATE.	
+	pub fn set_mouse_focus(&mut self, focused: bool) {
+		if focused {
+			// println!("set_mouse_focus(): I have focus.");
+
+			// *****
+			// ***** PROBLEM HERE:
+
+			// self.border = Some(UiElementBorder::thin_black());
+			self.border = Some(UiElementBorder { thickness: 0.15, color: window::C_BLACK });
+
+			// *****
+			// *****
+
+		} else {
+			// println!("set_mouse_focus(): I no longer have focus.");
+
+			// [FIXME]: PENDING FUTURE INVESTIGATION:
+			// ADDING OR REMOVING A BORDER TO THE LIST OF VERTICES CAUSES A CRASH.
+			// INVESTIGATE.
+
+			// *****
+			// *****
+			// self.border = None;
+			// *****
+			// *****
+
+			// *****
+			// *****
+			self.border = Some(UiElementBorder { thickness: 0.00, color: window::C_BLACK });
+			// *****
+			// *****
 		}
 	}
 
@@ -346,19 +407,19 @@ impl<'a> UiElement {
 
 	///////// [FIXME]: CACHE THIS STUFF PROPERLY ////////// 
 	fn left_edge(&self) -> f32 {
-		self.cur_center_pos[0] - (self.mouse_radii.0 * self.cur_scale[0])
+		self.cur_center_pos[0] - (self.shape.radii.0 * self.cur_scale[0])
 	}
 
 	fn right_edge(&self) -> f32 {
-		self.cur_center_pos[0] + (self.mouse_radii.0 * self.cur_scale[0])
+		self.cur_center_pos[0] + (self.shape.radii.0 * self.cur_scale[0])
 	}
 
 	fn top_edge(&self) -> f32 {
-		self.cur_center_pos[1] + (self.mouse_radii.1 * self.cur_scale[1])
+		self.cur_center_pos[1] + (self.shape.radii.1 * self.cur_scale[1])
 	}
 
 	fn bottom_edge(&self) -> f32 {
-		self.cur_center_pos[1] - (self.mouse_radii.1 * self.cur_scale[1])
+		self.cur_center_pos[1] - (self.shape.radii.1 * self.cur_scale[1])
 	}
 	//////////////////////////////////////
 

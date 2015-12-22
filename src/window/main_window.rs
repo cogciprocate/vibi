@@ -1,6 +1,7 @@
 use std::sync::mpsc::{Receiver, Sender};
 use loop_cycles::{CyCtl, CySts};
 use glium::{self, DisplayBuild, Surface};
+// use glium::window::{Window};
 
 use super::{C_ORANGE, INIT_GRID_SIZE, WindowStats, HexGrid, StatusText,
 	UiPane, TextBox, HexButton, MouseInputEventResult};
@@ -27,7 +28,7 @@ impl MainWindow {
 		};
 
 		// Create our window:
-		let display = glium::glutin::WindowBuilder::new()
+		let display: glium::backend::glutin_backend::GlutinFacade = glium::glutin::WindowBuilder::new()
 			.with_depth_buffer(24)
 			.with_dimensions(1400, 800)
 			.with_title("Vibi".to_string())

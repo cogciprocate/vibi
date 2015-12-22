@@ -5,39 +5,42 @@
 #[derive(Copy, Clone)]
 pub struct UiVertex {
 	position: [f32; 3],
-	color: [f32; 3],
-	normal: [f32; 3],
+	color: [f32; 4],
+	xy_normal: [f32; 2],
+	is_perimeter: bool,
 }
 
 impl UiVertex {
 	#[allow(dead_code)]
-	pub fn new(position: [f32; 3], color: [f32; 3], normal: [f32; 3]) -> UiVertex {
-		UiVertex { position: position, color: color, normal: normal }
+	pub fn new(position: [f32; 3], color: [f32; 4], xy_normal: [f32; 2], is_perimeter: bool) 
+			-> UiVertex 
+	{
+		UiVertex { position: position, color: color, xy_normal: xy_normal, is_perimeter: is_perimeter }
 	}
 
 	// // TODO: DEPRICATE
 	// #[allow(dead_code)]
-	// pub fn shifted(position: [f32; 3], color: [f32; 3], normal: [f32; 3], shift_by: &[f32; 3]
+	// pub fn shifted(position: [f32; 3], color: [f32; 3], xy_normal: [f32; 3], shift_by: &[f32; 3]
 	// 		) -> UiVertex 
 	// {
 	// 	let shifted_position = shift(&position, shift_by);
 
-	// 	UiVertex::new(shifted_position, color, normal)
+	// 	UiVertex::new(shifted_position, color, xy_normal)
 	// }
 
 	pub fn scale(mut self, scale_by: &[f32; 3]) -> UiVertex {
-		// UiVertex { position: scale(&self.position, scale_by), color: self.color, normal: self.normal }
+		// UiVertex { position: scale(&self.position, scale_by), color: self.color, xy_normal: self.xy_normal }
 		self.position = scale(&self.position, scale_by);
 		self
 	}
 
 	pub fn shift(mut self, shift_by: &[f32; 3]) -> UiVertex {
-		// UiVertex::shifted(self.position, self.color, self.normal, shift_by)
+		// UiVertex::shifted(self.position, self.color, self.xy_normal, shift_by)
 		self.position = shift(&self.position, shift_by);
 		self
 	}	
 
-	pub fn color(mut self, color: [f32; 3]) -> UiVertex {
+	pub fn color(mut self, color: [f32; 4]) -> UiVertex {
 		self.color = color;
 		self
 	}
@@ -56,7 +59,8 @@ impl UiVertex {
 		self
 	}
 
-	pub fn set_color(&mut self, color: [f32; 3]) {
+	#[allow(dead_code)]
+	pub fn set_color(&mut self, color: [f32; 4]) {
 		self.color = color;
 	}
 
@@ -66,7 +70,7 @@ impl UiVertex {
 	}
 }
 
-implement_vertex!(UiVertex, position, color, normal);
+implement_vertex!(UiVertex, position, color, xy_normal);
 
 
 fn rim_job(coord: f32, thickness: f32) -> f32 {

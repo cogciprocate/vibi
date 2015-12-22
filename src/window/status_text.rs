@@ -2,9 +2,10 @@
 
 #![allow(dead_code, unused_variables)]
 use glium_text::{self, TextSystem, FontTexture, TextDisplay};
-use glium::{Surface};
+use glium;
+// use glium::{self, Surface};
+// use glium::backend::{self, Facade};
 // use glium::backend::glutin_backend::{ GlutinFacade };
-use glium::backend::{Facade};
 
 use super::window_stats::{WindowStats};
 
@@ -16,7 +17,9 @@ pub struct StatusText {
 }
 
 impl StatusText {
-	pub fn new<F: Facade>(display: &F) -> StatusText {
+	pub fn new<F>(display: &F) -> StatusText 
+			where F: /*glium::Surface +*/ glium::backend::Facade 
+	{
 		// Text system (experimental):
 		let text_system = TextSystem::new(display);
 
@@ -32,7 +35,9 @@ impl StatusText {
 		}
 	}
 
-	pub fn draw<F: Surface>(&self, target: &mut F, stats: &WindowStats, grid_side: u32) {
+	pub fn draw<F>(&self, target: &mut F, stats: &WindowStats, grid_side: u32) 
+			where F: glium::Surface /*+ glium::backend::Facade*/
+	{
 		// let text_model_matrix = [
 		// 	[2.0 / text_width, 0.0, 0.0, 0.0,],
 		// 	[0.0, 2.0 * (width as f32) / (height as f32) / text_width, 0.0, 0.0,],

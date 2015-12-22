@@ -160,12 +160,6 @@ impl InputCzar {
 	}
 
 	pub fn sense(&self, cortex: &mut Cortex) {
-		//cortex.write_input(self.input_sources[0].target_area_name, &self.vec_optical);
-		//cortex.write_input("v2", &self.vec_optical); // *****
-		//cortex.write_input("a1", &self.vec_optical); // *****
-		//cortex.write(self.input_sources[0].target_area_name, "motor_in", &self.vec_motor);
-		//cortex.write("v1", "test_noise", &self.vec_test_noise);
-		//cortex.cycle_old("v1");
 		cortex.cycle();
 	}
 
