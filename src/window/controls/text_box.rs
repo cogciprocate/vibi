@@ -29,8 +29,8 @@ impl TextField {
 
 		let shape = ui_shape_2d::rectangle(0.8, width + 2.4, -0.1, color);
 
-		println!("    Rectangle perimeter edges list: {:?}", shape.perim_edges());
-		shape.as_border(0.1, color);
+		// println!("    Rectangle perimeter edges list: {:?}", shape.perim_edges());
+		// shape.as_border(0.1, color);
 
 		let text_offset = (-(shape.radii).0 + 0.16, 0.0);
 
@@ -62,6 +62,6 @@ impl TextField {
 
 			KeyboardInputEventResult::None
 		}))
-		.border(0.05, window::C_BLACK)
+		.border(0.05, window::C_BLACK, false)
 	}
 }

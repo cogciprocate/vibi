@@ -175,7 +175,9 @@ impl<'d> UiPane<'d> {
 						} else {
 							self.keybd_focused = None;
 							self.elements[ele_idx].set_keybd_focus(false);
-						}						
+						}
+
+						self.refresh_vertices();
 					},
 					_ => (),
 				}
@@ -184,6 +186,7 @@ impl<'d> UiPane<'d> {
 				self.keybd_focused = match self.keybd_focused {
 					Some(ele_idx) => {
 						self.elements[ele_idx].set_keybd_focus(false);
+						self.refresh_vertices();
 						None
 					},
 					None => None,

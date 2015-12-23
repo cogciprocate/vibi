@@ -22,10 +22,11 @@ pub const ELEMENT_BASE_SCALE: f32 = 0.07;
 // }
 
 pub struct UiElementBorder {
-	// thickness: f32,
+	thickness: f32,
 	// color: (f32, f32, f32, f32),
-	// color: [f32; 4],
+	color: [f32; 4],
 	shape: UiShape2d,
+	is_visible: bool,
 }
 
 // impl UiElementBorder {
@@ -61,7 +62,8 @@ impl<'a> UiElement {
 	{
 		verify_position(anchor_point);
 
-		let border = Some(UiElementBorder { shape: shape.as_border(0.0, [0.0, 0.0, 0.0, 0.4]) });
+		let border = Some(UiElementBorder { thickness: 0.05, color: window::C_BLACK,
+			is_visible: false, shape: shape.as_border(0.05, window::C_BLACK) });
 
 		UiElement { 
 			text: TextProperties::new(""),
@@ -137,9 +139,9 @@ impl<'a> UiElement {
 		self
 	}
 
-	pub fn border(mut self, thickness: f32, color: [f32; 4]) -> UiElement {
-		self.border = Some(UiElementBorder { /*thickness: thickness, color: color, */
-			shape: self.shape.as_border(thickness, color)});
+	pub fn border(mut self, thickness: f32, color: [f32; 4], is_visible: bool) -> UiElement {
+		self.border = Some(UiElementBorder { thickness: thickness, color: color, 
+			is_visible: is_visible, shape: self.shape.as_border(thickness, color)});
 		self
 	}
 
@@ -182,26 +184,15 @@ impl<'a> UiElement {
 
 		// If we have a border, create a "shadow" of our shape...
 		if let Some(ref border) = self.border {
-			// let b_scale = [
-			// 	self.base_scale.0 * ui_scale / ar, 
-			// 	self.base_scale.1 * ui_scale, 
-			// 	ui_scale,
-			// ];
-		
-			// let b_center_pos = [
-			// 	self.cur_center_pos[0],
-			// 	self.cur_center_pos[1],
-			// 	self.cur_center_pos[2] + window::SUBSUBDEPTH,
-			// ];
-
-			// let border_vertices: Vec<UiVertex> = self.shape.vertices.iter().map(|&vrt| 
-			// 		vrt.border_of(border.thickness)
-			// 			.transform(&b_scale, &b_center_pos).color(border.color)
-			// 	).collect();
-
-			let border_vertices: Vec<UiVertex> = border.shape.vertices.iter().map(|&vrt| 
-					vrt.transform(&self.cur_scale, &self.cur_center_pos)
-				).collect();
+			let border_vertices: Vec<UiVertex> = if border.is_visible {
+				border.shape.vertices.iter().map(|&vrt| 
+						vrt.transform(&self.cur_scale, &self.cur_center_pos)
+					).collect()
+			} else {
+				self.shape.vertices.iter().map(|&vrt| 
+						vrt.transform(&self.cur_scale, &self.cur_center_pos)
+					).collect()
+			};
 
 			vertices.extend_from_slice(&border_vertices);
 		}
@@ -282,41 +273,9 @@ impl<'a> UiElement {
 	// [FIXME]: PENDING FUTURE INVESTIGATION:
 	// ADDING OR REMOVING A BORDER TO THE LIST OF VERTICES CAUSES A CRASH.
 	// INVESTIGATE.	
-	pub fn set_mouse_focus(&mut self, focused: bool) {
-		if focused {
-			// println!("set_mouse_focus(): I have focus.");
-
-			// *****
-			// ***** PROBLEM HERE:
-
-			// self.border = Some(UiElementBorder::thin_black());
-			// self.border = Some(UiElementBorder { thickness: 0.15, color: window::C_BLACK });
-			self.border = Some(UiElementBorder { /*thickness: 0.25, color: window::C_BLACK, */
-				shape: self.shape.as_border(0.17, window::C_BLACK) });
-
-			// *****
-			// *****
-
-		} else {
-			// println!("set_mouse_focus(): I no longer have focus.");
-
-			// [FIXME]: PENDING FUTURE INVESTIGATION:
-			// ADDING OR REMOVING A BORDER TO THE LIST OF VERTICES CAUSES A CRASH.
-			// INVESTIGATE.
-
-			// *****
-			// *****
-			// self.border = None;
-			// *****
-			// *****
-
-			// *****
-			// *****
-			// self.border = Some(UiElementBorder { thickness: 0.00, color: window::C_BLACK });
-			self.border = Some(UiElementBorder { /*thickness: 0.00, color: window::C_BLACK, */
-				shape: self.shape.as_border(0.0, window::C_BLACK) });
-			// *****
-			// *****
+	pub fn set_mouse_focus(&mut self, has_focus: bool) {
+		if let Some(ref mut border) = self.border {
+			border.is_visible = has_focus;
 		}
 	}
 
@@ -333,6 +292,12 @@ impl<'a> UiElement {
 
 	pub fn set_keybd_focus(&mut self, has_focus: bool) {
 		self.has_keybd_focus = has_focus;
+
+		if let HandlerOption::Sub(ele_idx) = self.keyboard_input_handler {
+			if let Some(ref mut border) = self.sub_elements[ele_idx].border {
+				border.is_visible = has_focus;
+			}
+		}
 	}
 
 	// [FIXME]: Unused Vars.
