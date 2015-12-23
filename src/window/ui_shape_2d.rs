@@ -1,17 +1,193 @@
 #[allow(dead_code)]
 
 use window::{self, UiVertex};
+const BRDR_Z_OFFSET: f32 = window::SUBSUBDEPTH;
 
-#[derive(Clone)]
+#[derive(Clone, Copy)]
+struct Line {
+	pub x: f32,
+	pub y: f32,
+	pub m: f32,
+}
+
+
+#[derive(Clone, Debug)]
 pub struct UiShape2d {
 	pub vertices: Vec<UiVertex>,
 	pub indices: Vec<u16>,
+	pub perim: Vec<u16>,
 	pub radii: (f32, f32),
 	pub color: [f32; 4],
 }
 
 impl UiShape2d {
+	pub fn perim_edges(&self) -> Vec<(usize, (u16, u16))> {
+		(0..self.perim.len()).into_iter()
+			.map(|edge_idx| {				
+				let v_1 = if edge_idx == 0 {
+						self.perim[self.perim.len() - 1]
+					} else {
+						self.perim[edge_idx - 1]
+					};
 
+				let v_2 = self.perim[edge_idx];
+
+				(self.perim[edge_idx] as usize, (v_1, v_2))
+			})
+			.collect()
+	}
+
+	/// Returns a shape with edges extended away from the center by the desired border thickness 't'.
+	pub fn as_border(&self, t: f32, color: [f32; 4]) -> UiShape2d {
+		let perim_edges = self.perim_edges();
+		// let mut border_edges = Vec::<((f32, f32), (f32, f32))>::with_capacity(perim_edges.len());
+		let mut border_lines = Vec::<Line>::with_capacity(perim_edges.len());
+
+		// Find a line which is parallel to each perimeter edge with distance 't':
+		for edge in perim_edges.iter() {
+			// Get the 3d positions for each vertex on our (original) edge:
+			let pos1_3d = self.vertices[(edge.1).0 as usize].position();
+			let pos2_3d = self.vertices[(edge.1).1 as usize].position();
+
+			// Create a two-tuple (x, y) for both points, ignoring z:
+			let p1 = (pos1_3d[0], pos1_3d[1]);
+			let p2 = (pos2_3d[0], pos2_3d[1]);
+
+			// Find slope:
+			let m = (p2.1 - p1.1) / (p2.0 - p1.0);
+			let m_inv = 1.0 / m;
+
+			// // Delta x and y (+/-):
+			// let ofs = if m_inv.is_infinite() {					
+			// 		(0.0, t)
+			// 	} else if m_inv < 0.0001 {
+			// 		(t, 0.0)
+			// 	} else {
+			// 		// let x_ofs = (m_inv.powi(2) + 1.0).sqrt() * t;
+			// 		// let y_ofs = m_inv / x_ofs;
+			// 		// let x_ofs = (t.powi(2) - (t * m_inv).powi(2)).sqrt();
+			// 		// let y_ofs = (t.powi(2) - (t * m_inv).powi(2)).sqrt();
+			// 		let x_ofs = (1.0 - m_inv.powi(2)).sqrt() * t;
+			// 		let y_ofs = (1.0 - m.powi(2)).sqrt() * t;
+					
+			// 		// println!("\nx_ofs: {}, y_ofs: {}", x_ofs, y_ofs);
+			// 		(x_ofs, y_ofs)
+			// 		// (0.0, 0.0)
+
+			// 	};
+
+			// println!("m_inv.atan(): {}", m_inv.atan());
+			// println!("m_inv.atan().cos(): {}", m_inv.atan().cos());
+			// println!("m_inv.atan().sin(): {}", m_inv.atan().sin());
+
+			let x_ofs = m_inv.atan().cos().abs() * t;
+			let y_ofs = m_inv.atan().sin().abs() * t;
+
+			// Halfway point between p1 and p2:
+			let p = ((p1.0 + p2.0) / 2.0, (p1.1 + p2.1) / 2.0);
+
+			// Positive if y is in QII or QI, negative in QIII or QIV, if zero, use x sign:
+			// let p_y_sign = if p.1 == 0.0 {
+			// 		p.0.signum()
+			// 	} else {
+			// 		p.1.signum()
+			// 	};
+
+			// let p_sign = 
+
+
+			// Shifted p:
+			let q = ((p.0 + (x_ofs * p.0.signum())), 
+				(p.1 + (y_ofs * p.1.signum())));
+
+			// Shifted p2:
+
+
+
+			// let q1 = (p1.0 + ofs.0, 
+			// 	p1.1 + ofs.1);
+
+			// let q2 = (p2.0 + ofs.0, 
+			// 	p2.1 + ofs.1);
+
+			// println!("        [p{e0}: {:?}, p{e1}: {:?}, p: {:?}, m: {m}] => [q: {:?}, m: {m}]",
+			// 	p1, p2, p, q, e0 = (edge.1).0, e1 = (edge.1).1, m = m);
+
+			// if m.is_infinite() {
+			// 	debug_assert!(!((q2.1 - q1.1) / (q2.0 - q1.0)).is_normal());
+			// } else {
+			// 	debug_assert!(((q2.1 - q1.1) / (q2.0 - q1.0)) - m <= 0.0001);
+			// }
+
+
+			// border_edges.push((q, q));
+			border_lines.push(Line { x: q.0, y: q.1, m: m });
+		}
+
+		// println!("      border_edges: {:?}", border_edges);
+
+		let mut border_vertices: Vec<(f32, f32)> = Vec::with_capacity(perim_edges.len());
+
+		for l_idx in 0..border_lines.len() {
+			
+			// let l1 = if l_idx == (border_lines.len() - 1) {
+			// 	border_lines[0]
+			// } else {				
+			// 	border_lines[l_idx + 1]
+			// };
+			let l1 = if l_idx == 0 {
+					border_lines[border_lines.len() - 1]
+				} else {				
+					border_lines[l_idx - 1]
+				};				
+			let l2 = border_lines[l_idx];
+
+			let (x, y) = if l1.m.is_infinite() {
+					(l1.x, l2.y)
+				} else if l2.m.is_infinite() {
+					(l2.x, l1.y)
+				} else {
+					let x = ((l1.m * l1.x) - (l2.m * l2.x) - l1.y + l2.y) / (l1.m - l2.m);
+					let y = (l1.m * (x - l1.x)) + l1.y;
+
+					// debug_assert!(((l2.m * (x - l2.x)) + l2.y) - y < 0.0001);
+
+					(x, y)
+				};
+
+			// println!("          Intersection: ({}, {})", x, y);
+
+			border_vertices.push((x, y));
+		}
+
+		let mut vertices = self.vertices.clone();
+
+		vertices[0] = 
+			self.vertices[0].color([0.0, 0.0, 0.0, 0.5]);
+
+		for l_idx in 0..border_lines.len() {
+			let vert_idx = perim_edges[l_idx].0;
+			let (v_x, v_y) = border_vertices[l_idx];
+
+			// if l_idx > 1 { break; }
+
+			vertices[vert_idx] = 
+				UiVertex::new([v_x, v_y, self.vertices[vert_idx].position()[2] + BRDR_Z_OFFSET],
+					color, [0.0, 0.0], self.vertices[vert_idx].is_perimeter());
+		}
+
+		let new_shape = UiShape2d { 
+			vertices: vertices, 
+			indices: self.indices.clone(),
+			perim: self.perim.clone(),
+			color: color, 
+			radii: (self.radii.0 + t, self.radii.1 + t),
+		};
+
+		// print!("\n");
+
+		new_shape
+	}
 }
 
 
@@ -45,10 +221,15 @@ pub fn hexagon_panel(height: f32, ew: f32, depth: f32, color: [f32; 4],
 		6, 1, 0u16,
 	];
 
+	let perim = vec![
+		1, 2, 3, 4, 5, 6,
+	];
+
 	let radii = (ew + (s * 0.75), a);
 
 	// (vertices, indices, radii)
-	UiShape2d { vertices: vertices, indices: indices, radii: radii, color: window::C_BLACK }	
+	UiShape2d { vertices: vertices, indices: indices, perim: perim, radii: radii, 
+		color: window::C_BLACK }	
 }
 
 
@@ -80,8 +261,13 @@ pub fn rectangle(height: f32, width: f32, depth: f32, color: [f32; 4],
 		4, 1, 0,
 	];
 
+	let perim = vec![
+		1, 2, 3, 4,
+	];
+
 	let radii = (right, top);
 
 	// (vertices, indices, radii)
-	UiShape2d { vertices: vertices, indices: indices, radii: radii, color: window::C_BLACK }	
+	UiShape2d { vertices: vertices, indices: indices, perim: perim, radii: radii, 
+		color: window::C_BLACK }	
 }

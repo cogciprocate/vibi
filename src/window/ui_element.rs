@@ -22,16 +22,17 @@ pub const ELEMENT_BASE_SCALE: f32 = 0.07;
 // }
 
 pub struct UiElementBorder {
-	thickness: f32,
+	// thickness: f32,
 	// color: (f32, f32, f32, f32),
-	color: [f32; 4],
+	// color: [f32; 4],
+	shape: UiShape2d,
 }
 
-impl UiElementBorder {
-	pub fn thin_black() -> UiElementBorder {
-		UiElementBorder { thickness: 0.05, color: window::C_BLACK }
-	}
-}
+// impl UiElementBorder {
+// 	pub fn thin_black() -> UiElementBorder {
+// 		UiElementBorder { thickness: 0.05, color: window::C_BLACK }
+// 	}
+// }
 
 
 // [FIXME]: TODO: 
@@ -41,9 +42,6 @@ pub struct UiElement {
 	// kind: UiElementKind,
 	text: TextProperties,
 	sub_elements: Vec<UiElement>,	
-	// vertices_raw: Vec<UiVertex>,
-	// indices_raw: Vec<u16>,
-	// mouse_radii: (f32, f32),
 	shape: UiShape2d,
 	has_mouse_focus: bool,
 	has_keybd_focus: bool,
@@ -58,20 +56,16 @@ pub struct UiElement {
 }
 
 impl<'a> UiElement {
-	pub fn new(anchor_point: [f32; 3], anchor_ofs: [f32; 3], vertices_raw: Vec<UiVertex>, 
-				 indices_raw: Vec<u16>, mouse_radii: (f32, f32), shape: UiShape2d,
+	pub fn new(anchor_point: [f32; 3], anchor_ofs: [f32; 3], shape: UiShape2d,
 			) -> UiElement
 	{
 		verify_position(anchor_point);
 
-		// let border = Some(UiElementBorder { thickness: 0.05, color: window::C_BLACK });
+		let border = Some(UiElementBorder { shape: shape.as_border(0.0, [0.0, 0.0, 0.0, 0.4]) });
 
 		UiElement { 
 			text: TextProperties::new(""),
 			sub_elements: Vec::with_capacity(0),
-			// vertices_raw: vertices_raw, 
-			// indices_raw: indices_raw,
-			// mouse_radii: mouse_radii,
 			shape: shape,
 			has_mouse_focus: false,
 			has_keybd_focus: false,
@@ -86,7 +80,7 @@ impl<'a> UiElement {
 			// ***** OLD
 
 			// ***** NEW
-			border: Some(UiElementBorder { thickness: 0.00, color: window::C_BLACK }),
+			border: border,
 			// **** NEW
 
 			mouse_input_handler: HandlerOption::None,
@@ -144,17 +138,16 @@ impl<'a> UiElement {
 	}
 
 	pub fn border(mut self, thickness: f32, color: [f32; 4]) -> UiElement {
-		self.border = Some(UiElementBorder { thickness: thickness, color: color });
+		self.border = Some(UiElementBorder { /*thickness: thickness, color: color, */
+			shape: self.shape.as_border(thickness, color)});
 		self
 	}
 
 	pub fn vertices_raw(&self) -> &[UiVertex] {
-		// &self.vertices_raw[..]
 		&self.shape.vertices[..]
 	}
 
 	pub fn indices_raw(&self) -> &[u16] {
-		// &self.indices_raw[..]
 		&self.shape.indices[..]
 	}
 
@@ -168,11 +161,6 @@ impl<'a> UiElement {
 			self.anchor_point[1] + (self.anchor_ofs[1] * ui_scale),
 			(self.anchor_point[2] + self.anchor_ofs[2]) * ui_scale,
 		];
-
-		// let (scl, pos) = shift_and_scale(&self.anchor_point, &self.anchor_ofs, &self.base_scale,	
-		// 	window_dims, ui_scale);
-		// self.cur_scale = scl;
-		// self.cur_center_pos = pos;
 
 		self.text.cur_scale = (
 			self.cur_scale[0] * self.text.base_scale, 
@@ -193,44 +181,26 @@ impl<'a> UiElement {
 			|&vrt| vrt.transform(&self.cur_scale, &self.cur_center_pos)).collect();
 
 		// If we have a border, create a "shadow" of our shape...
-		// if self.border_thickness > 0.0 {
 		if let Some(ref border) = self.border {
-			// // Add 'thickness' to the border by scaling our shape up:
-			// let b_scl = [
-			// 	self.cur_scale[0] * (1.0 + border.thickness), 
-			// 	self.cur_scale[1] * (1.0 + border.thickness),
-			// 	1.0,
+			// let b_scale = [
+			// 	self.base_scale.0 * ui_scale / ar, 
+			// 	self.base_scale.1 * ui_scale, 
+			// 	ui_scale,
 			// ];
-
-			// // Position the border shape behind our normal shape in the z-buffer:
-			// let b_pos = [
+		
+			// let b_center_pos = [
 			// 	self.cur_center_pos[0],
 			// 	self.cur_center_pos[1],
 			// 	self.cur_center_pos[2] + window::SUBSUBDEPTH,
 			// ];
 
-
-			let b_scale = [
-				self.base_scale.0 * ui_scale / ar, 
-				self.base_scale.1 * ui_scale, 
-				ui_scale,
-			];
-		
-			let b_center_pos = [
-				self.anchor_point[0] + ((self.anchor_ofs[0] / ar) * ui_scale),
-				self.anchor_point[1] + (self.anchor_ofs[1] * ui_scale),
-				((self.anchor_point[2] + self.anchor_ofs[2]) * ui_scale) + window::SUBSUBDEPTH,
-			];
-
 			// let border_vertices: Vec<UiVertex> = self.shape.vertices.iter().map(|&vrt| 
-			// 	vrt.transform(&border_scale, &border_position).color(border.color)).collect();
+			// 		vrt.border_of(border.thickness)
+			// 			.transform(&b_scale, &b_center_pos).color(border.color)
+			// 	).collect();
 
-			// let (b_scl, b_pos) = shift_and_scale(&border_anchor_point, &self.anchor_ofs, 
-			// 	&border_base_scale,	window_dims, ui_scale);
-
-			let border_vertices: Vec<UiVertex> = self.shape.vertices.iter().map(|&vrt| 
-					vrt.border_of(border.thickness)
-						.transform(&b_scale, &b_center_pos).color(border.color)
+			let border_vertices: Vec<UiVertex> = border.shape.vertices.iter().map(|&vrt| 
+					vrt.transform(&self.cur_scale, &self.cur_center_pos)
 				).collect();
 
 			vertices.extend_from_slice(&border_vertices);
@@ -250,12 +220,12 @@ impl<'a> UiElement {
 		vertex_idz += self.shape.vertices.len() as u16;
 
 		// Add indices for our border (shadow of normal shape), if applicable:
-		if let Some(_) = self.border {
+		if let Some(ref border) = self.border {
 			let border_indices: Vec<u16> = 
-				self.shape.indices.iter().map(|&ind| ind + vertex_idz).collect();
+				border.shape.indices.iter().map(|&ind| ind + vertex_idz).collect();
 
 			indices.extend_from_slice(&border_indices);
-			vertex_idz += self.shape.vertices.len() as u16;
+			vertex_idz += border.shape.vertices.len() as u16;
 		}
 
 		// Add indices for each sub_element, if any:
@@ -320,7 +290,9 @@ impl<'a> UiElement {
 			// ***** PROBLEM HERE:
 
 			// self.border = Some(UiElementBorder::thin_black());
-			self.border = Some(UiElementBorder { thickness: 0.15, color: window::C_BLACK });
+			// self.border = Some(UiElementBorder { thickness: 0.15, color: window::C_BLACK });
+			self.border = Some(UiElementBorder { /*thickness: 0.25, color: window::C_BLACK, */
+				shape: self.shape.as_border(0.17, window::C_BLACK) });
 
 			// *****
 			// *****
@@ -340,7 +312,9 @@ impl<'a> UiElement {
 
 			// *****
 			// *****
-			self.border = Some(UiElementBorder { thickness: 0.00, color: window::C_BLACK });
+			// self.border = Some(UiElementBorder { thickness: 0.00, color: window::C_BLACK });
+			self.border = Some(UiElementBorder { /*thickness: 0.00, color: window::C_BLACK, */
+				shape: self.shape.as_border(0.0, window::C_BLACK) });
 			// *****
 			// *****
 		}

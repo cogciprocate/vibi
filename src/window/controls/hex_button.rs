@@ -9,9 +9,11 @@ impl HexButton {
 	{
 		// let (vertices, indices, radii) = ui_shape::hexagon_panel(1.0, extra_width, 0.0, color);
 		let shape = ui_shape_2d::hexagon_panel(1.0, extra_width, 0.0, color);
-		let shape_c = shape.clone();
 
-		UiElement::new(anchor_pos, [offset.0, offset.1, 0.0], shape_c.vertices, shape_c.indices, shape_c.radii, shape)
+		// println!("    Hexagon perimeter edges list: {:?}", shape.perim_edges());
+		// shape.as_border(0.1, color);
+
+		UiElement::new(anchor_pos, [offset.0, offset.1, 0.0], shape)
 			.text_string(text)
 	}
 }

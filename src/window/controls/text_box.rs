@@ -10,9 +10,8 @@ impl TextBox {
 	{
 		//	(vertices, indices, radii)
 		let shape = ui_shape_2d::hexagon_panel(1.0, extra_width, 0.0, color);
-		let shape_c = shape.clone();
 
-		UiElement::new(anchor_pos, [offset.0, offset.1, 0.0], shape_c.vertices, shape_c.indices, shape_c.radii, shape)
+		UiElement::new(anchor_pos, [offset.0, offset.1, 0.0], shape)
 			.text_string(label)
 			.text_offset(((-extra_width / 2.0) - 1.5, 0.0))
 			.sub(TextField::new(anchor_pos, offset, extra_width), true)
@@ -26,9 +25,14 @@ pub struct TextField;
 impl TextField {
 	pub fn new(anchor_pos: [f32; 3], offset: (f32, f32), width: f32) -> UiElement
 	{
-		//	(vertices, indices, radii)
-		let shape = ui_shape_2d::rectangle(0.8, width + 2.4, -0.1, [1.0, 1.0, 1.0, 1.0]);
-		let shape_c = shape.clone();
+		let color = [1.0, 1.0, 1.0, 1.0];
+
+		let shape = ui_shape_2d::rectangle(0.8, width + 2.4, -0.1, color);
+
+		println!("    Rectangle perimeter edges list: {:?}", shape.perim_edges());
+		shape.as_border(0.1, color);
+
+		let text_offset = (-(shape.radii).0 + 0.16, 0.0);
 
 		let new_offset = [
 			offset.0 + 0.06,
@@ -36,9 +40,9 @@ impl TextField {
 			0.0,
 		];
 
-		UiElement::new(anchor_pos, new_offset, shape_c.vertices, shape_c.indices, shape_c.radii, shape)
+		UiElement::new(anchor_pos, new_offset, shape)
 		.text_string("TextField")
-		.text_offset((-(shape_c.radii).0 + 0.16, 0.0))
+		.text_offset(text_offset)
 		.keyboard_input_handler(Box::new(|key_state, vk_code, kb_state, _| {
 			if let ElementState::Pressed = key_state {
 				use glium::glutin::VirtualKeyCode::*;

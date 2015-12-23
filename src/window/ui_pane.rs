@@ -372,7 +372,7 @@ static fragment_shader_src: &'static str = r#"
 		// color = vec4((ambient_color * u_model_color) + diffuse_ampl
 		// 	* diffuse_color + specular * specular_color, 1.0);	
 
-		// color = vec4(v_color, 1.0);
-		color = v_color;
+		color = vec4(v_color.r, v_color.g, v_color.b, 0.1);
+		// color = v_color;
 	};
 "#;
