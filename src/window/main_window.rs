@@ -1,10 +1,10 @@
 use std::sync::mpsc::{Receiver, Sender};
 use loop_cycles::{CyCtl, CySts};
 use glium::{self, DisplayBuild, Surface};
+use glium::glutin::{ElementState};
+use window::{C_ORANGE, INIT_GRID_SIZE, util, MouseInputEventResult, KeyboardInputEventResult, 
+	WindowStats, HexGrid, StatusText, UiPane, TextBox, HexButton};
 // use glium::window::{Window};
-
-use super::{C_ORANGE, INIT_GRID_SIZE, WindowStats, HexGrid, StatusText,
-	UiPane, TextBox, HexButton, MouseInputEventResult};
 
 
 pub struct MainWindow {
@@ -12,6 +12,7 @@ pub struct MainWindow {
 	pub stats: WindowStats,
 	pub close_pending: bool,
 	pub grid_size: u32,
+	pub iters_pending: u32,
 	pub control_tx: Sender<CyCtl>, 
 	pub status_rx: Receiver<CySts>,
 }
@@ -23,6 +24,7 @@ impl MainWindow {
 			stats: WindowStats::new(),
 			close_pending: false,
 			grid_size: INIT_GRID_SIZE,
+			iters_pending: 1,
 			control_tx: control_tx,
 			status_rx: status_rx,
 		};
@@ -53,49 +55,77 @@ impl MainWindow {
 			.element(HexButton::new([1.0, 1.0, 0.0], (-0.25, -0.07), 2.5, 
 					"+ Grid Size", C_ORANGE)
 				.mouse_input_handler(Box::new(|_, _, window| { 
-						// println!("Shrinking Grid..."); 
 						window.grid_size += 1;
 						MouseInputEventResult::None
 				}))
 			)
 
-			// .element(HexButton::new([1.0, 1.0, 0.0], (-0.32, -0.12), 2.5, 
-			// 		"Ahem".to_string(), [0.3, 0.3, 0.3])
-			// 	.mouse_input_handler(Box::new(|_| { 
-			// 			// println!("Shrinking Grid..."); 
-			// 			// window.grid_size += 1;
-			// 	}))
-			// )
-
 			.element(HexButton::new([1.0, 1.0, 0.0], (-0.25, -0.17), 2.5, 
 					"- Grid Size", C_ORANGE)
 				.mouse_input_handler(Box::new(|_, _, window| { 
-					// println!("Shrinking Grid..."); 
 					window.grid_size -= 1;
 					MouseInputEventResult::None
 				}))
 			)
 
 			.element(TextBox::new([1.0, -1.0, 0.0], (-0.39, 0.50), 4.5, 
-					"Iters:", C_ORANGE,))
+					"Iters:", C_ORANGE, "1", Box::new(|key_state, vk_code, kb_state, text_string, window| {
+						if let ElementState::Pressed = key_state {
+							use glium::glutin::VirtualKeyCode::*;
+							match vk_code {
+								Some(Back) => {
+									text_string.pop();
+									// return KeyboardInputEventResult::PopTextString;
+								},
+
+								_ => {
+									if let Some(mut c) = util::map_vkc(vk_code) {					
+										// println!("    VirtualKeyCode: {:?} => {:?}", vk_code, c);
+										if kb_state.shift { c = c.to_uppercase().next().unwrap_or(c); }
+										text_string.push(c);
+
+										if let Ok(i) = text_string.trim().replace("k","000").parse() {						
+											window.iters_pending = i;
+										}
+										// return KeyboardInputEventResult::PushTextString(c);
+									}
+								},
+							}
+						}
+
+						KeyboardInputEventResult::None
+					})
+				)
+				.mouse_input_handler(Box::new(|_, _, _| MouseInputEventResult::RequestKeyboardFocus(true)))
+
+			)
+
+			.element(HexButton::new([1.0, -1.0, 0.0], (-0.20, 0.40), 1.8, 
+					"Cycle", C_ORANGE)
+				.mouse_input_handler(Box::new(|_, _, window| { 					
+					window.control_tx.send(CyCtl::Iterate(window.iters_pending))
+						.expect("Iterate button control tx");
+					MouseInputEventResult::None
+				}))
+			)
 
 			.element(HexButton::new([1.0, -1.0, 0.0], (-0.20, 0.07), 1.8, 
 					"Exit", C_ORANGE)
 				.mouse_input_handler(Box::new(|_, _, window| { 
-					// println!("Exit clicked."); 
 					window.close_pending = true;
 					MouseInputEventResult::None
 				}))
-			)
+			)			
 
 			.init();		
 
 
 		// Print some stuff:
 		println!("\n==================== Vibi Keyboard Bindings ===================\n\
-			{mt}Press 'Escape' or 'q' to quit.\n\
-			{mt}Press 'Up Arrow' to double or 'Down Arrow' to halve grid size.\n\
-			{mt}Press 'Right Arrow' to increase or 'Left Arrow' to decrease grid size by one.\n",
+			{mt}The following keys must be used with 'ctrl':\n\
+			{mt}'Escape' or 'q' to quit.\n\
+			{mt}'Up Arrow' to double or 'Down Arrow' to halve grid size.\n\
+			{mt}'Right Arrow' to increase or 'Left Arrow' to decrease grid size by one.\n",
 			mt = "    ");
 
 		// Event/Rendering loop:

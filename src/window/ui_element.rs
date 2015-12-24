@@ -3,10 +3,12 @@
 use glium::Surface;
 use glium_text::{self, TextSystem, FontTexture, TextDisplay};
 use glium::glutin::{ElementState, MouseButton, VirtualKeyCode};
-use window::{self, UiVertex, UiShape2d, MainWindow, TextProperties, HandlerOption, MouseInputHandler, 
-	KeyboardInputHandler, MouseInputEventResult, KeyboardInputEventResult, KeyboardState};
+use window::{self, util, UiVertex, UiShape2d, MainWindow, TextProperties, HandlerOption, MouseInputHandler, 
+	KeyboardInputHandler, MouseInputEventResult, KeyboardInputEventResult, KeyboardState, TextBox, Button};
 
 pub const ELEMENT_BASE_SCALE: f32 = 0.07;
+pub const BORDER_DARKNESS: f32 = 0.2;
+pub const DEPRESS_LIGHTNESS: f32 = 0.1;
 
 /* ////
 	Notes:
@@ -23,7 +25,6 @@ pub const ELEMENT_BASE_SCALE: f32 = 0.07;
 
 pub struct UiElementBorder {
 	thickness: f32,
-	// color: (f32, f32, f32, f32),
 	color: [f32; 4],
 	shape: UiShape2d,
 	is_visible: bool,
@@ -35,15 +36,47 @@ pub struct UiElementBorder {
 // 	}
 // }
 
+#[allow(dead_code)]
+pub enum UiElementKind {
+	Button(Button),
+	Panel,
+	TextBox(TextBox),
+	TextField,
+}
+
+impl UiElementKind {
+	pub fn is_depressable(&self) -> bool {
+		match self {
+			&UiElementKind::Button(_) | &UiElementKind::TextBox(_) => true,
+			_ => false,
+		}
+	}
+
+	// pub fn is_depressed(&self) -> bool {
+	// 	match self {
+	// 		&UiElementKind::Button(ref button) => button.is_depressed(),
+	// 		_ => false,
+	// 	}
+	// }
+
+	// pub fn depress(&mut self, depress: bool) {
+	// 	match self {
+	// 		&mut UiElementKind::Button(ref mut button) => button.depress(depress),
+	// 		_ => (),
+	// 	}	
+	// }
+}
+
 
 // [FIXME]: TODO: 
 // - Revamp 'new()' into builder style functions.
 // - Clean up and consolidate stored positions, scales, etc.
 pub struct UiElement {
-	// kind: UiElementKind,
+	kind: UiElementKind,
 	text: TextProperties,
 	sub_elements: Vec<UiElement>,	
 	shape: UiShape2d,
+	is_depressed: bool,
 	has_mouse_focus: bool,
 	has_keybd_focus: bool,
 	anchor_point: [f32; 3],
@@ -57,18 +90,24 @@ pub struct UiElement {
 }
 
 impl<'a> UiElement {
-	pub fn new(anchor_point: [f32; 3], anchor_ofs: [f32; 3], shape: UiShape2d,
+	// [FIXME]: TODO: Sort out the whole dual border color/thickness issue (create a ::new()).
+	pub fn new(kind: UiElementKind, anchor_point: [f32; 3], anchor_ofs: [f32; 3], shape: UiShape2d,
 			) -> UiElement
 	{
 		verify_position(anchor_point);
 
-		let border = Some(UiElementBorder { thickness: 0.05, color: window::C_BLACK,
-			is_visible: false, shape: shape.as_border(0.05, window::C_BLACK) });
+		let border_thickness = 0.05;
+		let border_color = util::adjust_color(shape.color, BORDER_DARKNESS);
+
+		let border = Some(UiElementBorder { thickness: border_thickness, color: border_color,
+			is_visible: false, shape: shape.as_border(border_thickness, border_color) });
 
 		UiElement { 
+			kind: kind,
 			text: TextProperties::new(""),
 			sub_elements: Vec::with_capacity(0),
 			shape: shape,
+			is_depressed: false,
 			has_mouse_focus: false,
 			has_keybd_focus: false,
 			anchor_point: anchor_point,
@@ -105,11 +144,11 @@ impl<'a> UiElement {
 		}
 	}
 
-	pub fn sub(mut self, mut sub_element: UiElement, handles_keyb: bool) -> UiElement {
+	pub fn sub(mut self, mut sub_element: UiElement) -> UiElement {
 		sub_element.anchor_point[2] += window::SUBDEPTH;
 		self.sub_elements.reserve_exact(1);
 
-		if handles_keyb {
+		if sub_element.keyboard_input_handler.is_some() {
 			if let HandlerOption::None = self.keyboard_input_handler {
 				let next_sub_ele_idx = self.sub_elements.len();
 				self.keyboard_input_handler = HandlerOption::Sub(next_sub_ele_idx);
@@ -154,7 +193,15 @@ impl<'a> UiElement {
 	}
 
 	pub fn vertices(&mut self, window_dims: (u32, u32), ui_scale: f32) -> Vec<UiVertex> {
-		let ar = window_dims.0 as f32 / window_dims.1 as f32;	
+		// Element color:
+		let color = if self.kind.is_depressable() && self.is_depressed {
+				util::adjust_color(self.shape.color, DEPRESS_LIGHTNESS)
+			} else {
+				self.shape.color
+			};
+
+		// Aspect ratio:
+		let ar = window_dims.0 as f32 / window_dims.1 as f32;		
 
 		self.cur_scale = [self.base_scale.0 * ui_scale / ar, self.base_scale.1 * ui_scale, ui_scale];
 		
@@ -176,11 +223,13 @@ impl<'a> UiElement {
 			((-self.cur_scale[1] / 2.0) * self.text.base_scale) 
 				+ self.cur_center_pos[1]
 				+ (self.text.element_offset.1 * self.cur_scale[1]), 
-		);
+		);		
 
 		// Add vertices for this element's shape:
-		let mut vertices: Vec<UiVertex> = self.shape.vertices.iter().map(
-			|&vrt| vrt.transform(&self.cur_scale, &self.cur_center_pos)).collect();
+		let mut vertices: Vec<UiVertex> = self.shape.vertices.iter().map(|&vrt| 
+				vrt.transform(&self.cur_scale, &self.cur_center_pos)
+				.color(color)
+			).collect();
 
 		// If we have a border, create a "shadow" of our shape...
 		if let Some(ref border) = self.border {
@@ -277,6 +326,12 @@ impl<'a> UiElement {
 		if let Some(ref mut border) = self.border {
 			border.is_visible = has_focus;
 		}
+
+		if !has_focus {
+			self.depress(false);
+		}
+
+		self.has_mouse_focus = has_focus;
 	}
 
 	pub fn text_matrix(&self) -> [[f32; 4]; 4] {
@@ -305,11 +360,33 @@ impl<'a> UiElement {
 	pub fn handle_mouse_input(&mut self, state: ElementState, button: MouseButton, 
 				window: &mut MainWindow) -> MouseInputEventResult 
 	{
-		if let HandlerOption::Fn(ref mut mih) = self.mouse_input_handler {
-			mih(state, button, window)
-		} else {
-			MouseInputEventResult::None
+		let mut result = MouseInputEventResult::None;
+
+		if let MouseButton::Left = button {
+			match state {
+				ElementState::Pressed => {
+					self.depress(true);
+					result = MouseInputEventResult::RequestRedraw;
+				},
+				ElementState::Released => {
+					let was_clicked = self.is_depressed;
+					self.depress(false);
+
+					if was_clicked {
+						if let HandlerOption::Fn(ref mut mih) = self.mouse_input_handler {
+							match mih(state, button, window) {
+								MouseInputEventResult::None => (),
+								r @ _ => return r,
+							}
+						}
+					}					
+
+					result = MouseInputEventResult::RequestRedraw;
+				},
+			}
 		}
+
+		result
 	}
 
 	// [FIXME]: Unused Vars.
@@ -319,7 +396,7 @@ impl<'a> UiElement {
 				kb_state: &KeyboardState, window: &mut MainWindow) -> KeyboardInputEventResult 
 	{
 		let result = match self.keyboard_input_handler {
-			HandlerOption::Fn(ref mut kih) => kih(key_state, vk_code, kb_state, window),
+			HandlerOption::Fn(ref mut kih) => kih(key_state, vk_code, kb_state, &mut self.text.string, window),
 			HandlerOption::Sub(ele_idx) => {
 				assert!(ele_idx < self.sub_elements.len(), "{}UiElement::handle_keyboard_input(): {}:{}",
 					module_path!(), column!(), line!());
@@ -331,18 +408,21 @@ impl<'a> UiElement {
 			_ => KeyboardInputEventResult::None,
 		};
 
-		match result {
-			KeyboardInputEventResult::PushTextString(c) => {
-				// println!("        KeyboardInputEventResult: {}", c);
-				self.text.string.push(c);
-			},
-			KeyboardInputEventResult::PopTextString => { self.text.string.pop(); },
-			_ => (),
-		}
+		// match result {
+		// 	KeyboardInputEventResult::PushTextString(c) => {
+		// 		// println!("        KeyboardInputEventResult: {}", c);
+		// 		self.text.string.push(c);
+		// 	},
+		// 	KeyboardInputEventResult::PopTextString => { self.text.string.pop(); },
+		// 	_ => (),
+		// }
 
 		result
 	}
 
+	fn depress(&mut self, depress: bool) {
+		self.is_depressed = depress;
+	}
 
 	///////// [FIXME]: CACHE THIS STUFF PROPERLY ////////// 
 	fn left_edge(&self) -> f32 {

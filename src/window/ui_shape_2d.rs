@@ -73,8 +73,6 @@ impl UiShape2d {
 			// 	p1, p2, p, q, e0 = (edge.1).0, e1 = (edge.1).1, m = m);
 		}
 
-		// println!("      border_edges: {:?}", border_edges);
-
 		let mut border_vertices: Vec<(f32, f32)> = Vec::with_capacity(perim_edges.len());
 
 		// Find the intersection between each border line and the one preceeding it:
@@ -94,7 +92,7 @@ impl UiShape2d {
 					let x = ((l1.m * l1.x) - (l2.m * l2.x) - l1.y + l2.y) / (l1.m - l2.m);
 					let y = (l1.m * (x - l1.x)) + l1.y;
 
-					// debug_assert!(((l2.m * (x - l2.x)) + l2.y) - y < 0.0001);
+					debug_assert!(((l2.m * (x - l2.x)) + l2.y) - y < 0.0001);
 
 					(x, y)
 				};
@@ -171,7 +169,7 @@ pub fn hexagon_panel(height: f32, ew: f32, depth: f32, color: [f32; 4],
 
 	// (vertices, indices, radii)
 	UiShape2d { vertices: vertices, indices: indices, perim: perim, radii: radii, 
-		color: window::C_BLACK }	
+		color: color }	
 }
 
 
@@ -211,5 +209,5 @@ pub fn rectangle(height: f32, width: f32, depth: f32, color: [f32; 4],
 
 	// (vertices, indices, radii)
 	UiShape2d { vertices: vertices, indices: indices, perim: perim, radii: radii, 
-		color: window::C_BLACK }	
+		color: color }	
 }

@@ -46,12 +46,12 @@ fn main() {
 		// window::conrod::window_conrod::open(control_tx, status_rx);
 	}).expect("Error creating 'win' thread");
 
-	// let th_vis = thread::Builder::new().name("vis".to_string()).spawn(move || {
-	// 	loop_cycles::run(0, control_rx, status_tx);
-	// }).expect("Error creating 'vis' thread");
+	let th_vis = thread::Builder::new().name("vis".to_string()).spawn(move || {
+		loop_cycles::run(0, control_rx, status_tx);
+	}).expect("Error creating 'vis' thread");
 
 	if let Err(e) = th_win.join() { println!("th_win.join(): Error: '{:?}'", e); }
-	// if let Err(e) = th_vis.join() { println!("th_vin.join(): Error: '{:?}'", e); }
+	if let Err(e) = th_vis.join() { println!("th_vin.join(): Error: '{:?}'", e); }
 
 
 	// <<<<< MOVE THIS ELSEWHERE >>>>>

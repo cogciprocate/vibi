@@ -145,13 +145,14 @@ impl<'d> UiPane<'d> {
 			},
 
 			MouseInput(state, button) => {
-				if let ElementState::Released = state {
-					use glium::glutin::MouseButton::{Left};
-					match button {
-						Left => self.handle_mouse_input(state, button, window),
-						_ => ()
-					}
-				}
+				// if let ElementState::Released = state {
+				// 	use glium::glutin::MouseButton;
+				// 	match button {
+				// 		MouseButton::Left => 
+				// 		_ => ()
+				// 	}
+				// }
+				self.handle_mouse_input(state, button, window);
 			}
 
 			MouseMoved(p) => self.mouse_state.update_position(p),
@@ -179,6 +180,11 @@ impl<'d> UiPane<'d> {
 
 						self.refresh_vertices();
 					},
+
+					MouseInputEventResult::RequestRedraw => {
+						self.refresh_vertices();
+					},
+
 					_ => (),
 				}
 			},
@@ -193,6 +199,8 @@ impl<'d> UiPane<'d> {
 				}
 			}
 		};
+
+		self.refresh_vertices();
 
 		// println!("    Keyboard Focus: {:?}", self.keybd_focused);
 	}

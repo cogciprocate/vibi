@@ -1,12 +1,14 @@
+#![allow(dead_code)]
+
 pub use self::window_stats::WindowStats;
 pub use self::status_text::StatusText;
 pub use self::hex_grid::HexGrid;
 pub use self::ui_pane::UiPane;
-pub use self::ui_element::UiElement;
+pub use self::ui_element::{UiElement, UiElementKind};
 pub use self::ui_vertex::UiVertex;
 pub use self::ui_shape_2d::UiShape2d;
 pub use self::mouse_state::MouseState;
-pub use self::controls::{HexButton, TextBox};
+pub use self::controls::{Button, HexButton, TextBox};
 pub use self::main_window::MainWindow;
 pub use self::text_properties::TextProperties;
 pub use self::keyboard_state::KeyboardState;
@@ -34,16 +36,11 @@ pub mod ui_shape_2d;
 use std::fmt::{Debug, Formatter, Error};
 use glium::glutin::{ElementState, MouseButton, VirtualKeyCode};
 
-#[allow(dead_code)]
+
 pub const C_PINK: [f32; 4] = [0.990, 0.490, 0.700, 1.0];
-#[allow(dead_code)]
 pub const C_ORANGE: [f32; 4] = [0.960, 0.400, 0.0, 1.0];
-#[allow(dead_code)]
 pub const C_DARK_ORANGE: [f32; 4] = [0.384, 0.080, 0.0, 1.0]; 
-#[allow(dead_code)]
 pub const C_BLUE: [f32; 4] = [0.204, 0.396, 0.643, 1.0];
-// pub const C_BLACK: (f32, f32, f32, f32) = (0.01, 0.01, 0.01, 1.0);
-#[allow(dead_code)]
 pub const C_BLACK: [f32; 4] = [0.001, 0.001, 0.001, 1.0];
 
 
@@ -55,10 +52,10 @@ pub const SUBSUBDEPTH: f32 = 0.000244140625;
 
 pub type MouseInputHandler = Box<FnMut(ElementState, MouseButton, 
 	&mut MainWindow) -> MouseInputEventResult>;
-pub type KeyboardInputHandler = Box<FnMut(ElementState, Option<VirtualKeyCode>, &KeyboardState,
+pub type KeyboardInputHandler = Box<FnMut(ElementState, Option<VirtualKeyCode>, &KeyboardState, &mut String,
 	&mut MainWindow) -> KeyboardInputEventResult>;
 
-#[allow(dead_code)]
+
 pub enum TextAlign {
 	Center,
 	Left,
@@ -68,19 +65,30 @@ pub enum TextAlign {
 pub enum MouseInputEventResult {
 	None,
 	RequestKeyboardFocus(bool),
+	RequestRedraw,
 }
 
 pub enum KeyboardInputEventResult {
 	None,
-	PushTextString(char),
-	PopTextString,
+	// PushTextString(char),
+	// PopTextString,
 }
 
 
 pub enum HandlerOption<T> {
-	Fn(T),
-	Sub(usize),
 	None,
+	Fn(T),
+	Sub(usize),	
+}
+
+impl<T> HandlerOption<T> {
+	pub fn is_some(&self) -> bool {
+		if let &HandlerOption::None = self {
+			false
+		} else {
+			true
+		}
+	}
 }
 
 impl<T> Debug for HandlerOption<T> {
