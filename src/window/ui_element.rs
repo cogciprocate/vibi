@@ -7,8 +7,8 @@ use window::{self, util, UiVertex, UiShape2d, MainWindow, TextProperties, Handle
 	KeyboardInputHandler, MouseInputEventResult, KeyboardInputEventResult, KeyboardState, TextBox, Button};
 
 pub const ELEMENT_BASE_SCALE: f32 = 0.07;
-pub const BORDER_DARKNESS: f32 = 0.2;
-pub const DEPRESS_LIGHTNESS: f32 = 0.1;
+pub const BORDER_SHADE: f32 = 0.1;
+pub const DEPRESS_SHADE: f32 = 0.1;
 
 /* ////
 	Notes:
@@ -97,7 +97,7 @@ impl<'a> UiElement {
 		verify_position(anchor_point);
 
 		let border_thickness = 0.05;
-		let border_color = util::adjust_color(shape.color, BORDER_DARKNESS);
+		let border_color = util::adjust_color(shape.color, BORDER_SHADE);
 
 		let border = Some(UiElementBorder { thickness: border_thickness, color: border_color,
 			is_visible: false, shape: shape.as_border(border_thickness, border_color) });
@@ -195,7 +195,7 @@ impl<'a> UiElement {
 	pub fn vertices(&mut self, window_dims: (u32, u32), ui_scale: f32) -> Vec<UiVertex> {
 		// Element color:
 		let color = if self.kind.is_depressable() && self.is_depressed {
-				util::adjust_color(self.shape.color, DEPRESS_LIGHTNESS)
+				util::adjust_color(self.shape.color, DEPRESS_SHADE)
 			} else {
 				self.shape.color
 			};

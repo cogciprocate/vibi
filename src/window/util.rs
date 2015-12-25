@@ -1,5 +1,26 @@
-use glium::glutin::VirtualKeyCode;
+use glium::glutin::{VirtualKeyCode, ElementState};
 use glium::glutin::VirtualKeyCode::*;
+use window::{util, KeyboardState};
+
+
+pub fn key_into_string(key_state: ElementState, vk_code: Option<VirtualKeyCode>, kb_state: &KeyboardState, 
+			string: &mut String) 
+{
+	if let ElementState::Pressed = key_state {
+		match vk_code {
+			Some(Back) => {
+				string.pop();
+			},
+
+			_ => {
+				if let Some(mut c) = util::map_vkc(vk_code) {					
+					if kb_state.shift { c = c.to_uppercase().next().unwrap_or(c); }
+					string.push(c);				
+				}
+			},
+		}
+	}
+}
 
 /// Brighten or darken a single color component. 
 ///
@@ -85,7 +106,7 @@ pub fn map_vkc(vkc: Option<VirtualKeyCode>) -> Option<char> {
 mod tests {
 	use super::*;
 
-	// TODO: Need more test variations! We haven't wasted enough time on this function yet!
+	// TODO: Need more test variations! Haven't wasted enough time on this yet!
 	#[test]
 	fn test_adjust_ccmp() {
 		assert_eq!(adjust_ccmp(1.0, 1.0), 1.0);

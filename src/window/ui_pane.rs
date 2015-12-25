@@ -106,13 +106,14 @@ impl<'d> UiPane<'d> {
 	}
 
 	/// Recalculates positions of vertices and updates any other properties such as color.
+	// [FIXME]: Make something which doesn't need to rewrite every vertex. 
+	// 			Perhaps add an optional element index parameter.
 	pub fn refresh_vertices(&mut self) {
 		match self.vbo {
 			Some(ref mut vbo) => {
 				let mut vertices: Vec<UiVertex> = Vec::with_capacity(vbo.len());
 
 				for element in self.elements.iter_mut() {
-					// let vertices_idz = vertices.len();
 
 					vertices.extend_from_slice(&element.vertices(
 						self.display.get_framebuffer_dimensions(), self.scale,
@@ -145,17 +146,13 @@ impl<'d> UiPane<'d> {
 			},
 
 			MouseInput(state, button) => {
-				// if let ElementState::Released = state {
-				// 	use glium::glutin::MouseButton;
-				// 	match button {
-				// 		MouseButton::Left => 
-				// 		_ => ()
-				// 	}
-				// }
 				self.handle_mouse_input(state, button, window);
-			}
+				self.mouse_state.update_button(button, state);
+			},
 
-			MouseMoved(p) => self.mouse_state.update_position(p),
+			MouseMoved(p) => {
+				self.mouse_state.update_position(p)
+			},
 
 			_ => ()
 		}
@@ -164,10 +161,8 @@ impl<'d> UiPane<'d> {
 	fn handle_mouse_input(&mut self, state: ElementState, button: MouseButton, 
 				window: &mut MainWindow)
 	{
-		// println!("Mouse clicked. ");
 		match self.mouse_focused {
 			Some(ele_idx) => {
-				// print!("   Clicking element: {}... ", ele_idx);				
 				match self.elements[ele_idx].handle_mouse_input(state, button, window) {
 					MouseInputEventResult::RequestKeyboardFocus(on_off) => {
 						if on_off { 							
@@ -194,7 +189,8 @@ impl<'d> UiPane<'d> {
 						self.elements[ele_idx].set_keybd_focus(false);
 						self.refresh_vertices();
 						None
-					},
+					}
+
 					None => None,
 				}
 			}
@@ -234,6 +230,31 @@ impl<'d> UiPane<'d> {
 		}
 	}
 
+	pub fn update_mouse_focus<S: Surface>(&mut self, target: &mut S) {
+		// Update elements:
+		if !self.mouse_state.is_stale() {
+			// Determine which element has mouse focus (by index):
+			let newly_focused = self.focused_element_idx(target);
+
+			if newly_focused != self.mouse_focused {
+				// No longer focused.
+				if let Some(idx) = self.mouse_focused {
+					self.elements[idx].set_mouse_focus(false);
+				}
+
+				// Newly focused.
+				if let Some(idx) = newly_focused {
+					self.elements[idx].set_mouse_focus(true);
+				}
+
+				self.mouse_focused = newly_focused;
+
+				// [FIXME]: Make something which doesn't need to rewrite every vertex.
+				self.refresh_vertices();
+			}
+		}
+	}
+
 	pub fn draw<S: Surface>(&mut self, target: &mut S) {
 		if self.vbo.is_none() || self.ibo.is_none() { 
 			panic!("Ui::draw(): Buffers not initialized.") 
@@ -246,31 +267,8 @@ impl<'d> UiPane<'d> {
 			u_model_color: model_color,
 		};
 
-		// Update elements:
-		if !self.mouse_state.is_stale() {
-			// Determine which element has mouse focus (by index):
-			let newly_focused = self.focused_element_idx(target);
-
-			if newly_focused != self.mouse_focused {
-				// Not focused.
-				if let Some(idx) = self.mouse_focused {
-					// self.elements[idx].set_color(super::C_ORANGE);
-					self.elements[idx].set_mouse_focus(false);
-				}
-
-				// Focused.
-				if let Some(idx) = newly_focused {
-					// println!(" ####    Element '{}' has focus.", idx);
-					// self.elements[idx].set_color(super::C_PINK);
-					self.elements[idx].set_mouse_focus(true);
-				}
-
-				self.mouse_focused = newly_focused;
-
-				// [FIXME]: Temporary: Make something which doesn't need to rewrite every vertex.
-				self.refresh_vertices();
-			}
-		}
+		// Update mouse focus:
+		self.update_mouse_focus(target);		
 
 		// Draw elements:
 		target.draw((self.vbo.as_ref().unwrap(), EIAttribs { len: 1 }), self.ibo.as_ref().unwrap(), 
@@ -327,22 +325,12 @@ static vertex_shader_src: &'static str = r#"
 	in vec4 color;
 	in vec2 xy_normal;
 
-	out vec3 v_position;
 	out vec4 v_color;
-	// out vec2 v_xy_normal;	
-
-	// uniform uint grid_side;
-	// uniform mat4 model;
-	// uniform mat4 view;
-	// uniform mat4 persp;
 
 	void main() {
 		gl_Position = vec4(position, 1.0);
-		// gl_Position = persp * model * vec4(position, 1.0);
 
-		// v_xy_normal = transpose(inverse(mat3(model_view))) * xy_normal;
 		v_color = color;
-		// v_position = gl_Position.xyz / gl_Position.w;
 	};
 "#;
 		
@@ -353,37 +341,10 @@ static fragment_shader_src: &'static str = r#"
 	#version 330
 
 	in vec4 v_color;
-	// in vec2 v_xy_normal;
-	// in vec3 v_position;
 
 	out vec4 color;
 
-	// uniform vec3 u_light_pos;
-	// uniform vec3 u_model_color;
-
-	// const float ambient_strength = 0.1;
-	// const vec3 ambient_color = vec3(0.9, 0.9, 0.9);
-	// const vec3 diffuse_color = vec3(0.2, 0.2, 0.2);
-	// const vec3 specular_color = vec3(0.4, 0.4, 0.4);
-	// const float specular_coeff = 16.0;
-
-	// // Pastel orange:
-	// const vec3 model_color = vec3(0.9607, 0.4745, 0.0);
-	// // Pink model:
-	// const vec3 model_color = vec3(0.9882, 0.4902, 0.7059);
-
 	void main() {
-		// float diffuse_ampl = max(dot(normalize(v_xy_normal), normalize(u_light_pos)), 0.0);
-
-		// vec3 camera_dir = normalize(-v_position);
-		// vec3 half_direction = normalize(normalize(u_light_pos) + camera_dir);
-		// float specular = pow(max(dot(half_direction, normalize(v_xy_normal)), 0.0), 
-		// 	specular_coeff);
-
-		// color = vec4((ambient_color * u_model_color) + diffuse_ampl
-		// 	* diffuse_color + specular * specular_color, 1.0);	
-
-		color = vec4(v_color.r, v_color.g, v_color.b, 0.1);
-		// color = v_color;
+		color = v_color;
 	};
 "#;

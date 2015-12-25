@@ -16,7 +16,7 @@ extern crate rustc_serialize;
 // extern crate piston;
 
 // 
-// use interactive::loop_cycles::{ self }; 
+// use interactive::loop_cycles::{ self };
 // use window_conrod as window;
 
 #[macro_use] mod interactive;

@@ -1,10 +1,9 @@
 use std::sync::mpsc::{Receiver, Sender};
 use loop_cycles::{CyCtl, CySts};
 use glium::{self, DisplayBuild, Surface};
-use glium::glutin::{ElementState};
-use window::{C_ORANGE, INIT_GRID_SIZE, util, MouseInputEventResult, KeyboardInputEventResult, 
+// use glium::glutin::{ElementState};
+use window::{util, C_ORANGE, INIT_GRID_SIZE, MouseInputEventResult, KeyboardInputEventResult, 
 	WindowStats, HexGrid, StatusText, UiPane, TextBox, HexButton};
-// use glium::window::{Window};
 
 
 pub struct MainWindow {
@@ -70,27 +69,10 @@ impl MainWindow {
 
 			.element(TextBox::new([1.0, -1.0, 0.0], (-0.39, 0.50), 4.5, 
 					"Iters:", C_ORANGE, "1", Box::new(|key_state, vk_code, kb_state, text_string, window| {
-						if let ElementState::Pressed = key_state {
-							use glium::glutin::VirtualKeyCode::*;
-							match vk_code {
-								Some(Back) => {
-									text_string.pop();
-									// return KeyboardInputEventResult::PopTextString;
-								},
+						util::key_into_string(key_state, vk_code, kb_state, text_string);
 
-								_ => {
-									if let Some(mut c) = util::map_vkc(vk_code) {					
-										// println!("    VirtualKeyCode: {:?} => {:?}", vk_code, c);
-										if kb_state.shift { c = c.to_uppercase().next().unwrap_or(c); }
-										text_string.push(c);
-
-										if let Ok(i) = text_string.trim().replace("k","000").parse() {						
-											window.iters_pending = i;
-										}
-										// return KeyboardInputEventResult::PushTextString(c);
-									}
-								},
-							}
+						if let Ok(i) = text_string.trim().replace("k","000").parse() {						
+							window.iters_pending = i;
 						}
 
 						KeyboardInputEventResult::None
