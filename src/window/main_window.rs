@@ -6,6 +6,7 @@ use window::{util, C_ORANGE, INIT_GRID_SIZE, MouseInputEventResult, KeyboardInpu
 	WindowStats, HexGrid, StatusText, UiPane, TextBox, HexButton};
 
 
+// [FIXME]: Needs a rename. Anything containing 'Window' is misleading.
 pub struct MainWindow {
 	pub cycle_status: CySts,
 	pub stats: WindowStats,
@@ -49,25 +50,39 @@ impl MainWindow {
 
 		// Primary user interface elements:
 		let mut ui = UiPane::new(&display)
-			// KEY: ::hex_button([anchor: x, y, z], (offset: x, y), extra_width, text, color, click handler))
-			
-			.element(HexButton::new([1.0, 1.0, 0.0], (-0.25, -0.07), 2.5, 
-					"+ Grid Size", C_ORANGE)
+			.element(HexButton::new([1.0, 1.0, 0.0], (-0.36, -0.07), 2.0, 
+					"Grid Size + 1", C_ORANGE)
 				.mouse_input_handler(Box::new(|_, _, window| { 
-						window.grid_size += 1;
+						if window.grid_size < super::MAX_GRID_SIZE { window.grid_size += 1; }
 						MouseInputEventResult::None
 				}))
-			)
+			)			
 
-			.element(HexButton::new([1.0, 1.0, 0.0], (-0.25, -0.17), 2.5, 
-					"- Grid Size", C_ORANGE)
+			.element(HexButton::new([1.0, 1.0, 0.0], (-0.36, -0.17), 2.0, 
+					"Grid Size - 1", C_ORANGE)
 				.mouse_input_handler(Box::new(|_, _, window| { 
-					window.grid_size -= 1;
+					if window.grid_size > 2 { window.grid_size -= 1; };
 					MouseInputEventResult::None
 				}))
 			)
 
-			.element(TextBox::new([1.0, -1.0, 0.0], (-0.39, 0.50), 4.5, 
+			.element(HexButton::new([1.0, 1.0, 0.0], (-0.09, -0.07), 0.2, 
+					"* 2", C_ORANGE)
+				.mouse_input_handler(Box::new(|_, _, window| { 
+						if window.grid_size < super::MAX_GRID_SIZE { window.grid_size *= 2; }
+						MouseInputEventResult::None
+				}))
+			)	
+
+			.element(HexButton::new([1.0, 1.0, 0.0], (-0.09, -0.17), 0.2, 
+					"/ 2", C_ORANGE)
+				.mouse_input_handler(Box::new(|_, _, window| { 
+					if window.grid_size >= 4 { window.grid_size /= 2; }
+					MouseInputEventResult::None
+				}))
+			)
+
+			.element(TextBox::new([1.0, -1.0, 0.0], (-0.385, 0.500), 4.45, 
 					"Iters:", C_ORANGE, "1", Box::new(|key_state, vk_code, kb_state, text_string, window| {
 						util::key_into_string(key_state, vk_code, kb_state, text_string);
 
@@ -75,18 +90,27 @@ impl MainWindow {
 							window.iters_pending = i;
 						}
 
-						KeyboardInputEventResult::None
+						KeyboardInputEventResult::RequestRedraw
 					})
 				)
 				.mouse_input_handler(Box::new(|_, _, _| MouseInputEventResult::RequestKeyboardFocus(true)))
 
 			)
 
-			.element(HexButton::new([1.0, -1.0, 0.0], (-0.20, 0.40), 1.8, 
+			.element(HexButton::new([1.0, -1.0, 0.0], (-0.57, 0.40), 1.8, 
 					"Cycle", C_ORANGE)
 				.mouse_input_handler(Box::new(|_, _, window| { 					
 					window.control_tx.send(CyCtl::Iterate(window.iters_pending))
-						.expect("Iterate button control tx");
+						.expect("Iterate button");
+					MouseInputEventResult::None
+				}))
+			)
+
+			.element(HexButton::new([1.0, -1.0, 0.0], (-0.20, 0.40), 1.8, 
+					"Stop", C_ORANGE)
+				.mouse_input_handler(Box::new(|_, _, window| { 					
+					window.control_tx.send(CyCtl::Stop)
+						.expect("Stop button");
 					MouseInputEventResult::None
 				}))
 			)
@@ -99,8 +123,7 @@ impl MainWindow {
 				}))
 			)			
 
-			.init();		
-
+			.init();
 
 		// Print some stuff:
 		println!("\n==================== Vibi Keyboard Bindings ===================\n\
@@ -110,7 +133,10 @@ impl MainWindow {
 			{mt}'Right Arrow' to increase or 'Left Arrow' to decrease grid size by one.\n",
 			mt = "    ");
 
-		// Event/Rendering loop:
+
+		//////////////////////////////////////////////////////////////////////////
+		///////////////////// Primary Event & Rendering Loop /////////////////////
+		//////////////////////////////////////////////////////////////////////////
 		loop {
 			ui.set_input_stale();
 
@@ -157,6 +183,10 @@ impl MainWindow {
 
 			////////////////////////////////////
 		}
+
+		// Hide window when exiting.
+		// [FIXME] TODO: Draw "Closing..." or something like that to the display instead.
+		display.get_window().unwrap().hide();
 	}
 
 	fn try_recv(&mut self) {

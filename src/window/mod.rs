@@ -70,8 +70,7 @@ pub enum MouseInputEventResult {
 
 pub enum KeyboardInputEventResult {
 	None,
-	// PushTextString(char),
-	// PopTextString,
+	RequestRedraw,
 }
 
 
