@@ -1,12 +1,14 @@
+// use std::iter;
 use std::sync::mpsc::{Receiver, Sender};
 use loop_cycles::{CyCtl, CySts};
 use glium::{self, DisplayBuild, Surface};
 // use glium::glutin::{ElementState};
 use window::{util, C_ORANGE, INIT_GRID_SIZE, MouseInputEventResult, KeyboardInputEventResult, 
 	WindowStats, HexGrid, StatusText, UiPane, TextBox, HexButton};
+use ganglion_buffer::GanglionBuffer;
 
 
-// [FIXME]: Needs a rename. Anything containing 'Window' is misleading.
+// [FIXME]: Needs a rename. Anything containing 'Window' is misleading (UiPane is the window).
 pub struct MainWindow {
 	pub cycle_status: CySts,
 	pub stats: WindowStats,
@@ -47,6 +49,16 @@ impl MainWindow {
 		// Status text UI element (fps & grid side):
 		let status_text = StatusText::new(&display);
 
+		// ttl grid count:
+		let grid_count = (window.grid_size * window.grid_size) as usize;
+
+		// // Make a bullshit 'plank':
+		// let gc_half = grid_count / 2;
+		// let plank: Vec<u8> = iter::repeat(0).cycle().take(gc_half)
+		// 	.chain(iter::repeat(128).cycle().take(grid_count - gc_half))
+		// 	.collect();
+
+		let g_buf = GanglionBuffer::new(grid_count, &display);
 
 		// Primary user interface elements:
 		let mut ui = UiPane::new(&display)
@@ -66,7 +78,7 @@ impl MainWindow {
 				}))
 			)
 
-			.element(HexButton::new([1.0, 1.0, 0.0], (-0.09, -0.07), 0.2, 
+			.element(HexButton::new([1.0, 1.0, 0.0], (-0.095, -0.07), 0.22, 
 					"* 2", C_ORANGE)
 				.mouse_input_handler(Box::new(|_, _, window| { 
 						if window.grid_size < super::MAX_GRID_SIZE { window.grid_size *= 2; }
@@ -74,7 +86,7 @@ impl MainWindow {
 				}))
 			)	
 
-			.element(HexButton::new([1.0, 1.0, 0.0], (-0.09, -0.17), 0.2, 
+			.element(HexButton::new([1.0, 1.0, 0.0], (-0.095, -0.17), 0.22, 
 					"/ 2", C_ORANGE)
 				.mouse_input_handler(Box::new(|_, _, window| { 
 					if window.grid_size >= 4 { window.grid_size /= 2; }
@@ -153,7 +165,7 @@ impl MainWindow {
 			target.clear_color_and_depth((0.030, 0.050, 0.080, 1.0), 1.0);
 
 			// Draw hex grid:
-			hex_grid.draw(&mut target, window.grid_size, window.stats.elapsed_ms());
+			hex_grid.draw(&mut target, window.grid_size, window.stats.elapsed_ms(), g_buf.buf());
 
 			// Draw FPS and grid side text:
 			status_text.draw(&mut target, &window.stats, window.grid_size);

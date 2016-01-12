@@ -2,6 +2,8 @@
 use glium::backend::glutin_backend::{GlutinFacade};
 use glium::{self, Surface, Program, DrawParameters, VertexBuffer, IndexBuffer};
 
+use ganglion_buffer::StateVertex;
+
 const HEX_X: f32 = 0.086602540378 + 0.01;
 const HEX_Y: f32 = 0.05 + 0.01;
 
@@ -44,7 +46,11 @@ impl<'d> HexGrid<'d> {
 		}
 	}
 
-	pub fn draw<S: Surface>(&self, target: &mut S, grid_size: u32, elapsed_ms: f64) {
+	pub fn draw<S: Surface>(&self, target: &mut S, grid_size: u32, elapsed_ms: f64, 
+				g_buf: &VertexBuffer<StateVertex>)
+	{
+		debug_assert!(g_buf.len() == (grid_size * grid_size) as usize);
+
 		// Set up our frame-countery-thing:
 		let f_c = (elapsed_ms / 4000.0) as f32;
 
@@ -67,9 +73,9 @@ impl<'d> HexGrid<'d> {
 		let persp = persp_matrix(width, height, 3.0);
 
 		// Camera position:
-		let cam_x = f32::cos(f_c) * grid_ctr_x * 0.8;
-		let cam_y = f32::cos(f_c) * grid_top_y * 0.8;
-		let cam_z = f32::cos(f_c / 3.0) * grid_ctr_z * 0.4; // <-- last arg sets zoom range
+		let cam_x = f32::cos(f_c) * grid_ctr_x * 0.4;
+		let cam_y = f32::cos(f_c) * grid_top_y * 0.4;
+		let cam_z = f32::cos(f_c / 3.0) * grid_ctr_z * 0.2; // <-- last arg sets zoom range
 
 		// View transformation matrix: { position(x,y,z), direction(x,y,z), up_dim(x,y,z)}
 		let view = view_matrix(
@@ -93,11 +99,19 @@ impl<'d> HexGrid<'d> {
 		// Light position:
 		let light_pos = [-1.0, 0.4, -0.9f32];
 
-		// Model color:
-		let model_color = [
-			(f32::abs(f32::cos(f_c / 3.0) * 0.99)) + 0.001, 
-			(f32::abs(f32::sin(f_c / 2.0) * 0.99)) + 0.001, 
-			(f32::abs(f32::cos(f_c / 1.0) * 0.99)) + 0.001,
+		// // Model color (all three elements cycle with time):
+		// let global_color = [
+		// 	(f32::abs(f32::cos(f_c / 3.0) * 0.99)) + 0.001, 
+		// 	(f32::abs(f32::sin(f_c / 2.0) * 0.99)) + 0.001, 
+		// 	(f32::abs(f32::cos(f_c / 1.0) * 0.99)) + 0.001,
+		// ];
+
+		// Model color (only blue cycles with time):
+		let global_color = [
+			0.0, 
+			0.0, 
+			// 0% - 30% blue just for effect
+			(f32::abs(f32::cos(f_c) * 0.30)),
 		];
 
 		// Uniforms:
@@ -106,16 +120,19 @@ impl<'d> HexGrid<'d> {
 			view: view,
 			persp: persp,
 			u_light_pos: light_pos,
-			u_model_color: model_color,
+			u_global_color: global_color,
 			grid_side: grid_size,
 			// diffuse_tex: &diffuse_texture,
 			// normal_tex: &normal_map,
 		};
 
-		// Draw Grid:
-		target.draw((&self.vertices, glium::vertex::EmptyInstanceAttributes { 
-			len: grid_count }), &self.indices, &self.program, &uniforms, 
-			&self.params).unwrap();
+		// // Draw Grid (without per-instance vertex buffer):
+		// target.draw((&self.vertices, glium::vertex::EmptyInstanceAttributes { len: grid_count }), 
+		// 	&self.indices, &self.program, &uniforms, &self.params).unwrap();
+
+		// Draw Grid (with per-instance vertex buffer):
+		target.draw((&self.vertices, g_buf.per_instance().unwrap()),
+			&self.indices, &self.program, &uniforms, &self.params).unwrap();
 	}
 }
 
@@ -129,10 +146,12 @@ static vertex_shader_src: &'static str = r#"
 	in vec3 position;
 	in vec3 color;
 	in vec3 normal;
+	in float state;
 
 	out vec3 v_position;
 	out vec3 v_color;
-	out vec3 v_normal;	
+	out vec3 v_normal;
+	out float v_state;
 
 	uniform uint grid_side;
 	uniform mat4 model;
@@ -158,6 +177,7 @@ static vertex_shader_src: &'static str = r#"
 		v_normal = transpose(inverse(mat3(model_view))) * normal;
 		v_color = color;
 		v_position = gl_Position.xyz / gl_Position.w;
+		v_state = state;
 	};
 "#;
 		
@@ -170,22 +190,23 @@ static fragment_shader_src: &'static str = r#"
 	in vec3 v_color; // <-- currently unused (using uniform atm)
 	in vec3 v_normal;
 	in vec3 v_position;
+	in float v_state;
 
 	out vec4 color;
 
 	uniform vec3 u_light_pos;
-	uniform vec3 u_model_color;
+	uniform vec3 u_global_color;
 
 	// const float ambient_strength = 0.1;
 	const vec3 ambient_color = vec3(0.9, 0.9, 0.9);
 	const vec3 diffuse_color = vec3(0.2, 0.2, 0.2);
-	const vec3 specular_color = vec3(0.4, 0.4, 0.4);
+	const vec3 specular_color = vec3(0.3, 0.3, 0.3);
 	const float specular_coeff = 16.0;
 
 	// // Pastel orange:
-	// const vec3 model_color = vec3(0.9607, 0.4745, 0.0);
+	// const vec3 global_color = vec3(0.9607, 0.4745, 0.0);
 	// // Pink model:
-	// const vec3 model_color = vec3(0.9882, 0.4902, 0.7059);
+	// const vec3 global_color = vec3(0.9882, 0.4902, 0.7059);
 
 	void main() {
 		float diffuse_ampl = max(dot(normalize(v_normal), normalize(u_light_pos)), 0.0);
@@ -195,7 +216,9 @@ static fragment_shader_src: &'static str = r#"
 		float specular = pow(max(dot(half_direction, normalize(v_normal)), 0.0), 
 			specular_coeff);
 
-		color = vec4((ambient_color * u_model_color) + diffuse_ampl
+		vec3 tile_color = vec3(v_state, u_global_color.g, u_global_color.b);
+
+		color = vec4((ambient_color * tile_color) + diffuse_ampl
 			* diffuse_color + specular * specular_color, 1.0);	
 	};
 "#;

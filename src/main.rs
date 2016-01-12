@@ -7,6 +7,7 @@ extern crate find_folder;
 extern crate num;
 extern crate vecmath;
 extern crate rustc_serialize;
+extern crate rand;
 // #[macro_use] extern crate conrod;
 // extern crate piston_window;
 // extern crate elmesque;
@@ -23,6 +24,7 @@ extern crate rustc_serialize;
 mod config;
 mod loop_cycles;
 mod window;
+mod ganglion_buffer;
 
 // mod conrod_draw;
 // mod widgets;

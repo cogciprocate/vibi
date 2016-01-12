@@ -82,7 +82,7 @@ impl<'d> UiPane<'d> {
 		self
 	}
 
-	pub fn init( mut self) -> UiPane<'d> {
+	pub fn init(mut self) -> UiPane<'d> {
 		let mut vertices: Vec<UiVertex> = Vec::new();
 		let mut indices: Vec<u16> = Vec::new();
 
