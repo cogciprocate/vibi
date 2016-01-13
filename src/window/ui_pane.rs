@@ -214,10 +214,10 @@ impl<'d> UiPane<'d> {
 					use glium::glutin::VirtualKeyCode::*;			
 					match vkc {
 						Q => window.close_pending = true,
-						Up => if window.grid_size < super::MAX_GRID_SIZE { window.grid_size *= 2; },
-						Down => if window.grid_size >= 4 { window.grid_size /= 2; },
-						Right => if window.grid_size < super::MAX_GRID_SIZE { window.grid_size += 1; },
-						Left => if window.grid_size > 2 { window.grid_size -= 1; },
+						// Up => if window.grid_size < super::MAX_GRID_SIZE { window.grid_size *= 2; },
+						// Down => if window.grid_size >= 4 { window.grid_size /= 2; },
+						// Right => if window.grid_size < super::MAX_GRID_SIZE { window.grid_size += 1; },
+						// Left => if window.grid_size > 2 { window.grid_size -= 1; },
 						_ => (),
 					}
 				}

@@ -3,7 +3,7 @@ use std::sync::mpsc::{Receiver, Sender};
 use loop_cycles::{CyCtl, CySts};
 use glium::{self, DisplayBuild, Surface};
 // use glium::glutin::{ElementState};
-use window::{util, C_ORANGE, INIT_GRID_SIZE, MouseInputEventResult, KeyboardInputEventResult, 
+use window::{util, C_ORANGE, /*INIT_GRID_SIZE,*/ MouseInputEventResult, KeyboardInputEventResult, 
 	WindowStats, HexGrid, StatusText, UiPane, TextBox, HexButton};
 use ganglion_buffer::GanglionBuffer;
 
@@ -13,25 +13,31 @@ pub struct MainWindow {
 	pub cycle_status: CySts,
 	pub stats: WindowStats,
 	pub close_pending: bool,
-	pub grid_size: u32,
+	pub grid_dims: (u32, u32),
 	pub iters_pending: u32,
 	pub control_tx: Sender<CyCtl>, 
 	pub status_rx: Receiver<CySts>,
+	// pub g_buf: GanglionBuffer,
 }
 
 impl MainWindow {
-	pub fn open(control_tx: Sender<CyCtl>, status_rx: Receiver<CySts>) {	
+	pub fn open(control_tx: Sender<CyCtl>, status_rx: Receiver<CySts>) {		
+
+		// Get initial cycle status so we know grid dims:
+		let cy_sts_init = status_rx.recv().expect("Status receiver error.");		
+
+		// Main window data struct:
 		let mut window = MainWindow {
-			cycle_status: CySts::new(),
+			cycle_status: CySts::new((0, 0)),
 			stats: WindowStats::new(),
 			close_pending: false,
-			grid_size: INIT_GRID_SIZE,
+			grid_dims: cy_sts_init.dims,
 			iters_pending: 1,
 			control_tx: control_tx,
 			status_rx: status_rx,
+			// g_buf: GanglionBuffer::new(grid_count, &display),
 		};
 
-		// Create our window:
 		let display: glium::backend::glutin_backend::GlutinFacade = glium::glutin::WindowBuilder::new()
 			.with_depth_buffer(24)
 			.with_dimensions(1400, 800)
@@ -43,56 +49,52 @@ impl MainWindow {
 			// .with_fullscreen(glium::glutin::get_primary_monitor())
 			.build_glium().unwrap();
 
+		// Total hex tile count:
+		let grid_count = (cy_sts_init.dims.0 * cy_sts_init.dims.1) as usize;
+
+		// Ganglion buffer:
+		let mut g_buf = GanglionBuffer::new(grid_count, &display);
+
 		// Hex grid:
 		let hex_grid = HexGrid::new(&display);
 
 		// Status text UI element (fps & grid side):
 		let status_text = StatusText::new(&display);
 
-		// ttl grid count:
-		let grid_count = (window.grid_size * window.grid_size) as usize;
-
-		// // Make a bullshit 'plank':
-		// let gc_half = grid_count / 2;
-		// let plank: Vec<u8> = iter::repeat(0).cycle().take(gc_half)
-		// 	.chain(iter::repeat(128).cycle().take(grid_count - gc_half))
-		// 	.collect();
-
-		let g_buf = GanglionBuffer::new(grid_count, &display);
 
 		// Primary user interface elements:
 		let mut ui = UiPane::new(&display)
-			.element(HexButton::new([1.0, 1.0, 0.0], (-0.36, -0.07), 2.0, 
-					"Grid Size + 1", C_ORANGE)
-				.mouse_input_handler(Box::new(|_, _, window| { 
-						if window.grid_size < super::MAX_GRID_SIZE { window.grid_size += 1; }
-						MouseInputEventResult::None
-				}))
-			)			
+			// .element(HexButton::new([1.0, 1.0, 0.0], (-0.36, -0.07), 2.0, 
+			// 		"Grid Size + 1", C_ORANGE)
+			// 	.mouse_input_handler(Box::new(|_, _, window| { 
+			// 			if window.grid_size < super::MAX_GRID_SIZE { window.grid_size += 1; }
+			// 			MouseInputEventResult::None
+			// 	}))
+			// )			
 
-			.element(HexButton::new([1.0, 1.0, 0.0], (-0.36, -0.17), 2.0, 
-					"Grid Size - 1", C_ORANGE)
-				.mouse_input_handler(Box::new(|_, _, window| { 
-					if window.grid_size > 2 { window.grid_size -= 1; };
-					MouseInputEventResult::None
-				}))
-			)
+			// .element(HexButton::new([1.0, 1.0, 0.0], (-0.36, -0.17), 2.0, 
+			// 		"Grid Size - 1", C_ORANGE)
+			// 	.mouse_input_handler(Box::new(|_, _, window| { 
+			// 		if window.grid_size > 2 { window.grid_size -= 1; };
+			// 		MouseInputEventResult::None
+			// 	}))
+			// )
 
-			.element(HexButton::new([1.0, 1.0, 0.0], (-0.095, -0.07), 0.22, 
-					"* 2", C_ORANGE)
-				.mouse_input_handler(Box::new(|_, _, window| { 
-						if window.grid_size < super::MAX_GRID_SIZE { window.grid_size *= 2; }
-						MouseInputEventResult::None
-				}))
-			)	
+			// .element(HexButton::new([1.0, 1.0, 0.0], (-0.095, -0.07), 0.22, 
+			// 		"* 2", C_ORANGE)
+			// 	.mouse_input_handler(Box::new(|_, _, window| { 
+			// 			if window.grid_size < super::MAX_GRID_SIZE { window.grid_size *= 2; }
+			// 			MouseInputEventResult::None
+			// 	}))
+			// )	
 
-			.element(HexButton::new([1.0, 1.0, 0.0], (-0.095, -0.17), 0.22, 
-					"/ 2", C_ORANGE)
-				.mouse_input_handler(Box::new(|_, _, window| { 
-					if window.grid_size >= 4 { window.grid_size /= 2; }
-					MouseInputEventResult::None
-				}))
-			)
+			// .element(HexButton::new([1.0, 1.0, 0.0], (-0.095, -0.17), 0.22, 
+			// 		"/ 2", C_ORANGE)
+			// 	.mouse_input_handler(Box::new(|_, _, window| { 
+			// 		if window.grid_size >= 4 { window.grid_size /= 2; }
+			// 		MouseInputEventResult::None
+			// 	}))
+			// )
 
 			.element(TextBox::new([1.0, -1.0, 0.0], (-0.385, 0.500), 4.45, 
 					"Iters:", C_ORANGE, "1", Box::new(|key_state, vk_code, kb_state, text_string, window| {
@@ -140,9 +142,7 @@ impl MainWindow {
 		// Print some stuff:
 		println!("\n==================== Vibi Keyboard Bindings ===================\n\
 			{mt}The following keys must be used with 'ctrl':\n\
-			{mt}'Escape' or 'q' to quit.\n\
-			{mt}'Up Arrow' to double or 'Down Arrow' to halve grid size.\n\
-			{mt}'Right Arrow' to increase or 'Left Arrow' to decrease grid size by one.\n",
+			{mt}'Escape' or 'q' to quit.",
 			mt = "    ");
 
 
@@ -164,11 +164,16 @@ impl MainWindow {
 			let mut target = display.draw();
 			target.clear_color_and_depth((0.030, 0.050, 0.080, 1.0), 1.0);
 
+			// Refresh ganglion states:
+			window.control_tx.send(CyCtl::Sample(g_buf.raw_states())).expect("Sample raw states");
+			// g_buf.fill_rand();
+			g_buf.refresh_v_buf();
+
 			// Draw hex grid:
-			hex_grid.draw(&mut target, window.grid_size, window.stats.elapsed_ms(), g_buf.buf());
+			hex_grid.draw(&mut target, window.grid_dims, window.stats.elapsed_ms(), g_buf.v_buf());
 
 			// Draw FPS and grid side text:
-			status_text.draw(&mut target, &window.stats, window.grid_size);
+			status_text.draw(&mut target, &window.stats, window.grid_dims);
 
 			// Draw UI:
 			ui.draw(&mut target);

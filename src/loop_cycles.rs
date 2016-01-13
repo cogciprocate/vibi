@@ -1,6 +1,7 @@
 use std::io::{self, Write};
-use time::{self, Timespec, Duration};
 use std::sync::mpsc::{Sender, Receiver};
+use std::sync::{Arc, Mutex};
+use time::{self, Timespec, Duration};
 
 use bismit::cortex::{self, Cortex};
 use bismit::input_source::{InputGanglion};
@@ -18,6 +19,7 @@ const GUI_CONTROL: bool				= true;
 pub enum CyCtl {
 	None,
 	Iterate(u32),
+	Sample(Arc<Mutex<Vec<u8>>>),
 	// ViewAllSlices(bool),
 	// ViewEnvoyDebug(bool),
 	Stop,
@@ -26,6 +28,7 @@ pub enum CyCtl {
 
 #[derive(Clone)]
 pub struct CySts {
+	pub dims: (u32, u32),
 	pub cur_cycle: u32,
 	pub ttl_cycles: u32,
 	pub cur_elapsed: Duration,
@@ -35,8 +38,9 @@ pub struct CySts {
 
 #[allow(dead_code)]
 impl CySts {
-	pub fn new() -> CySts {
+	pub fn new(dims: (u32, u32)) -> CySts {
 		CySts {
+			dims: dims,
 			cur_cycle: 0,
 			ttl_cycles: 0,
 			cur_elapsed: Duration::seconds(0),
@@ -61,6 +65,12 @@ pub fn run(autorun_iters: u32, control_rx: Receiver<CyCtl>, mut status_tx: Sende
 
 	let mut cortex = cortex::Cortex::new(config::define_plmaps(), config::define_pamaps());
 	config::disable_stuff(&mut cortex);
+
+	let area_name = "v1".to_string();
+	let area_dims = { 
+		let dims = cortex.area(&area_name).dims();
+		(dims.v_size(), dims.u_size())
+	};
 	
 	let mut ri = RunInfo {
 		cortex: cortex,
@@ -74,14 +84,15 @@ pub fn run(autorun_iters: u32, control_rx: Receiver<CyCtl>, mut status_tx: Sende
 		first_run: true, 
 		view_all_axons: false, 
 		view_sdr_only: true,
-		area_name: "v1".to_string(),
-		status: CySts::new(),
+		area_name: area_name,
+		status: CySts::new(area_dims),
 		// cur_cycle: 0u32,
 		ttl_cycles: 0u32,
 		// ttl_elapsed: Duration::seconds(0),	
 		loop_start_time: time::get_time(),
 	};
 
+	status_tx.send(ri.status.clone()).expect("Error sending initial status.");
 
 	loop {
 		if GUI_CONTROL {
@@ -89,6 +100,10 @@ pub fn run(autorun_iters: u32, control_rx: Receiver<CyCtl>, mut status_tx: Sende
 				Ok(cyctl) => match cyctl {
 					CyCtl::Iterate(i) => ri.test_iters = i,
 					CyCtl::Exit => break,
+					CyCtl::Sample(buf) => {
+						refresh_gang_buf(&ri, buf);
+						continue;
+					},
 					_ => continue,
 				},
 
@@ -100,8 +115,7 @@ pub fn run(autorun_iters: u32, control_rx: Receiver<CyCtl>, mut status_tx: Sende
 				LoopAction::Break => break,
 				LoopAction::None => (),
 			}
-		}
-		
+		}		
 
 		ri.loop_start_time = time::get_time();
 		ri.status.cur_cycle = 0;
@@ -135,15 +149,22 @@ pub fn run(autorun_iters: u32, control_rx: Receiver<CyCtl>, mut status_tx: Sende
 }
 
 
+fn refresh_gang_buf(ri: &RunInfo, buf: Arc<Mutex<Vec<u8>>>) {
+	match buf.lock() {
+		Ok(ref mut b) => ri.cortex.area(&ri.area_name).sample_aff_out(b),
+		Err(e) => panic!("Error locking ganglion buffer mutex: {:?}", e),
+	}
+}
 
-fn loop_cycles(ri: &mut RunInfo, control_rx: &Receiver<CyCtl>, status_tx: &mut Sender<CySts>,
-			) -> CyCtl
+
+
+fn loop_cycles(ri: &mut RunInfo, control_rx: &Receiver<CyCtl>, status_tx: &mut Sender<CySts>)
+		-> CyCtl
 {
 	if !ri.view_sdr_only { print!("\nRunning {} sense only loop(s) ... \n", ri.test_iters - 1); }
 	
 	loop {
-		if ri.status.cur_cycle >= (ri.test_iters - 1) { break; }
-		if let Ok(c) = control_rx.try_recv() { return c; }
+		if ri.status.cur_cycle >= (ri.test_iters - 1) { break; }		
 
 		let t = time::get_time() - ri.loop_start_time;
 
@@ -164,7 +185,17 @@ fn loop_cycles(ri: &mut RunInfo, control_rx: &Receiver<CyCtl>, status_tx: &mut S
 			ri.cortex.cycle();
 		}
 
+		// Check if any controls requests have been sent:
+		if let Ok(c) = control_rx.try_recv() {
+			match c {
+				// If a new sample has been requested, fulfill it:
+				CyCtl::Sample(buf) => refresh_gang_buf(&ri, buf),
+				// Otherwise return with the control code:
+				_ => return c,
+			}
+		}
 
+		// Update and send status:
 		ri.status.cur_cycle += 1;
 		ri.status.cur_elapsed = t;
 		status_tx.send(ri.status.clone()).ok();
@@ -176,7 +207,6 @@ fn loop_cycles(ri: &mut RunInfo, control_rx: &Receiver<CyCtl>, status_tx: &mut S
 
 
 fn cycle_print(ri: &mut RunInfo) -> LoopAction {
-	// Sense and print loop:
 	if !ri.view_sdr_only { print!("\n\nRunning {} sense and print loop(s)...", 1usize); }
 
 	if !ri.bypass_act {

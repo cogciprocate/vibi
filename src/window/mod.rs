@@ -44,7 +44,7 @@ pub const C_BLUE: [f32; 4] = [0.204, 0.396, 0.643, 1.0];
 pub const C_BLACK: [f32; 4] = [0.001, 0.001, 0.001, 1.0];
 
 
-pub const INIT_GRID_SIZE: u32 = 64;
+// pub const INIT_GRID_SIZE: u32 = 64;
 pub const MAX_GRID_SIZE: u32 = 8192;
 
 pub const SUBDEPTH: f32 = -0.015625;

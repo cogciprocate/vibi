@@ -46,10 +46,10 @@ impl<'d> HexGrid<'d> {
 		}
 	}
 
-	pub fn draw<S: Surface>(&self, target: &mut S, grid_size: u32, elapsed_ms: f64, 
+	pub fn draw<S: Surface>(&self, target: &mut S, grid_dims: (u32, u32), elapsed_ms: f64, 
 				g_buf: &VertexBuffer<StateVertex>)
 	{
-		debug_assert!(g_buf.len() == (grid_size * grid_size) as usize);
+		debug_assert!(g_buf.len() == (grid_dims.0 * grid_dims.1) as usize);
 
 		// Set up our frame-countery-thing:
 		let f_c = (elapsed_ms / 4000.0) as f32;
@@ -58,8 +58,9 @@ impl<'d> HexGrid<'d> {
 		let (width, height) = target.get_dimensions();
 
 		// Center of hex grid:
-		let grid_ctr_x = HEX_X * (grid_size as f32 - 1.0);
-		let grid_top_y = (HEX_Y * (grid_size as f32 - 1.0)) / 2.0;
+		// TODO: FIX THIS -- CENTER NEEDS TO BE COMPUTED PROPERLY USING BOTH DIMS
+		let grid_ctr_x = HEX_X * (grid_dims.1 as f32 - 1.0);
+		let grid_top_y = (HEX_Y * (grid_dims.1 as f32 - 1.0)) / 2.0;
 		let grid_ctr_z = -grid_ctr_x * 1.5;
 
 		// Grid count:
@@ -67,7 +68,7 @@ impl<'d> HexGrid<'d> {
 		// let ii = i / 1000;
 		// let grid_count = if (ii / GRID_COUNT) & 1 == 1 {
 		// 	GRID_COUNT - (ii % GRID_COUNT) } else { (ii % GRID_COUNT) };
-		let grid_count = (grid_size * grid_size) as usize;	
+		let grid_count = (grid_dims.0 * grid_dims.1) as usize;	
 
 		// Perspective transformation matrix:
 		let persp = persp_matrix(width, height, 3.0);
@@ -121,7 +122,8 @@ impl<'d> HexGrid<'d> {
 			persp: persp,
 			u_light_pos: light_pos,
 			u_global_color: global_color,
-			grid_side: grid_size,
+			grid_v_size: grid_dims.0,
+			grid_u_size: grid_dims.1,
 			// diffuse_tex: &diffuse_texture,
 			// normal_tex: &normal_map,
 		};
@@ -153,7 +155,8 @@ static vertex_shader_src: &'static str = r#"
 	out vec3 v_normal;
 	out float v_state;
 
-	uniform uint grid_side;
+	uniform uint grid_v_size;
+	uniform uint grid_u_size;
 	uniform mat4 model;
 	uniform mat4 view;
 	uniform mat4 persp;
@@ -164,9 +167,9 @@ static vertex_shader_src: &'static str = r#"
 
 		float x_scl = 0.086602540378f + border;
 		float y_scl = 0.05 + border;
-
-		float u_id = float(uint(gl_InstanceID) % grid_side);
-		float v_id = float(uint(gl_InstanceID) / grid_side);
+		
+		float v_id = float(uint(gl_InstanceID) / grid_u_size);
+		float u_id = float(uint(gl_InstanceID) % grid_u_size);
 
 		float x_pos = ((v_id + u_id) * x_scl) + position.x;
 		float y_pos = ((v_id * -y_scl) + (u_id * y_scl)) + position.y;

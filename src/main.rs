@@ -32,14 +32,15 @@ mod ganglion_buffer;
 
 fn main() {
 	#![allow(unused_variables)]
+	// use std::iter;
 	use std::thread;
 	use std::sync::mpsc;
+	// use ganglion_buffer::GanglionBuffer;
 	
 	println!("================= Bismit: vibi::main() running... ==================");
 	let time_start = time::get_time();	
 	// tomfoolery(&time_start);
 
-	
 	let (status_tx, status_rx) = mpsc::channel();
 	let (control_tx, control_rx) = mpsc::channel();
 

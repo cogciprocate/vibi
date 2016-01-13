@@ -35,7 +35,7 @@ impl StatusText {
 		}
 	}
 
-	pub fn draw<F>(&self, target: &mut F, stats: &WindowStats, grid_side: u32) 
+	pub fn draw<F>(&self, target: &mut F, stats: &WindowStats, grid_dims: (u32, u32)) 
 			where F: glium::Surface /*+ glium::backend::Facade*/
 	{
 		// let text_model_matrix = [
@@ -79,7 +79,7 @@ impl StatusText {
 		];
 
 		let gs_text = TextDisplay::new(&self.text_system, &self.font_texture, 
-			&format!("Grid: {gs} X {gs}", gs = grid_side));
+			&format!("Grid: {} X {}", grid_dims.0, grid_dims.1));
 
 		glium_text::draw(&gs_text, &self.text_system, target, gs_text_matrix, 
 			(0.99, 0.99, 0.99, 1.0));

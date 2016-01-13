@@ -1,38 +1,61 @@
 use std::iter;
+use std::sync::{Arc, Mutex};
+use rand;
 use rand::distributions::{IndependentSample, Range as RandRange};
-use rand::{self, XorShiftRng};
 use glium::backend::glutin_backend::{GlutinFacade};
 use glium::VertexBuffer;
 
 
-pub struct GanglionBuffer {
-	buf: VertexBuffer<StateVertex>,
-	rng: XorShiftRng,
+pub struct GanglionBuffer {	
+	raw_states: Arc<Mutex<Vec<u8>>>,
+	state_vertices: Vec<StateVertex>,
+	v_buf: VertexBuffer<StateVertex>,
 }
 
 impl GanglionBuffer {
 	pub fn new(grid_count: usize, display: &GlutinFacade) -> GanglionBuffer {
+		let raw_states = iter::repeat(0u8).cycle().take(grid_count).collect();
+		let state_vertices: Vec<StateVertex> = iter::repeat(StateVertex { state: 0.0 })
+			.cycle().take(grid_count).collect();
+		let v_buf = VertexBuffer::dynamic(display, &state_vertices).unwrap();
 
-		let mut rng = rand::weak_rng();
-		let range = RandRange::new(0.0f32, 1.0);		
-		// let gc_half = grid_count / 2;
-
-		// Make a bullshit 'plank':
-		let p_vec: Vec<StateVertex> = iter::repeat(0).cycle().take(grid_count)
-				.map(|_| StateVertex { state: range.ind_sample(&mut rng) })
-			// .chain(iter::repeat(0.5f32).cycle().take(grid_count - gc_half).map(|v| StateVertex { state : v }))
-			.collect();
-
-		let buf = VertexBuffer::dynamic(display, &p_vec).unwrap();
-
-		GanglionBuffer {
-			buf: buf,
-			rng: rng,
+		GanglionBuffer {			
+			raw_states: Arc::new(Mutex::new(raw_states)),
+			state_vertices: state_vertices,
+			v_buf: v_buf,
 		}
 	}
 
-	pub fn buf(&self) -> &VertexBuffer<StateVertex> {
-		&self.buf
+	pub fn refresh_v_buf(&mut self) {
+		let raw_states_ptr = self.raw_states.clone();
+		let raw_states = raw_states_ptr.lock().unwrap();
+		debug_assert!(raw_states.len() == self.state_vertices.len());
+
+		for (&rs, ref mut sv) in raw_states.iter().zip(self.state_vertices.iter_mut()) {
+			sv.state = (rs as f32) / 255.0;
+		}
+
+		self.v_buf.write(&self.state_vertices);
+	}
+
+	pub fn fill_rand(&mut self) {
+		let mut rng = rand::thread_rng();
+		let range = RandRange::new(0u8, 255);
+
+		let raw_states_ptr = self.raw_states.clone();
+		let mut raw_states = raw_states_ptr.lock().unwrap();
+
+		for rs in raw_states.iter_mut() {
+			*rs = range.ind_sample(&mut rng);
+		}
+	}
+
+	pub fn raw_states(&mut self) -> Arc<Mutex<Vec<u8>>> {
+		self.raw_states.clone()
+	}
+
+	pub fn v_buf(&self) -> &VertexBuffer<StateVertex> {
+		&self.v_buf
 	}
 }
 
