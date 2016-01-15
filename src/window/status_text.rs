@@ -18,6 +18,7 @@ pub struct StatusText {
 	text_system: TextSystem,
 	font_texture: FontTexture,
 	scale: f32,
+	color: (f32, f32, f32, f32),
 }
 
 impl StatusText {
@@ -37,96 +38,18 @@ impl StatusText {
 			text_system: text_system,
 			font_texture: font_texture,
 			scale: TEXT_SCALE,
+			color: TEXT_COLOR,
 		}
 	}
 
 	pub fn draw<F>(&self, target: &mut F, cycle_status: &CySts, window_stats: &WindowStats, grid_dims: (u32, u32)) 
-			where F: glium::Surface /*+ glium::backend::Facade*/
+			where F: glium::Surface
 	{
-		// let text_model_matrix = [
-		// 	[2.0 / text_width, 0.0, 0.0, 0.0,],
-		// 	[0.0, 2.0 * (width as f32) / (height as f32) / text_width, 0.0, 0.0,],
-		// 	[0.0, 0.0, 1.0, 0.0,],
-		// 	[-1.0, -1.0, 0.0, 1.0f32,],
-		// ];
-
-		
-		
-		// let text_scl = 0.018; // / ((width * height) as f32 / 1000000.0);
-		// let text_x_scl = text_scl * 2.0 / text_width;
-		// let text_y_scl = text_scl * 2.0 * (width as f32) / (height as f32) / text_width;
-
-		// let text_x_scl = text_scl / (width as f32 / 1000.0);
-		// let text_y_scl = text_x_scl * (width as f32) / (height as f32);
-
-
-		////////////////// Window //////////////////
-		// let gs_text_matrix = [
-		// 	[text_x_scl, 0.0, 0.0, 0.0,],
-		// 	[0.0, text_y_scl, 0.0, 0.0,],
-		// 	[0.0, 0.0, 1.0, 0.0,],
-		// 	[-1.0 + (6 as f32 / width as f32), 1.0 - (26 as f32 / height as f32), 0.0, 1.0f32,],
-		// ];
-
-		// let gs_text = TextDisplay::new(&self.text_system, &self.font_texture, 
-		// 	&format!("Window: {} X {}", width, height));
-
-		// glium_text::draw(&gs_text, &self.text_system, target, gs_text_matrix, 
-		// 	(0.99, 0.99, 0.99, 1.0));
-
 		let (width, height) = target.get_dimensions();
 		self.draw_text(&format!("Window: {} X {}", width, height), 6, 26, target);
-
-
-		/////////////////////////// Grid /////////////////////////
-		// let gs_text_matrix = [
-		// 	[text_x_scl, 0.0, 0.0, 0.0,],
-		// 	[0.0, text_y_scl, 0.0, 0.0,],
-		// 	[0.0, 0.0, 1.0, 0.0,],
-		// 	[-1.0 + (6 as f32 / width as f32), 1.0 - (56 as f32 / height as f32), 0.0, 1.0f32,],
-		// ];
-
-		// let gs_text = TextDisplay::new(&self.text_system, &self.font_texture, 
-		// 	&format!("Grid: {} X {}", grid_dims.0, grid_dims.1));
-
-		// glium_text::draw(&gs_text, &self.text_system, target, gs_text_matrix, 
-		// 	(0.99, 0.99, 0.99, 1.0));
-
 		self.draw_text(&format!("Grid: {} X {}", grid_dims.0, grid_dims.1), 6, 56, target);
-
-
-		/////////////////////////// FPS /////////////////////////
-		// let fps_text_xform = [
-		// 	[text_x_scl, 0.0, 0.0, 0.0,],
-		// 	[0.0, text_y_scl, 0.0, 0.0,],
-		// 	[0.0, 0.0, 1.0, 0.0,],
-		// 	[-1.0 + (6 as f32 / width as f32), 1.0 - (86 as f32 / height as f32), 0.0, 1.0f32,],
-		// ];
-
-		// let fps_text = TextDisplay::new(&self.text_system, &self.font_texture, 
-		// 	&format!("FPS: {:.1}", window_stats.fps()));
-
-		// glium_text::draw(&fps_text, &self.text_system, target, fps_text_xform, 
-		// 	(0.99, 0.99, 0.99, 1.0));
-
 		self.draw_text(&format!("FPS: {:.1}", window_stats.fps()), 6, 86, target);
-
-		///////////////////// CYCLES PER SEC /////////////////////
-		// let cps_text_xform = [
-		// 	[text_x_scl, 0.0, 0.0, 0.0,],
-		// 	[0.0, text_y_scl, 0.0, 0.0,],
-		// 	[0.0, 0.0, 1.0, 0.0,],
-		// 	[-1.0 + (6 as f32 / width as f32), 1.0 - (116 as f32 / height as f32), 0.0, 1.0f32,],
-		// ];
-
-		// let cps_text = TextDisplay::new(&self.text_system, &self.font_texture, 
-		// 	&format!("CPS: {:.1}", cycle_status.cur_cps()));
-
-		// glium_text::draw(&cps_text, &self.text_system, target, cps_text_xform, 
-		// 	(0.99, 0.99, 0.99, 1.0));
-
 		self.draw_text(&format!("CPS: {:.1}", cycle_status.cur_cps()), 6, 116, target);
-
 	}
 
 	fn draw_text<F: glium::Surface>(&self, text: &str, x_off: u32, y_off: u32, target: &mut F) {
@@ -142,9 +65,8 @@ impl StatusText {
 		];
 
 		let text_display = TextDisplay::new(&self.text_system, &self.font_texture, text);
-		let color = TEXT_COLOR;
 
-		glium_text::draw(&text_display, &self.text_system, target, text_xform, color);
+		glium_text::draw(&text_display, &self.text_system, target, text_xform, self.color);
 	}
 }
 
