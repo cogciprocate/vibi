@@ -22,10 +22,10 @@ pub fn define_plmaps() -> ProtolayerMaps {
 			.layer("iv_inhib", 0, map::DEFAULT, Protocell::inhibitory(4, "iv"))
 
 			.layer("iv", 1, map::PSAL, 
-				Protocell::spiny_stellate(5, vec!["aff_in"], 700, 8))
+				Protocell::spiny_stellate(4, vec!["aff_in"], 400, 8))
 
 			.layer("iii", 2, map::PTAL, 
-				Protocell::pyramidal(1, 5, vec!["iii"], 800, 10)
+				Protocell::pyramidal(1, 4, vec!["iii"], 800, 10)
 					.apical(vec!["eff_in"/*, "olfac"*/], 12))
 		)
 
@@ -40,7 +40,7 @@ pub fn define_plmaps() -> ProtolayerMaps {
 
 
 pub fn define_pamaps() -> ProtoareaMaps {
-	const AREA_SIDE: u32 = 37;
+	const AREA_SIDE: u32 = 67;
 	const CYCLES_PER_FRAME: usize = 1;
 
 	ProtoareaMaps::new()		
@@ -82,8 +82,8 @@ pub fn define_pamaps() -> ProtoareaMaps {
 			Protoinput::IdxReaderLoop { 
 				file_name: "data/train-images-idx3-ubyte", 
 				cyc_per: CYCLES_PER_FRAME, 
-				scale: 1.3,
-				loop_frames: 11,
+				scale: 1.4,
+				loop_frames: 1000000,
 			},
 			None, 
 			None,
@@ -94,10 +94,10 @@ pub fn define_pamaps() -> ProtoareaMaps {
 			Some(vec!["v0"/*, "o0"*/]),
 		)
 
-		.area("b1", "visual", AREA_SIDE,
-		 	None,		 	
-		 	Some(vec!["v1"]),
-		)
+		// .area("b1", "visual", AREA_SIDE,
+		//  	None,		 	
+		//  	Some(vec!["v1"]),
+		// )
 
 
 		// .area("a1", "visual", AREA_SIDE, None, Some(vec!["b1"]))
@@ -118,6 +118,7 @@ pub fn define_pamaps() -> ProtoareaMaps {
 
 }
 
+#[allow(unused_variables)]
 pub fn disable_stuff(cortex: &mut Cortex) {
 
 	/* ######################### */
@@ -134,6 +135,5 @@ pub fn disable_stuff(cortex: &mut Cortex) {
 
 		// area.disable_learning = true;
 		// area.disable_regrowth = true;
-		area.disable_regrowth = false;
 	}
 }

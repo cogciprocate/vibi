@@ -73,10 +73,15 @@ impl<'d> HexGrid<'d> {
 		// Perspective transformation matrix:
 		let persp = persp_matrix(width, height, 3.0);
 
+		// z scale factor:
+		let z_scl = 0.05;
+		// x and y scale factor:
+		let xy_scl = 0.2;
+
 		// Camera position:
-		let cam_x = f32::cos(f_c) * grid_ctr_x * 0.4;
-		let cam_y = f32::cos(f_c) * grid_top_y * 0.4;
-		let cam_z = f32::cos(f_c / 3.0) * grid_ctr_z * 0.2; // <-- last arg sets zoom range
+		let cam_x = f32::cos(f_c) * grid_ctr_x * xy_scl;
+		let cam_y = f32::cos(f_c) * grid_top_y * xy_scl;
+		let cam_z = f32::cos(f_c / 3.0) * grid_ctr_z * z_scl; // <-- last arg sets zoom range
 
 		// View transformation matrix: { position(x,y,z), direction(x,y,z), up_dim(x,y,z)}
 		let view = view_matrix(
@@ -90,6 +95,7 @@ impl<'d> HexGrid<'d> {
 		);
 
 		// Model transformation matrix:
+		// TODO: DEPRICATE
 		let grid_model = [
 			[1.0, 0.0, 0.0, 0.0],
 			[0.0, 1.0, 0.0, 0.0],
@@ -111,8 +117,10 @@ impl<'d> HexGrid<'d> {
 		let global_color = [
 			0.0, 
 			0.0, 
-			// 0% - 30% blue just for effect
-			(f32::abs(f32::cos(f_c) * 0.30)),
+			// // 0% - 30% blue just for effect:
+			// (f32::abs(f32::cos(f_c) * 0.30)),
+			// 30% blue static:
+			0.3f32,
 		];
 
 		// Uniforms:

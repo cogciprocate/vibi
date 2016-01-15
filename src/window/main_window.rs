@@ -100,7 +100,12 @@ impl MainWindow {
 					"Iters:", C_ORANGE, "1", Box::new(|key_state, vk_code, kb_state, text_string, window| {
 						util::key_into_string(key_state, vk_code, kb_state, text_string);
 
-						if let Ok(i) = text_string.trim().replace("k","000").parse() {						
+						if let Ok(i) = text_string
+								.trim()
+								.replace("k","000")
+								.replace("m","0000000")
+								.parse()
+						{	
 							window.iters_pending = i;
 						}
 
@@ -153,7 +158,7 @@ impl MainWindow {
 			ui.set_input_stale();
 
 			// Check cycle status:
-			window.try_recv();			
+			window.try_refresh_status();
 
 			// Check input events:
 			for ev in display.poll_events() {
@@ -173,7 +178,7 @@ impl MainWindow {
 			hex_grid.draw(&mut target, window.grid_dims, window.stats.elapsed_ms(), g_buf.v_buf());
 
 			// Draw FPS and grid side text:
-			status_text.draw(&mut target, &window.stats, window.grid_dims);
+			status_text.draw(&mut target, &window.cycle_status, &window.stats, window.grid_dims);
 
 			// Draw UI:
 			ui.draw(&mut target);
@@ -206,7 +211,7 @@ impl MainWindow {
 		display.get_window().unwrap().hide();
 	}
 
-	fn try_recv(&mut self) {
+	fn try_refresh_status(&mut self) {
 		loop {
 			match self.status_rx.try_recv() {
 				Ok(cs) => {

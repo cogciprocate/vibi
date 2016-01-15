@@ -35,7 +35,6 @@ pub struct CySts {
 	pub ttl_elapsed: Duration,
 }
 
-
 #[allow(dead_code)]
 impl CySts {
 	pub fn new(dims: (u32, u32)) -> CySts {
@@ -56,6 +55,15 @@ impl CySts {
 			0.0
 		}
 	}
+
+	pub fn cur_cps(&self) -> f32 {
+		if self.cur_elapsed.num_milliseconds() > 0 {
+			// (self.ttl_cycles * 1000) as f32 / self.ttl_elapsed.num_milliseconds() as f32
+			(self.cur_cycle as f32 / self.cur_elapsed.num_milliseconds() as f32) * 1000.0
+		} else {
+			0.0
+		}
+	}
 }
 
 pub fn run(autorun_iters: u32, control_rx: Receiver<CyCtl>, mut status_tx: Sender<CySts>, 
@@ -67,6 +75,7 @@ pub fn run(autorun_iters: u32, control_rx: Receiver<CyCtl>, mut status_tx: Sende
 	config::disable_stuff(&mut cortex);
 
 	let area_name = "v1".to_string();
+	
 	let area_dims = { 
 		let dims = cortex.area(&area_name).dims();
 		(dims.v_size(), dims.u_size())
