@@ -12,15 +12,11 @@ use interactive::{self, output_czar, CyCtl, CyRes, CyStatus};
 const INITIAL_TEST_ITERATIONS: u32 	= 1; 
 const STATUS_EVERY: u32 			= 5000;
 const PRINT_DETAILS_EVERY: u32		= 10000;
-
 const GUI_CONTROL: bool				= true;
-
 
 pub fn run(autorun_iters: u32, control_rx: Receiver<CyCtl>, mut result_tx: Sender<CyRes>, 
 			) -> bool 
 {
-	#![allow(unused_assignments, dead_code)]
-
 	let mut cortex = cortex::Cortex::new(config::define_plmaps(), config::define_pamaps());
 	config::disable_stuff(&mut cortex);
 
@@ -45,9 +41,6 @@ pub fn run(autorun_iters: u32, control_rx: Receiver<CyCtl>, mut result_tx: Sende
 		view_sdr_only: true,
 		area_name: area_name,
 		status: CyStatus::new(area_dims),
-		// cur_cycle: 0u32,
-		ttl_cycles: 0u32,
-		// ttl_elapsed: Duration::seconds(0),	
 		loop_start_time: time::get_time(),
 	};
 
@@ -116,7 +109,6 @@ fn refresh_gang_buf(ri: &RunInfo, buf: Arc<Mutex<Vec<u8>>>) {
 }
 
 
-
 fn loop_cycles(ri: &mut RunInfo, control_rx: &Receiver<CyCtl>, result_tx: &mut Sender<CyRes>)
 		-> CyCtl
 {
@@ -164,7 +156,6 @@ fn loop_cycles(ri: &mut RunInfo, control_rx: &Receiver<CyCtl>, result_tx: &mut S
 }
 
 
-
 fn cycle_print(ri: &mut RunInfo) -> LoopAction {
 	if !ri.view_sdr_only { print!("\n\nRunning {} sense and print loop(s)...", 1usize); }
 
@@ -195,7 +186,6 @@ fn cycle_print(ri: &mut RunInfo) -> LoopAction {
 	}	
 
 	if ri.status.cur_cycle > 1 {
-		// let t = time::get_time() - ri.loop_start_time;
 		printlny!("-> {} cycles @ [> {:02.2} c/s <]", 
 			ri.status.cur_cycle, (ri.status.cur_cycle as f32 
 				/ ri.status.cur_elapsed.num_milliseconds() as f32) * 1000.0);
@@ -204,11 +194,6 @@ fn cycle_print(ri: &mut RunInfo) -> LoopAction {
 	if ri.test_iters > 1000 {
 		ri.test_iters = 1;
 	}
-
-	// if !ri.bypass_act {
-	// 	ri.status.ttl_cycles += ri.status.cur_cycle;
-	// 	ri.status.ttl_elapsed += ri.status.cur_elapsed;
-	// }
 
 	if ri.autorun_iters > 0 {
 		LoopAction::Break
@@ -241,7 +226,7 @@ fn prompt(ri: &mut RunInfo) -> LoopAction {
 				view_state, axn_state, ri.area_name, 
 				iters = ri.test_iters,
 				loop_i = 0, //input_czar.counter(), 
-				ttl_i = ri.ttl_cycles,
+				ttl_i = ri.status.ttl_cycles,
 			))
 		};
 
@@ -408,10 +393,7 @@ struct RunInfo {
 	view_all_axons: bool, 
 	view_sdr_only: bool,
 	area_name: String,
-	status: CyStatus,
-	// cur_cycle: u32,
-	ttl_cycles: u32,
-	// ttl_elapsed: Duration,	
+	status: CyStatus,	
 	loop_start_time: Timespec,
 }
 
