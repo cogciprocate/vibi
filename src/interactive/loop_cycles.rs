@@ -7,10 +7,7 @@ use bismit::cortex::{self, Cortex};
 use bismit::input_source::{InputGanglion};
 use config;
 
-use interactive::{ self as iact, output_czar };
-
-use interactive::CyStatus;
-use interactive::CyCtl;
+use interactive::{self, output_czar, CyCtl, CyRes, CyStatus};
 
 const INITIAL_TEST_ITERATIONS: u32 	= 1; 
 const STATUS_EVERY: u32 			= 5000;
@@ -19,7 +16,7 @@ const PRINT_DETAILS_EVERY: u32		= 10000;
 const GUI_CONTROL: bool				= true;
 
 
-pub fn run(autorun_iters: u32, control_rx: Receiver<CyCtl>, mut status_tx: Sender<CyStatus>, 
+pub fn run(autorun_iters: u32, control_rx: Receiver<CyCtl>, mut result_tx: Sender<CyRes>, 
 			) -> bool 
 {
 	#![allow(unused_assignments, dead_code)]
@@ -54,7 +51,7 @@ pub fn run(autorun_iters: u32, control_rx: Receiver<CyCtl>, mut status_tx: Sende
 		loop_start_time: time::get_time(),
 	};
 
-	status_tx.send(ri.status.clone()).expect("Error sending initial status.");
+	result_tx.send(CyRes::Status(ri.status.clone())).expect("Error sending initial status.");
 
 	loop {
 		if GUI_CONTROL {
@@ -87,7 +84,7 @@ pub fn run(autorun_iters: u32, control_rx: Receiver<CyCtl>, mut status_tx: Sende
 			print!("Running {} iterations... \n", ri.test_iters);
 		}
 
-		match loop_cycles(&mut ri, &control_rx, &mut status_tx) {
+		match loop_cycles(&mut ri, &control_rx, &mut result_tx) {
 			CyCtl::Exit => break,
 			_ => (),
 		}
@@ -102,7 +99,7 @@ pub fn run(autorun_iters: u32, control_rx: Receiver<CyCtl>, mut status_tx: Sende
 		ri.status.ttl_elapsed = ri.status.ttl_elapsed + ri.status.cur_elapsed;
 		ri.status.cur_cycle = 0;
 		ri.status.cur_elapsed = Duration::seconds(0);
-		status_tx.send(ri.status.clone()).ok();
+		result_tx.send(CyRes::Status(ri.status.clone())).ok();
 	}
 
 	println!("");
@@ -120,7 +117,7 @@ fn refresh_gang_buf(ri: &RunInfo, buf: Arc<Mutex<Vec<u8>>>) {
 
 
 
-fn loop_cycles(ri: &mut RunInfo, control_rx: &Receiver<CyCtl>, status_tx: &mut Sender<CyStatus>)
+fn loop_cycles(ri: &mut RunInfo, control_rx: &Receiver<CyCtl>, result_tx: &mut Sender<CyRes>)
 		-> CyCtl
 {
 	if !ri.view_sdr_only { print!("\nRunning {} sense only loop(s) ... \n", ri.test_iters - 1); }
@@ -160,7 +157,7 @@ fn loop_cycles(ri: &mut RunInfo, control_rx: &Receiver<CyCtl>, status_tx: &mut S
 		// Update and send status:
 		ri.status.cur_cycle += 1;
 		ri.status.cur_elapsed = t;
-		status_tx.send(ri.status.clone()).ok();
+		result_tx.send(CyRes::Status(ri.status.clone())).ok();
 	}
 
 	CyCtl::None
@@ -257,7 +254,7 @@ fn prompt(ri: &mut RunInfo) -> LoopAction {
 			if "\n" == in_s {
 				return LoopAction::Continue;
 			} else {
-				let in_int = iact::parse_iters(&in_s);
+				let in_int = interactive::parse_iters(&in_s);
 				match in_int {
 					Ok(x)	=> {
 						 ri.test_iters = x;

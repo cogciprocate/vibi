@@ -1,7 +1,10 @@
 use time::Duration;
 
+/// Cycle result. Information about the cycling of the things and the stuff (and some of the non-stuff too... but not that much of it really... well a fair amount... but not an incredible amount or anything...).
+#[derive(Clone)]
 pub enum CyRes {
-
+	None,
+	Status(CyStatus),
 }
 
 #[derive(Clone)]
@@ -26,20 +29,10 @@ impl CyStatus {
 	}
 
 	pub fn ttl_cps(&self) -> f32 {
-		// if self.ttl_elapsed.num_milliseconds() > 0 {
-		// 	(self.ttl_cycles as f32 / self.ttl_elapsed.num_milliseconds() as f32) * 1000.0
-		// } else {
-		// 	0.0
-		// }
 		cps(self.ttl_cycles, self.ttl_elapsed)
 	}
 
 	pub fn cur_cps(&self) -> f32 {
-		// if self.cur_elapsed.num_milliseconds() > 0 {
-		// 	(self.cur_cycle as f32 / self.cur_elapsed.num_milliseconds() as f32) * 1000.0
-		// } else {
-		// 	0.0
-		// }
 		cps(self.cur_cycle, self.cur_elapsed)
 	}
 }
