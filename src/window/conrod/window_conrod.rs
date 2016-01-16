@@ -10,12 +10,12 @@ use piston_window::{ Flip, TextureSettings, Texture, image, clear };
 // use elmesque::{ self, Form, Renderer };
 
 
-use loop_cycles::{ CyCtl, CySts };
+use loop_cycles::{ CyCtl, CyStatus };
 use super::conrod_draw;
 use super::super::window_stats::{ WindowStats };
 
 
-pub fn open(mut control_tx: Sender<CyCtl>, status_rx: Receiver<CySts>) {
+pub fn open(mut control_tx: Sender<CyCtl>, status_rx: Receiver<CyStatus>) {
 	let win_size_init = Size { width: 1200, height: 800 };
 
 	let window: PistonWindow = WindowSettings::new("Vibi", win_size_init)
@@ -41,7 +41,7 @@ pub fn open(mut control_tx: Sender<CyCtl>, status_rx: Receiver<CySts>) {
 
 	// Loop mutables:
 	let mut iters = "1".to_string();
-	let mut cycle_status = CySts::new();
+	let mut cycle_status = CyStatus::new();
 	let mut close_window = false;
 	let mut stats = WindowStats::new();
 

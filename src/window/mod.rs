@@ -12,6 +12,7 @@ pub use self::controls::{Button, HexButton, TextBox};
 pub use self::main_window::MainWindow;
 pub use self::text_properties::TextProperties;
 pub use self::keyboard_state::KeyboardState;
+pub use self::ganglion_buffer::{GanglionBuffer, StateVertex};
 
 mod window_stats;
 mod status_text;
@@ -24,6 +25,7 @@ mod mouse_state;
 mod keyboard_state;
 mod controls;
 mod main_window;
+mod ganglion_buffer;
 pub mod util;
 pub mod ui_shape_2d;
 // pub mod conrod;
@@ -31,7 +33,7 @@ pub mod ui_shape_2d;
 // pub mod window_main;
 
 // use std::sync::mpsc::{Receiver, Sender};
-// use loop_cycles::{CyCtl, CySts};
+// use loop_cycles::{CyCtl, CyStatus};
 // use glium::{self, DisplayBuild, Surface};
 use std::fmt::{Debug, Formatter, Error};
 use glium::glutin::{ElementState, MouseButton, VirtualKeyCode};

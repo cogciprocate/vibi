@@ -9,7 +9,7 @@ use piston_window::{ PistonWindow, Glyphs, Size };
 
 
 use interactive as iact;
-use loop_cycles::{ CyCtl, CySts };
+use loop_cycles::{ CyCtl, CyStatus };
 use super::widgets::{ HexButton, /*HexGrid,*/ /*DrinkingClock*/ };
 use super::super::window_stats::{ WindowStats };
 
@@ -39,7 +39,7 @@ pub fn create_ui(window: PistonWindow) -> Ui<Glyphs> {
 }
 
 
-pub fn draw_buttons(ui: &mut Ui<Glyphs>, cycle_status: &mut CySts, win_size: &Size, 
+pub fn draw_buttons(ui: &mut Ui<Glyphs>, cycle_status: &mut CyStatus, win_size: &Size, 
 			control_tx: &mut Sender<CyCtl>, stats: &WindowStats, close_window: &mut bool,
 			mut iters_text: &mut String
 		) 

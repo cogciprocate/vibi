@@ -13,7 +13,7 @@ use glium_text;
 use glium::glutin;
 
 // use interactive as iact;
-use loop_cycles::{ CyCtl, CySts };
+use loop_cycles::{ CyCtl, CyStatus };
 use window_stats::{ WindowStats };
 
 const C_PINK: [f32; 3] = [0.9882, 0.4902, 0.7059];
@@ -105,7 +105,7 @@ static fragment_shader_src: &'static str = r#"
 "#;
 
 
-pub fn window(control_tx: Sender<CyCtl>, status_rx: Receiver<CySts>) {	
+pub fn window(control_tx: Sender<CyCtl>, status_rx: Receiver<CyStatus>) {	
 	// Create our window:
 	let display = glium::glutin::WindowBuilder::new()
 		.with_depth_buffer(24)
@@ -162,7 +162,7 @@ pub fn window(control_tx: Sender<CyCtl>, status_rx: Receiver<CySts>) {
 	
 	// Loop vars:
 	// let mut i: usize = 0;
-	let mut cycle_status = CySts::new();
+	let mut cycle_status = CyStatus::new();
 	let mut f_c: f32 = -0.5;
 	let mut stats = WindowStats::new();
 	let mut exit_app: bool = false;

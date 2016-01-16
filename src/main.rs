@@ -22,9 +22,7 @@ extern crate rand;
 
 #[macro_use] mod interactive;
 mod config;
-mod loop_cycles;
 mod window;
-mod ganglion_buffer;
 
 // mod conrod_draw;
 // mod widgets;
@@ -50,7 +48,7 @@ fn main() {
 	}).expect("Error creating 'win' thread");
 
 	let th_vis = thread::Builder::new().name("vis".to_string()).spawn(move || {
-		loop_cycles::run(0, control_rx, status_tx);
+		interactive::loop_cycles::run(0, control_rx, status_tx);
 	}).expect("Error creating 'vis' thread");
 
 	if let Err(e) = th_win.join() { println!("th_win.join(): Error: '{:?}'", e); }

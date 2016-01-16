@@ -8,7 +8,7 @@ use glium;
 // use glium::backend::glutin_backend::{ GlutinFacade };
 
 use super::window_stats::WindowStats;
-use loop_cycles::CySts;
+use interactive::CyStatus;
 
 static TEXT_SCALE: f32 = 0.018;
 static TEXT_COLOR: (f32, f32, f32, f32) = (0.99, 0.99, 0.99, 1.0);
@@ -23,7 +23,7 @@ pub struct StatusText {
 
 impl StatusText {
 	pub fn new<F>(display: &F) -> StatusText 
-			where F: /*glium::Surface +*/ glium::backend::Facade 
+			where F: glium::backend::Facade 
 	{
 		// Text system (experimental):
 		let text_system = TextSystem::new(display);
@@ -42,17 +42,20 @@ impl StatusText {
 		}
 	}
 
-	pub fn draw<F>(&self, target: &mut F, cycle_status: &CySts, window_stats: &WindowStats, grid_dims: (u32, u32)) 
-			where F: glium::Surface
+	pub fn draw<S>(&self, target: &mut S, cycle_status: &CyStatus, window_stats: &WindowStats, grid_dims: (u32, u32)) 
+			where S: glium::Surface
 	{
 		let (width, height) = target.get_dimensions();
 		self.draw_text(&format!("Window: {} X {}", width, height), 6, 26, target);
 		self.draw_text(&format!("Grid: {} X {}", grid_dims.0, grid_dims.1), 6, 56, target);
 		self.draw_text(&format!("FPS: {:.1}", window_stats.fps()), 6, 86, target);
-		self.draw_text(&format!("CPS: {:.1}", cycle_status.cur_cps()), 6, 116, target);
+		self.draw_text(&format!("Current Cycle: {:.1}", cycle_status.cur_cycle), 6, 116, target);
+		self.draw_text(&format!("Current CPS: {:.1}", cycle_status.cur_cps()), 6, 146, target);
+		self.draw_text(&format!("Total Cycles Complete: {:.1}", cycle_status.ttl_cycles), 6, 176, target);
+		self.draw_text(&format!("Total CPS: {:.1}", cycle_status.ttl_cps()), 6, 206, target);
 	}
 
-	fn draw_text<F: glium::Surface>(&self, text: &str, x_off: u32, y_off: u32, target: &mut F) {
+	fn draw_text<S: glium::Surface>(&self, text: &str, x_off: u32, y_off: u32, target: &mut S) {
 		let (width, height) = target.get_dimensions();
 		let text_x_scl = self.scale / (width as f32 / 1000.0);
 		let text_y_scl = text_x_scl * (width as f32) / (height as f32);

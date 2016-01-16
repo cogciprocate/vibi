@@ -10,17 +10,15 @@ macro_rules! yellowify {
 	($s:expr) => (concat!("\x1b[93m", $s, "\x1b[0m"));
 }
 
+pub use self::cycle_status::CyStatus;
+pub use self::cycle_control::CyCtl;
 use std::str::{ FromStr };
-// pub use self::input_czar::{ InputCzar, InputKind, InputSource };
 
-// pub mod cyc_loop;
-//pub mod autorun;
-//mod synapse_drill_down;
-// pub mod input_czar;
+pub mod loop_cycles;
+mod cycle_status;
+mod cycle_control;
 pub mod output_czar;
-// mod motor_state;
-//mod hybrid;
-//mod renderer;
+
 
 
 

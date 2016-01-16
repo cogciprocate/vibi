@@ -1,34 +1,34 @@
 // use std::iter;
 use std::sync::mpsc::{Receiver, Sender};
-use loop_cycles::{CyCtl, CySts};
+use interactive::{CyCtl, CyStatus};
 use glium::{self, DisplayBuild, Surface};
 // use glium::glutin::{ElementState};
 use window::{util, C_ORANGE, /*INIT_GRID_SIZE,*/ MouseInputEventResult, KeyboardInputEventResult, 
 	WindowStats, HexGrid, StatusText, UiPane, TextBox, HexButton};
-use ganglion_buffer::GanglionBuffer;
+use super::GanglionBuffer;
 
 
 // [FIXME]: Needs a rename. Anything containing 'Window' is misleading (UiPane is the window).
 pub struct MainWindow {
-	pub cycle_status: CySts,
+	pub cycle_status: CyStatus,
 	pub stats: WindowStats,
 	pub close_pending: bool,
 	pub grid_dims: (u32, u32),
 	pub iters_pending: u32,
 	pub control_tx: Sender<CyCtl>, 
-	pub status_rx: Receiver<CySts>,
+	pub status_rx: Receiver<CyStatus>,
 	// pub g_buf: GanglionBuffer,
 }
 
 impl MainWindow {
-	pub fn open(control_tx: Sender<CyCtl>, status_rx: Receiver<CySts>) {		
+	pub fn open(control_tx: Sender<CyCtl>, status_rx: Receiver<CyStatus>) {		
 
 		// Get initial cycle status so we know grid dims:
 		let cy_sts_init = status_rx.recv().expect("Status receiver error.");		
 
 		// Main window data struct:
 		let mut window = MainWindow {
-			cycle_status: CySts::new((0, 0)),
+			cycle_status: CyStatus::new((0, 0)),
 			stats: WindowStats::new(),
 			close_pending: false,
 			grid_dims: cy_sts_init.dims,
@@ -64,21 +64,21 @@ impl MainWindow {
 
 		// Primary user interface elements:
 		let mut ui = UiPane::new(&display)
-			// .element(HexButton::new([1.0, 1.0, 0.0], (-0.36, -0.07), 2.0, 
-			// 		"Grid Size + 1", C_ORANGE)
-			// 	.mouse_input_handler(Box::new(|_, _, window| { 
-			// 			if window.grid_size < super::MAX_GRID_SIZE { window.grid_size += 1; }
-			// 			MouseInputEventResult::None
-			// 	}))
-			// )			
+			.element(HexButton::new([1.0, 1.0, 0.0], (-0.20, -0.07), 2.0, 
+					"Slice +", C_ORANGE)
+				.mouse_input_handler(Box::new(|_, _, window| { 
+						// if window.grid_size < super::MAX_GRID_SIZE { window.grid_size += 1; }
+						MouseInputEventResult::None
+				}))
+			)			
 
-			// .element(HexButton::new([1.0, 1.0, 0.0], (-0.36, -0.17), 2.0, 
-			// 		"Grid Size - 1", C_ORANGE)
-			// 	.mouse_input_handler(Box::new(|_, _, window| { 
-			// 		if window.grid_size > 2 { window.grid_size -= 1; };
-			// 		MouseInputEventResult::None
-			// 	}))
-			// )
+			.element(HexButton::new([1.0, 1.0, 0.0], (-0.20, -0.17), 2.0, 
+					"Slice -", C_ORANGE)
+				.mouse_input_handler(Box::new(|_, _, window| { 
+					// if window.grid_size > 2 { window.grid_size -= 1; };
+					MouseInputEventResult::None
+				}))
+			)
 
 			// .element(HexButton::new([1.0, 1.0, 0.0], (-0.095, -0.07), 0.22, 
 			// 		"* 2", C_ORANGE)

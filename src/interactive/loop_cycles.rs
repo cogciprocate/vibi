@@ -9,64 +9,17 @@ use config;
 
 use interactive::{ self as iact, output_czar };
 
+use interactive::CyStatus;
+use interactive::CyCtl;
+
 const INITIAL_TEST_ITERATIONS: u32 	= 1; 
 const STATUS_EVERY: u32 			= 5000;
 const PRINT_DETAILS_EVERY: u32		= 10000;
 
 const GUI_CONTROL: bool				= true;
 
-#[allow(dead_code)]
-pub enum CyCtl {
-	None,
-	Iterate(u32),
-	Sample(Arc<Mutex<Vec<u8>>>),
-	// ViewAllSlices(bool),
-	// ViewEnvoyDebug(bool),
-	Stop,
-	Exit,
-}
 
-#[derive(Clone)]
-pub struct CySts {
-	pub dims: (u32, u32),
-	pub cur_cycle: u32,
-	pub ttl_cycles: u32,
-	pub cur_elapsed: Duration,
-	pub ttl_elapsed: Duration,
-}
-
-#[allow(dead_code)]
-impl CySts {
-	pub fn new(dims: (u32, u32)) -> CySts {
-		CySts {
-			dims: dims,
-			cur_cycle: 0,
-			ttl_cycles: 0,
-			cur_elapsed: Duration::seconds(0),
-			ttl_elapsed: Duration::seconds(0),
-		}
-	}
-
-	pub fn ttl_cps(&self) -> f32 {
-		if self.ttl_elapsed.num_milliseconds() > 0 {
-			// (self.ttl_cycles * 1000) as f32 / self.ttl_elapsed.num_milliseconds() as f32
-			(self.ttl_cycles as f32 / self.ttl_elapsed.num_milliseconds() as f32) * 1000.0
-		} else {
-			0.0
-		}
-	}
-
-	pub fn cur_cps(&self) -> f32 {
-		if self.cur_elapsed.num_milliseconds() > 0 {
-			// (self.ttl_cycles * 1000) as f32 / self.ttl_elapsed.num_milliseconds() as f32
-			(self.cur_cycle as f32 / self.cur_elapsed.num_milliseconds() as f32) * 1000.0
-		} else {
-			0.0
-		}
-	}
-}
-
-pub fn run(autorun_iters: u32, control_rx: Receiver<CyCtl>, mut status_tx: Sender<CySts>, 
+pub fn run(autorun_iters: u32, control_rx: Receiver<CyCtl>, mut status_tx: Sender<CyStatus>, 
 			) -> bool 
 {
 	#![allow(unused_assignments, dead_code)]
@@ -94,7 +47,7 @@ pub fn run(autorun_iters: u32, control_rx: Receiver<CyCtl>, mut status_tx: Sende
 		view_all_axons: false, 
 		view_sdr_only: true,
 		area_name: area_name,
-		status: CySts::new(area_dims),
+		status: CyStatus::new(area_dims),
 		// cur_cycle: 0u32,
 		ttl_cycles: 0u32,
 		// ttl_elapsed: Duration::seconds(0),	
@@ -167,7 +120,7 @@ fn refresh_gang_buf(ri: &RunInfo, buf: Arc<Mutex<Vec<u8>>>) {
 
 
 
-fn loop_cycles(ri: &mut RunInfo, control_rx: &Receiver<CyCtl>, status_tx: &mut Sender<CySts>)
+fn loop_cycles(ri: &mut RunInfo, control_rx: &Receiver<CyCtl>, status_tx: &mut Sender<CyStatus>)
 		-> CyCtl
 {
 	if !ri.view_sdr_only { print!("\nRunning {} sense only loop(s) ... \n", ri.test_iters - 1); }
@@ -458,7 +411,7 @@ struct RunInfo {
 	view_all_axons: bool, 
 	view_sdr_only: bool,
 	area_name: String,
-	status: CySts,
+	status: CyStatus,
 	// cur_cycle: u32,
 	ttl_cycles: u32,
 	// ttl_elapsed: Duration,	

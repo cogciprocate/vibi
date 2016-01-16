@@ -10,7 +10,7 @@ use image;
 use find_folder::{ Search };
 
 // use interactive as iact;
-use cyc_loop::{ CyCtl, CySts };
+use cyc_loop::{ CyCtl, CyStatus };
 // use teapot;
 
 
@@ -100,7 +100,7 @@ static fragment_shader_src: &'static str = r#"
 "#;
 
 
-pub fn window(control_tx: Sender<CyCtl>, status_rx: Receiver<CySts>) {	
+pub fn window(control_tx: Sender<CyCtl>, status_rx: Receiver<CyStatus>) {	
 	// Create our window:
 	let display = glium::glutin::WindowBuilder::new()
 		.with_depth_buffer(24)
