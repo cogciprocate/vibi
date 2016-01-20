@@ -2,7 +2,7 @@
 
 pub use self::window_stats::WindowStats;
 pub use self::status_text::StatusText;
-pub use self::hex_grid::HexGrid;
+pub use self::render::HexGrid;
 pub use self::ui_pane::UiPane;
 pub use self::ui_element::{UiElement, UiElementKind};
 pub use self::ui_vertex::UiVertex;
@@ -16,7 +16,7 @@ pub use self::ganglion_buffer::{GanglionBuffer, StateVertex};
 
 mod window_stats;
 mod status_text;
-mod hex_grid;
+mod render;
 mod ui_pane;
 mod ui_element;
 mod ui_vertex;

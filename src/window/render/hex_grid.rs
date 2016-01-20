@@ -2,7 +2,7 @@
 use glium::backend::glutin_backend::{GlutinFacade};
 use glium::{self, Surface, Program, DrawParameters, VertexBuffer, IndexBuffer};
 
-use super::StateVertex;
+use window::StateVertex;
 
 const HEX_X: f32 = 0.086602540378 + 0.01;
 const HEX_Y: f32 = 0.05 + 0.01;
@@ -58,16 +58,12 @@ impl<'d> HexGrid<'d> {
 		let (width, height) = target.get_dimensions();
 
 		// Center of hex grid:
-		// TODO: FIX THIS -- CENTER NEEDS TO BE COMPUTED PROPERLY USING BOTH DIMS
+		// [FIXME]: TODO: CENTER NEEDS TO BE COMPUTED PROPERLY USING BOTH DIMS
 		let grid_ctr_x = HEX_X * (grid_dims.1 as f32 - 1.0);
 		let grid_top_y = (HEX_Y * (grid_dims.1 as f32 - 1.0)) / 2.0;
 		let grid_ctr_z = -grid_ctr_x * 1.5;
 
 		// Grid count:
-		// // Grow and shrink grid count:
-		// let ii = i / 1000;
-		// let grid_count = if (ii / GRID_COUNT) & 1 == 1 {
-		// 	GRID_COUNT - (ii % GRID_COUNT) } else { (ii % GRID_COUNT) };
 		let grid_count = (grid_dims.0 * grid_dims.1) as usize;	
 
 		// Perspective transformation matrix:
@@ -106,14 +102,14 @@ impl<'d> HexGrid<'d> {
 		// Light position:
 		let light_pos = [-1.0, 0.4, -0.9f32];
 
-		// // Model color (all three elements cycle with time):
+		// // Model color (all three elements fluctuate):
 		// let global_color = [
 		// 	(f32::abs(f32::cos(f_c / 3.0) * 0.99)) + 0.001, 
 		// 	(f32::abs(f32::sin(f_c / 2.0) * 0.99)) + 0.001, 
 		// 	(f32::abs(f32::cos(f_c / 1.0) * 0.99)) + 0.001,
 		// ];
 
-		// Model color (only blue cycles with time):
+		// Model color (only blue fluctuates):
 		let global_color = [
 			0.0, 
 			0.0, 
@@ -198,9 +194,11 @@ static vertex_shader_src: &'static str = r#"
 static fragment_shader_src: &'static str = r#"
 	#version 330
 
-	in vec3 v_color; // <-- currently unused (using uniform atm)
+	// Unused (using uniform atm):
+	in vec3 v_color;
 	in vec3 v_normal;
-	in vec3 v_position;
+	in vec3 v_position;	
+	// Determines red component:
 	in float v_state;
 
 	out vec4 color;
@@ -235,7 +233,7 @@ static fragment_shader_src: &'static str = r#"
 "#;
 
 
-
+// [FIXME]: CONVERT TO TRIANGLE STRIPS
 fn hex_vbo(display: &GlutinFacade) -> glium::vertex::VertexBuffer<Vertex> {
 	let a = 0.5 / 10.0f32;
 	let s = 0.57735026919 / 10.0f32; // 1/sqrt(3)
@@ -252,7 +250,7 @@ fn hex_vbo(display: &GlutinFacade) -> glium::vertex::VertexBuffer<Vertex> {
 		]).unwrap()
 }
 
-
+// [FIXME]: CONVERT TO TRIANGLE STRIPS (as above)
 fn hex_ibo(display: &GlutinFacade) -> glium::IndexBuffer<u16> {
 	glium::IndexBuffer::new(display, glium::index::PrimitiveType::TrianglesList, &[
 			0, 1, 2,

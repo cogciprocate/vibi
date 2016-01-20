@@ -1,10 +1,14 @@
 use time::Duration;
 
-/// Cycle result. Information about the cycling of the things and the stuff (and some of the non-stuff too... but not that much of it really... well a fair amount... but not an incredible amount or anything...).
+/// Cycle result. 
+///
+/// Information about the cycling of the things and the stuff (and some of the non-stuff too... but not that much of it really... well... a fair amount... but not like a ton).
 #[derive(Clone)]
+#[allow(dead_code)]
 pub enum CyRes {
 	None,
 	Status(CyStatus),
+	CurrentAreaName(String),
 }
 
 #[derive(Clone)]

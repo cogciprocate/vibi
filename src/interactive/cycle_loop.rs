@@ -14,92 +14,100 @@ const STATUS_EVERY: u32 			= 5000;
 const PRINT_DETAILS_EVERY: u32		= 10000;
 const GUI_CONTROL: bool				= true;
 
-pub fn run(autorun_iters: u32, control_rx: Receiver<CyCtl>, mut result_tx: Sender<CyRes>, 
-			) -> bool 
-{
-	let mut cortex = cortex::Cortex::new(config::define_plmaps(), config::define_pamaps());
-	config::disable_stuff(&mut cortex);
+pub struct CycleLoop;
 
-	let area_name = "v1".to_string();
-	
-	let area_dims = { 
-		let dims = cortex.area(&area_name).dims();
-		(dims.v_size(), dims.u_size())
-	};
-	
-	let mut ri = RunInfo {
-		cortex: cortex,
-		test_iters: if autorun_iters > 0 {
-				autorun_iters
-			} else {
-				INITIAL_TEST_ITERATIONS
-			}, 
-		bypass_act: false, 
-		autorun_iters: autorun_iters, 
-		first_run: true, 
-		view_all_axons: false, 
-		view_sdr_only: true,
-		area_name: area_name,
-		status: CyStatus::new(area_dims),
-		loop_start_time: time::get_time(),
-	};
+impl CycleLoop {
+	pub fn run(autorun_iters: u32, control_rx: Receiver<CyCtl>, mut result_tx: Sender<CyRes>)
+				-> bool 
+	{
+		let mut cortex = cortex::Cortex::new(config::define_plmaps(), config::define_pamaps());
+		config::disable_stuff(&mut cortex);
 
-	result_tx.send(CyRes::Status(ri.status.clone())).expect("Error sending initial status.");
+		let area_name = "v1".to_string();
+		
+		let area_dims = { 
+			let dims = cortex.area(&area_name).dims();
+			(dims.v_size(), dims.u_size())
+		};
+		
+		let mut ri = RunInfo {
+			cortex: cortex,
+			test_iters: if autorun_iters > 0 {
+					autorun_iters
+				} else {
+					INITIAL_TEST_ITERATIONS
+				}, 
+			bypass_act: false, 
+			autorun_iters: autorun_iters, 
+			first_run: true, 
+			view_all_axons: false, 
+			view_sdr_only: true,
+			area_name: area_name,
+			status: CyStatus::new(area_dims),
+			loop_start_time: time::get_time(),
+		};
 
-	loop {
-		if GUI_CONTROL {
-			match control_rx.recv() {
-				Ok(cyctl) => match cyctl {
-					CyCtl::Iterate(i) => ri.test_iters = i,
-					CyCtl::Exit => break,
-					CyCtl::Sample(buf) => {
-						refresh_gang_buf(&ri, buf);
-						continue;
+		result_tx.send(CyRes::Status(ri.status.clone())).expect("Error sending initial status.");
+
+		loop {
+			if GUI_CONTROL {
+				match control_rx.recv() {
+					Ok(cyctl) => match cyctl {
+						CyCtl::Iterate(i) => ri.test_iters = i,
+						CyCtl::Exit => break,
+						CyCtl::Sample(buf) => {
+							refresh_gang_buf(&ri, buf);
+							continue;
+						},
+						CyCtl::RequestCurrentAreaName => {
+							result_tx.send(CyRes::CurrentAreaName(ri.area_name.to_string()))
+									.expect("Error sending area name.");
+							continue;
+						},
+						_ => continue,
 					},
-					_ => continue,
-				},
 
-				Err(e) => panic!("run(): control_rx.recv(): '{:?}'", e),
+					Err(e) => panic!("run(): control_rx.recv(): '{:?}'", e),
+				}
+			} else {
+				match prompt(&mut ri) {
+					LoopAction::Continue => continue,
+					LoopAction::Break => break,
+					LoopAction::None => (),
+				}
+			}		
+
+			ri.loop_start_time = time::get_time();
+			ri.status.cur_cycle = 0;
+			ri.status.cur_elapsed = Duration::seconds(0);
+
+			if ri.test_iters > 1 {
+				print!("Running {} iterations... \n", ri.test_iters);
 			}
-		} else {
-			match prompt(&mut ri) {
+
+			match loop_cycles(&mut ri, &control_rx, &mut result_tx) {
+				CyCtl::Exit => break,
+				_ => (),
+			}
+
+			match cycle_print(&mut ri) {
 				LoopAction::Continue => continue,
 				LoopAction::Break => break,
 				LoopAction::None => (),
 			}
-		}		
 
-		ri.loop_start_time = time::get_time();
-		ri.status.cur_cycle = 0;
-		ri.status.cur_elapsed = Duration::seconds(0);
-
-		if ri.test_iters > 1 {
-			print!("Running {} iterations... \n", ri.test_iters);
+			ri.status.ttl_cycles += ri.status.cur_cycle;
+			ri.status.ttl_elapsed = ri.status.ttl_elapsed + ri.status.cur_elapsed;
+			ri.status.cur_cycle = 0;
+			ri.status.cur_elapsed = Duration::seconds(0);
+			result_tx.send(CyRes::Status(ri.status.clone())).ok();
 		}
 
-		match loop_cycles(&mut ri, &control_rx, &mut result_tx) {
-			CyCtl::Exit => break,
-			_ => (),
-		}
+		println!("");
 
-		match cycle_print(&mut ri) {
-			LoopAction::Continue => continue,
-			LoopAction::Break => break,
-			LoopAction::None => (),
-		}
-
-		ri.status.ttl_cycles += ri.status.cur_cycle;
-		ri.status.ttl_elapsed = ri.status.ttl_elapsed + ri.status.cur_elapsed;
-		ri.status.cur_cycle = 0;
-		ri.status.cur_elapsed = Duration::seconds(0);
-		result_tx.send(CyRes::Status(ri.status.clone())).ok();
+		true
 	}
-
-	println!("");
-
-	true
 }
-
 
 fn refresh_gang_buf(ri: &RunInfo, buf: Arc<Mutex<Vec<u8>>>) {
 	match buf.lock() {

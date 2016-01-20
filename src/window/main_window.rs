@@ -11,6 +11,7 @@ use super::GanglionBuffer;
 // [FIXME]: Needs a rename. Anything containing 'Window' is misleading (UiPane is the window).
 pub struct MainWindow {
 	pub cycle_status: CyStatus,
+	pub area_name: String,
 	pub stats: WindowStats,
 	pub close_pending: bool,
 	pub grid_dims: (u32, u32),
@@ -24,16 +25,22 @@ impl MainWindow {
 	pub fn open(control_tx: Sender<CyCtl>, result_rx: Receiver<CyRes>) {		
 
 		// Get initial cycle status so we know grid dims:
-		let cy_sts_init = result_rx.recv().expect("Initial status reception error.");
-
-		let grid_dims = match cy_sts_init {
+		let grid_dims = match result_rx.recv().expect("Initial status reception error.") {
 			CyRes::Status(cysts) => cysts.dims,
 			_ => panic!("Invalid initial cycle status."),
 		};
 
+		// Get initial area name:
+		control_tx.send(CyCtl::RequestCurrentAreaName).expect("Error requesting current area name.");
+		let area_name = match result_rx.recv().expect("Current area name reception error.") {
+			CyRes::CurrentAreaName(area_name) => area_name,
+			_ => panic!("Invalid area name response."),
+		};		
+
 		// Main window data struct:
 		let mut window = MainWindow {
 			cycle_status: CyStatus::new((0, 0)),
+			area_name: area_name,
 			stats: WindowStats::new(),
 			close_pending: false,
 			grid_dims: grid_dims,
@@ -66,24 +73,23 @@ impl MainWindow {
 		// Status text UI element (fps & grid side):
 		let status_text = StatusText::new(&display);
 
-
 		// Primary user interface elements:
 		let mut ui = UiPane::new(&display)
-			.element(HexButton::new([1.0, 1.0, 0.0], (-0.20, -0.07), 2.0, 
-					"Slice +", C_ORANGE)
-				.mouse_input_handler(Box::new(|_, _, window| { 
-						// if window.grid_size < super::MAX_GRID_SIZE { window.grid_size += 1; }
-						MouseInputEventResult::None
-				}))
-			)			
+			// .element(HexButton::new([1.0, 1.0, 0.0], (-0.20, -0.07), 2.0, 
+			// 		"Slice +", C_ORANGE)
+			// 	.mouse_input_handler(Box::new(|_, _, window| {
+			// 			// if window.grid_size < super::MAX_GRID_SIZE { window.grid_size += 1; }
+			// 			MouseInputEventResult::None
+			// 	}))
+			// )			
 
-			.element(HexButton::new([1.0, 1.0, 0.0], (-0.20, -0.17), 2.0, 
-					"Slice -", C_ORANGE)
-				.mouse_input_handler(Box::new(|_, _, window| { 
-					// if window.grid_size > 2 { window.grid_size -= 1; };
-					MouseInputEventResult::None
-				}))
-			)
+			// .element(HexButton::new([1.0, 1.0, 0.0], (-0.20, -0.17), 2.0, 
+			// 		"Slice -", C_ORANGE)
+			// 	.mouse_input_handler(Box::new(|_, _, window| { 
+			// 		// if window.grid_size > 2 { window.grid_size -= 1; };
+			// 		MouseInputEventResult::None
+			// 	}))
+			// )
 
 			// .element(HexButton::new([1.0, 1.0, 0.0], (-0.095, -0.07), 0.22, 
 			// 		"* 2", C_ORANGE)
@@ -149,11 +155,13 @@ impl MainWindow {
 
 			.init();
 
-		// Print some stuff:
-		println!("\n==================== Vibi Keyboard Bindings ===================\n\
-			{mt}The following keys must be used with 'ctrl':\n\
-			{mt}'Escape' or 'q' to quit.",
-			mt = "    ");
+
+
+		// // Print some stuff:
+		// println!("\n==================== Vibi Keyboard Bindings ===================\n\
+		// 	{mt}The following keys must be used with 'ctrl':\n\
+		// 	{mt}'Escape' or 'q' to quit.",
+		// 	mt = "    ");
 
 
 		//////////////////////////////////////////////////////////////////////////
@@ -182,8 +190,9 @@ impl MainWindow {
 			// Draw hex grid:
 			hex_grid.draw(&mut target, window.grid_dims, window.stats.elapsed_ms(), g_buf.v_buf());
 
-			// Draw FPS and grid side text:
-			status_text.draw(&mut target, &window.cycle_status, &window.stats, window.grid_dims);
+			// Draw status text:
+			status_text.draw(&mut target, &window.cycle_status, &window.stats, window.grid_dims, 
+				&window.area_name);
 
 			// Draw UI:
 			ui.draw(&mut target);
@@ -200,13 +209,10 @@ impl MainWindow {
 				break;
 			}
 
-
 			/////////// DEBUG STUFF ////////////
 				// if !ui.input_is_stale() {
 				// 	println!("##### Mouse position: {:?}", ui.mouse_state().position());
 				// }
-
-
 
 			////////////////////////////////////
 		}
@@ -220,15 +226,12 @@ impl MainWindow {
 		loop {
 			match self.result_rx.try_recv() {
 				Ok(cr) => {
-					// if let Status(cysts) = cr {
-					// 	self.cycle_status = cysts;
-					// }
 					match cr {
 						CyRes::Status(cysts) => self.cycle_status = cysts,
-						CyRes::None => (),
+						CyRes::CurrentAreaName(area_name) => self.area_name = area_name,
+						_ => (),
 					}
 				},
-
 				Err(_) => break,
 			};
 		}
