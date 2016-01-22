@@ -30,8 +30,8 @@ impl GanglionBuffer {
 
 		let grid_count = gang_map.axn_count(default_slc_range.clone());
 
-		println!("\n###### GanglionBuffer::new(): d_slc_range: {:?}, grid_count: {}, gang_map: {:?}", 
-			default_slc_range, grid_count, gang_map);
+		// println!("\n###### GanglionBuffer::new(): d_slc_range: {:?}, grid_count: {}, gang_map: {:?}", 
+		// 	default_slc_range, grid_count, gang_map);
 
 		let raw_states = iter::repeat(0u8).cycle().take(grid_count).collect();
 		let state_vertices: Vec<StateVertex> = iter::repeat(StateVertex { state: 0.0 })
@@ -109,8 +109,8 @@ impl GanglionBuffer {
 	pub fn vertex_buf(&self, gang_slc_id: u8) -> VertexBufferSlice<StateVertex> {
 		let axn_id_range: Range<usize> = self.gang_map.axn_id_range(gang_slc_id..gang_slc_id + 1);
 
-		println!("\n###### GanglionBuffer::vertex_buf({}): axn_id_range: {:?}", 
-			gang_slc_id, axn_id_range);
+		// println!("\n###### GanglionBuffer::vertex_buf({}): axn_id_range: {:?}", 
+		// 	gang_slc_id, axn_id_range);
 
 		self.vertex_buf.slice(axn_id_range).expect("GanglionBuffer::vertex_buf(): Out of range")
 	}
@@ -121,10 +121,10 @@ impl GanglionBuffer {
 
 	pub fn cur_axn_range(&self) -> Range<usize> {
 		let cur_axn_range = self.gang_map.axn_id_range(self.cur_slc_range.clone());
-		println!("###### GanglionBuffer::cur_axn_range(): \
-				self.cur_slc_range: {:?}, cur_axn_range: {:?}",
-			self.cur_slc_range,
-			cur_axn_range);
+		// println!("###### GanglionBuffer::cur_axn_range(): \
+		// 		self.cur_slc_range: {:?}, cur_axn_range: {:?}",
+		// 	self.cur_slc_range,
+		// 	cur_axn_range);
 
 		cur_axn_range
 	}

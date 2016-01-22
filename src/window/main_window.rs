@@ -210,10 +210,7 @@ impl MainWindow {
 			// Current ganglion range:
 			let cur_axn_range = window.gang_buf.cur_axn_range();
 
-			println!("#### MainWindow::open(): cur_axn_range: {:?}", cur_axn_range);
-
 			// Refresh ganglion states:
-			println!("###### MainWindow::open(): cur_axn_range: {:?}", cur_axn_range);
 			window.control_tx.send(CyCtl::Sample(cur_axn_range, window.gang_buf.raw_states()))
 				.expect("Sample raw states");
 

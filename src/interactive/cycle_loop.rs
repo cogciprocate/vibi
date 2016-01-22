@@ -58,8 +58,8 @@ impl CycleLoop {
 						CyCtl::Exit => break,
 						CyCtl::Sample(range, buf) => {
 							// ########### CANDIDATE 1 (INIT)
-							println!("###### CycleLoop::run(): CANDIDATE 1 (INIT): range: {:?}",
-								range);
+							// println!("###### CycleLoop::run(): CANDIDATE 1 (INIT): range: {:?}",
+							// 	range);
 							refresh_gang_buf(&ri, range, buf);
 							continue;
 						},
@@ -123,7 +123,7 @@ impl CycleLoop {
 // #############################################################
 // #############################################################
 fn refresh_gang_buf(ri: &RunInfo, range: Range<usize>, buf: Arc<Mutex<Vec<u8>>>) {
-	println!("###### cycle_loop::refresh_gang_buf(): range: {:?}", range);
+	// println!("###### cycle_loop::refresh_gang_buf(): range: {:?}", range);
 
 	match buf.lock() {
 		// Ok(ref mut b) => ri.cortex.area(&ri.area_name).sample_aff_out(&mut b[range]),
@@ -169,8 +169,8 @@ fn loop_cycles(ri: &mut RunInfo, control_rx: &Receiver<CyCtl>, result_tx: &mut S
 				// If a new sample has been requested, fulfill it:
 				// ########### CANDIDATE 2 (RUNTIME)
 				CyCtl::Sample(range, buf) => {
-					println!("###### CycleLoop::run(): CANDIDATE 2 (RUNTIME): range: {:?}",
-								range);
+					// println!("###### CycleLoop::run(): CANDIDATE 2 (RUNTIME): range: {:?}",
+					// 	range);
 					refresh_gang_buf(&ri, range, buf);
 				},
 				// Otherwise return with the control code:
