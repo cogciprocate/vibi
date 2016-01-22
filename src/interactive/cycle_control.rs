@@ -5,7 +5,7 @@ pub enum CyCtl {
 	None,
 	Iterate(u32),
 	Sample(Arc<Mutex<Vec<u8>>>),
-	RequestCurrentAreaName,
+	RequestCurrentAreaInfo,
 	// ViewAllSlices(bool),
 	// ViewEnvoyDebug(bool),
 	Stop,

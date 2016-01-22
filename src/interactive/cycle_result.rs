@@ -1,4 +1,7 @@
+use std::ops::Range;
 use time::Duration;
+use bismit::map::GanglionMap;
+
 
 /// Cycle result. 
 ///
@@ -8,12 +11,13 @@ use time::Duration;
 pub enum CyRes {
 	None,
 	Status(CyStatus),
-	CurrentAreaName(String),
+	CurrentAreaInfo(String, Range<u8>, GanglionMap),
+	// OtherShit(GanglionMap),
 }
 
 #[derive(Clone)]
 pub struct CyStatus {
-	pub dims: (u32, u32),
+	// pub dims: (u32, u32),
 	pub cur_cycle: u32,
 	pub ttl_cycles: u32,
 	pub cur_elapsed: Duration,
@@ -22,9 +26,9 @@ pub struct CyStatus {
 
 #[allow(dead_code)]
 impl CyStatus {
-	pub fn new(dims: (u32, u32)) -> CyStatus {
+	pub fn new(/*dims: (u32, u32)*/) -> CyStatus {
 		CyStatus {
-			dims: dims,
+			// dims: dims,
 			cur_cycle: 0,
 			ttl_cycles: 0,
 			cur_elapsed: Duration::seconds(0),

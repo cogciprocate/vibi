@@ -43,12 +43,12 @@ impl StatusText {
 	}
 
 	pub fn draw<S>(&self, target: &mut S, cycle_status: &CyStatus, window_stats: &WindowStats, 
-				grid_dims: (u32, u32), area_name: &str)
+				/*grid_dims: (u32, u32),*/ area_name: &str)
 			where S: glium::Surface
 	{
 		let (width, height) = target.get_dimensions();
 		self.draw_text(&format!("Window: {} X {}", width, height), 6, 26, target);
-		self.draw_text(&format!("Grid: {} X {}", grid_dims.0, grid_dims.1), 6, 56, target);
+		// self.draw_text(&format!("Grid: {} X {}", grid_dims.0, grid_dims.1), 6, 56, target);
 		self.draw_text(&format!("FPS: {:.1}", window_stats.fps()), 6, 86, target);
 		self.draw_text(&format!("Current Cycle: {:.1}", cycle_status.cur_cycle), 6, 116, target);
 		self.draw_text(&format!("Previous Cycles: {:.1}", cycle_status.ttl_cycles), 6, 146, target);

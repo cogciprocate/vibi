@@ -1,20 +1,33 @@
 use std::iter;
 use std::sync::{Arc, Mutex};
+use std::ops::Range;
 use rand;
 use rand::distributions::{IndependentSample, Range as RandRange};
 use glium::backend::glutin_backend::{GlutinFacade};
 use glium::VertexBuffer;
+use bismit::map::GanglionMap;
 
 /// Handles raw state data from a cortical ganglion and feeds it to a [vertex] buffer for rendering.
 // TODO: Rename these buffers to something more clear.
-pub struct GanglionBuffer {	
+pub struct GanglionBuffer {
 	raw_states: Arc<Mutex<Vec<u8>>>,
 	state_vertices: Vec<StateVertex>,
 	v_buf: VertexBuffer<StateVertex>,
+	total_slc_range: Range<u8>,
+	default_slc_range: Range<u8>,
+	current_slc_range: Range<u8>,
+	gang_map: GanglionMap,
 }
 
 impl GanglionBuffer {
-	pub fn new(grid_count: usize, display: &GlutinFacade) -> GanglionBuffer {
+	pub fn new(default_slc_range: Range<u8>, gang_map: GanglionMap, display: &GlutinFacade) 
+			-> GanglionBuffer 
+	{
+		let grid_count = gang_map.axn_count(default_slc_range.clone());
+
+		// println!("\n###### GANGLIONBUFFER: d_slc_range: {:?}, grid_count: {}, gang_map: {:?}\n", 
+		// 	default_slc_range, grid_count, gang_map);
+
 		let raw_states = iter::repeat(0u8).cycle().take(grid_count).collect();
 		let state_vertices: Vec<StateVertex> = iter::repeat(StateVertex { state: 0.0 })
 			.cycle().take(grid_count).collect();
@@ -24,6 +37,10 @@ impl GanglionBuffer {
 			raw_states: Arc::new(Mutex::new(raw_states)),
 			state_vertices: state_vertices,
 			v_buf: v_buf,
+			total_slc_range: gang_map.slc_range(),
+			default_slc_range: default_slc_range.clone(),
+			current_slc_range: default_slc_range.clone(),
+			gang_map: gang_map,
 		}
 	}
 
@@ -32,11 +49,10 @@ impl GanglionBuffer {
 	///  *If* a lock on `raw_states` can be obtained (if it's not currently being written to by another thread): converts the u8s in `raw_states` to floats, store them in `state_vertices`, then writes the contents of `state_vertices` to `v_buf`.
 	///
 	/// This is an opportunistic refresh, it will sometimes do nothing at all.
-	//
-	// TODO: Look in to more efficient ways to do this, cutting out the middle man, `state_vertices`. Perhaps persistently mapping the vertex buffer memory?... Probably not much to be gained...
 	pub fn refresh_v_buf(&mut self) {
 		let raw_states_ptr = self.raw_states.clone();
-		let raw_states_res = raw_states_ptr.lock();
+		// Change to .lock() for smoother refreshes at the cost of slower cycling:
+		let raw_states_res = raw_states_ptr.try_lock();
 		
 		if let Ok(ref raw_states) = raw_states_res {
 			debug_assert!(raw_states.len() == self.state_vertices.len());
@@ -47,6 +63,14 @@ impl GanglionBuffer {
 
 			self.v_buf.write(&self.state_vertices);
 		}		
+	}
+
+	pub fn set_default_slc_range(&mut self, slc_range: Range<u8>) {
+		self.default_slc_range = slc_range;
+	}
+
+	pub fn set_gang_map(&mut self, gang_map: GanglionMap) {
+		self.gang_map = gang_map;
 	}
  
  	// [FIXME]: DEPRICATE OR MOVE TO TESTS MODULE
@@ -69,7 +93,7 @@ impl GanglionBuffer {
 
 	pub fn v_buf(&self) -> &VertexBuffer<StateVertex> {
 		&self.v_buf
-	}
+	}	
 }
 
 

@@ -2,7 +2,7 @@
 use glium::backend::glutin_backend::{GlutinFacade};
 use glium::{self, Surface, Program, DrawParameters, VertexBuffer, IndexBuffer};
 
-use window::StateVertex;
+use window::GanglionBuffer;
 
 const HEX_X: f32 = 0.086602540378 + 0.01;
 const HEX_Y: f32 = 0.05 + 0.01;
@@ -46,22 +46,18 @@ impl<'d> HexGrid<'d> {
 		}
 	}
 
-	pub fn draw<S: Surface>(&self, target: &mut S, grid_dims: (u32, u32), elapsed_ms: f64, 
-				g_buf: &VertexBuffer<StateVertex>)
+	pub fn draw<S: Surface>(&self, target: &mut S, /*grid_dims: (u32, u32),*/ elapsed_ms: f64, 
+				gang_buf: &GanglionBuffer)
 	{
-		debug_assert!(g_buf.len() == (grid_dims.0 * grid_dims.1) as usize);
+		// [FIXME]: TEMPORARY:
+		let grid_dims = (67u32, 67u32);
+		debug_assert!(gang_buf.v_buf().len() == (grid_dims.0 * grid_dims.1) as usize);
 
 		// Set up our frame-countery-thing:
 		let f_c = (elapsed_ms / 4000.0) as f32;
 
 		// Get frame dimensions:
 		let (width, height) = target.get_dimensions();
-
-		// Center of hex grid:
-		// [FIXME]: TODO: CENTER NEEDS TO BE COMPUTED PROPERLY USING BOTH DIMS
-		let grid_ctr_x = HEX_X * (grid_dims.1 as f32 - 1.0);
-		let grid_top_y = (HEX_Y * (grid_dims.1 as f32 - 1.0)) / 2.0;
-		let grid_ctr_z = -grid_ctr_x * 1.5;
 
 		// Grid count:
 		let grid_count = (grid_dims.0 * grid_dims.1) as usize;	
@@ -75,18 +71,18 @@ impl<'d> HexGrid<'d> {
 		let xy_scl = 0.2;
 
 		// Camera position:
-		let cam_x = f32::cos(f_c) * grid_ctr_x * xy_scl;
-		let cam_y = f32::cos(f_c) * grid_top_y * xy_scl;
-		let cam_z = f32::cos(f_c / 3.0) * grid_ctr_z * z_scl; // <-- last arg sets zoom range
+		let cam_x = f32::cos(f_c) * xy_scl;
+		let cam_y = f32::cos(f_c) * xy_scl;
+		let cam_z = f32::cos(f_c / 3.0) * z_scl; // <-- last arg sets zoom range
 
 		// View transformation matrix: { position(x,y,z), direction(x,y,z), up_dim(x,y,z)}
 		let view = view_matrix(
-			&[	grid_ctr_x + cam_x, 
+			&[	cam_x, 
 				0.0 + cam_y, 
-				(grid_ctr_z * 0.4) + cam_z + -1.7],  // <-- second f32 sets z base
+				(0.4) + cam_z + -1.7],  // <-- second f32 sets z base
 			&[	0.0 - (cam_x / 5.0), 
 				0.0 - (cam_y / 5.0), 
-				0.5 * -grid_ctr_z],  // <-- first f32 sets distant focus point
+				0.5 ],  // <-- first f32 sets distant focus point
 			&[0.0, 1.0, 0.0]
 		);
 
@@ -101,13 +97,6 @@ impl<'d> HexGrid<'d> {
 
 		// Light position:
 		let light_pos = [-1.0, 0.4, -0.9f32];
-
-		// // Model color (all three elements fluctuate):
-		// let global_color = [
-		// 	(f32::abs(f32::cos(f_c / 3.0) * 0.99)) + 0.001, 
-		// 	(f32::abs(f32::sin(f_c / 2.0) * 0.99)) + 0.001, 
-		// 	(f32::abs(f32::cos(f_c / 1.0) * 0.99)) + 0.001,
-		// ];
 
 		// Model color (only blue fluctuates):
 		let global_color = [
@@ -132,12 +121,8 @@ impl<'d> HexGrid<'d> {
 			// normal_tex: &normal_map,
 		};
 
-		// // Draw Grid (without per-instance vertex buffer):
-		// target.draw((&self.vertices, glium::vertex::EmptyInstanceAttributes { len: grid_count }), 
-		// 	&self.indices, &self.program, &uniforms, &self.params).unwrap();
-
 		// Draw Grid (with per-instance vertex buffer):
-		target.draw((&self.vertices, g_buf.per_instance().unwrap()),
+		target.draw((&self.vertices, gang_buf.v_buf().per_instance().unwrap()),
 			&self.indices, &self.program, &uniforms, &self.params).unwrap();
 	}
 }
@@ -161,6 +146,7 @@ static vertex_shader_src: &'static str = r#"
 
 	uniform uint grid_v_size;
 	uniform uint grid_u_size;
+	// uniform uvec2 dims;
 	uniform mat4 model;
 	uniform mat4 view;
 	uniform mat4 persp;
@@ -333,3 +319,103 @@ fn view_matrix(position: &[f32; 3], direction: &[f32; 3], up: &[f32; 3]) -> [[f3
 }
 
 
+
+
+// 	pub fn draw_old<S: Surface>(&self, target: &mut S, elapsed_ms: f64, 
+// 				gang_buf: &GanglionBuffer)
+// 	{
+// 		// [FIXME]: TEMPORARY:
+// 		let grid_dims = (67u32, 67u32);
+// 		debug_assert!(gang_buf.v_buf().len() == (grid_dims.0 * grid_dims.1) as usize);
+
+// 		// Set up our frame-countery-thing:
+// 		let f_c = (elapsed_ms / 4000.0) as f32;
+
+// 		// Get frame dimensions:
+// 		let (width, height) = target.get_dimensions();
+
+// 		// Center of hex grid:
+// 		// [FIXME]: TODO: CENTER NEEDS TO BE COMPUTED PROPERLY USING BOTH DIMS
+// 		let grid_ctr_x = HEX_X * (grid_dims.1 as f32 - 1.0);
+// 		let grid_top_y = (HEX_Y * (grid_dims.1 as f32 - 1.0)) / 2.0;
+// 		let grid_ctr_z = -grid_ctr_x * 1.5;
+
+// 		// Grid count:
+// 		let grid_count = (grid_dims.0 * grid_dims.1) as usize;	
+
+// 		// Perspective transformation matrix:
+// 		let persp = persp_matrix(width, height, 3.0);
+
+// 		// z scale factor:
+// 		let z_scl = 0.05;
+// 		// x and y scale factor:
+// 		let xy_scl = 0.2;
+
+// 		// Camera position:
+// 		let cam_x = f32::cos(f_c)  * grid_ctr_x * xy_scl;
+// 		let cam_y = f32::cos(f_c)  * grid_top_y * xy_scl;
+// 		let cam_z = f32::cos(f_c / 3.0)  * grid_ctr_z * z_scl; // <-- last arg sets zoom range
+
+// 		// View transformation matrix: { position(x,y,z), direction(x,y,z), up_dim(x,y,z)}
+// 		let view = view_matrix(
+// 			&[	grid_ctr_x + cam_x, 
+// 				0.0 + cam_y, 
+// 				(grid_ctr_z * 0.4) + cam_z + -1.7],  // <-- second f32 sets z base
+// 			&[	0.0 - (cam_x / 5.0), 
+// 				0.0 - (cam_y / 5.0), 
+// 				0.5  * -grid_ctr_z],  // <-- first f32 sets distant focus point
+// 			&[0.0, 1.0, 0.0]
+// 		);
+
+// 		// Model transformation matrix:
+// 		// TODO: DEPRICATE
+// 		let grid_model = [
+// 			[1.0, 0.0, 0.0, 0.0],
+// 			[0.0, 1.0, 0.0, 0.0],
+// 			[0.0, 0.0, 1.0, 0.0],
+// 			[0.0, 0.0, 0.0, 1.0f32]
+// 		];
+
+// 		// Light position:
+// 		let light_pos = [-1.0, 0.4, -0.9f32];
+
+// 		// // Model color (all three elements fluctuate):
+// 		// let global_color = [
+// 		// 	(f32::abs(f32::cos(f_c / 3.0) * 0.99)) + 0.001, 
+// 		// 	(f32::abs(f32::sin(f_c / 2.0) * 0.99)) + 0.001, 
+// 		// 	(f32::abs(f32::cos(f_c / 1.0) * 0.99)) + 0.001,
+// 		// ];
+
+// 		// Model color (only blue fluctuates):
+// 		let global_color = [
+// 			0.0, 
+// 			0.0, 
+// 			// // 0% - 30% blue just for effect:
+// 			// (f32::abs(f32::cos(f_c) * 0.30)),
+// 			// 30% blue static:
+// 			0.3f32,
+// 		];
+
+// 		// Uniforms:
+// 		let uniforms = uniform! {		
+// 			model: grid_model,
+// 			view: view,
+// 			persp: persp,
+// 			u_light_pos: light_pos,
+// 			u_global_color: global_color,
+// 			grid_v_size: grid_dims.0,
+// 			grid_u_size: grid_dims.1,
+// 			// diffuse_tex: &diffuse_texture,
+// 			// normal_tex: &normal_map,
+// 		};
+
+// 		// // Draw Grid (without per-instance vertex buffer):
+// 		// target.draw((&self.vertices, glium::vertex::EmptyInstanceAttributes { len: grid_count }), 
+// 		// 	&self.indices, &self.program, &uniforms, &self.params).unwrap();
+
+// 		// Draw Grid (with per-instance vertex buffer):
+// 		target.draw((&self.vertices, gang_buf.v_buf().per_instance().unwrap()),
+// 			&self.indices, &self.program, &uniforms, &self.params).unwrap();
+// 	}
+
+// 	

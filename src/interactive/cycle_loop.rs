@@ -25,10 +25,10 @@ impl CycleLoop {
 
 		let area_name = "v1".to_string();
 		
-		let area_dims = { 
-			let dims = cortex.area(&area_name).dims();
-			(dims.v_size(), dims.u_size())
-		};
+		// let area_dims = { 
+		// 	let dims = cortex.area(&area_name).dims();
+		// 	(dims.v_size(), dims.u_size())
+		// };
 		
 		let mut ri = RunInfo {
 			cortex: cortex,
@@ -43,11 +43,11 @@ impl CycleLoop {
 			view_all_axons: false, 
 			view_sdr_only: true,
 			area_name: area_name,
-			status: CyStatus::new(area_dims),
+			status: CyStatus::new(/*area_dims*/),
 			loop_start_time: time::get_time(),
 		};
 
-		result_tx.send(CyRes::Status(ri.status.clone())).expect("Error sending initial status.");
+		// result_tx.send(CyRes::Status(ri.status.clone())).expect("Error sending initial status.");
 
 		loop {
 			if GUI_CONTROL {
@@ -59,9 +59,12 @@ impl CycleLoop {
 							refresh_gang_buf(&ri, buf);
 							continue;
 						},
-						CyCtl::RequestCurrentAreaName => {
-							result_tx.send(CyRes::CurrentAreaName(ri.area_name.to_string()))
-									.expect("Error sending area name.");
+						CyCtl::RequestCurrentAreaInfo => {
+							result_tx.send(CyRes::CurrentAreaInfo(
+									ri.area_name.to_string(),
+									ri.cortex.area(&ri.area_name).area_map().aff_out_slc_range(),
+									ri.cortex.area(&ri.area_name).axn_gang_map()
+								)).expect("Error sending area name.");
 							continue;
 						},
 						_ => continue,
@@ -190,7 +193,7 @@ fn cycle_print(ri: &mut RunInfo) -> LoopAction {
 	if ri.view_all_axons {
 		print!("\n\nAXON SPACE:\n");
 		
-		ri.cortex.area_mut(&ri.area_name).render_axon_space();
+		ri.cortex.area_mut(&ri.area_name).render_axn_space();
 	}	
 
 	if ri.status.cur_cycle > 1 {
