@@ -1,3 +1,4 @@
+use std::ops::Range;
 use std::io::{self, Write};
 use std::sync::mpsc::{Sender, Receiver};
 use std::sync::{Arc, Mutex};
@@ -55,8 +56,11 @@ impl CycleLoop {
 					Ok(cyctl) => match cyctl {
 						CyCtl::Iterate(i) => ri.test_iters = i,
 						CyCtl::Exit => break,
-						CyCtl::Sample(buf) => {
-							refresh_gang_buf(&ri, buf);
+						CyCtl::Sample(range, buf) => {
+							// ########### CANDIDATE 1 (INIT)
+							println!("###### CycleLoop::run(): CANDIDATE 1 (INIT): range: {:?}",
+								range);
+							refresh_gang_buf(&ri, range, buf);
 							continue;
 						},
 						CyCtl::RequestCurrentAreaInfo => {
@@ -112,12 +116,24 @@ impl CycleLoop {
 	}
 }
 
-fn refresh_gang_buf(ri: &RunInfo, buf: Arc<Mutex<Vec<u8>>>) {
+
+
+// ###################### PROBLEMS HERE ########################
+// #############################################################
+// #############################################################
+// #############################################################
+fn refresh_gang_buf(ri: &RunInfo, range: Range<usize>, buf: Arc<Mutex<Vec<u8>>>) {
+	println!("###### cycle_loop::refresh_gang_buf(): range: {:?}", range);
+
 	match buf.lock() {
-		Ok(ref mut b) => ri.cortex.area(&ri.area_name).sample_aff_out(b),
+		// Ok(ref mut b) => ri.cortex.area(&ri.area_name).sample_aff_out(&mut b[range]),
+		Ok(ref mut b) => ri.cortex.area(&ri.area_name).sample_axn_space(b),
 		Err(e) => panic!("Error locking ganglion buffer mutex: {:?}", e),
 	}
 }
+// #############################################################
+// #############################################################
+// #############################################################
 
 
 fn loop_cycles(ri: &mut RunInfo, control_rx: &Receiver<CyCtl>, result_tx: &mut Sender<CyRes>)
@@ -151,7 +167,12 @@ fn loop_cycles(ri: &mut RunInfo, control_rx: &Receiver<CyCtl>, result_tx: &mut S
 		if let Ok(c) = control_rx.try_recv() {
 			match c {
 				// If a new sample has been requested, fulfill it:
-				CyCtl::Sample(buf) => refresh_gang_buf(&ri, buf),
+				// ########### CANDIDATE 2 (RUNTIME)
+				CyCtl::Sample(range, buf) => {
+					println!("###### CycleLoop::run(): CANDIDATE 2 (RUNTIME): range: {:?}",
+								range);
+					refresh_gang_buf(&ri, range, buf);
+				},
 				// Otherwise return with the control code:
 				_ => return c,
 			}

@@ -97,6 +97,15 @@ impl MainWindow {
 			// )
 
 			.element(HexButton::new([1.0, -1.0, 0.0], (-0.57, 0.60), 1.8, 
+					"View One", C_ORANGE)
+				.mouse_input_handler(Box::new(|_, _, window| {
+					// window.control_tx.send(CyCtl::Iterate(window.iters_pending))
+					// 	.expect("View All Button button");
+					MouseInputEventResult::None
+				}))
+			)
+
+			.element(HexButton::new([1.0, -1.0, 0.0], (-0.20, 0.60), 1.8, 
 					"View All", C_ORANGE)
 				.mouse_input_handler(Box::new(|_, _, window| {
 					// window.control_tx.send(CyCtl::Iterate(window.iters_pending))
@@ -193,10 +202,30 @@ impl MainWindow {
 			let mut target = display.draw();
 			target.clear_color_and_depth((0.030, 0.050, 0.080, 1.0), 1.0);
 
+			// ###################### PROBLEMS HERE ########################
+			// #############################################################
+			// #############################################################
+			// #############################################################
+
+			// Current ganglion range:
+			let cur_axn_range = window.gang_buf.cur_axn_range();
+
+			println!("#### MainWindow::open(): cur_axn_range: {:?}", cur_axn_range);
+
 			// Refresh ganglion states:
-			window.control_tx.send(CyCtl::Sample(window.gang_buf.raw_states())).expect("Sample raw states");
+			println!("###### MainWindow::open(): cur_axn_range: {:?}", cur_axn_range);
+			window.control_tx.send(CyCtl::Sample(cur_axn_range, window.gang_buf.raw_states()))
+				.expect("Sample raw states");
+
+			// #############################################################
+			// #############################################################
+			// #############################################################
+
+
+
+
 			// window.gang_buf.fill_rand();
-			window.gang_buf.refresh_v_buf();
+			window.gang_buf.refresh_vertex_buf();
 
 			// Draw hex grid:
 			hex_grid.draw(&mut target, /*grid_dims,*/ window.stats.elapsed_ms(), &window.gang_buf);

@@ -13,7 +13,6 @@ pub struct HexGrid<'d> {
 	indices: IndexBuffer<u16>,
 	program: Program,
 	params: DrawParameters<'d>,
-	// pub grid_side: u32,
 }
 
 impl<'d> HexGrid<'d> {
@@ -42,16 +41,13 @@ impl<'d> HexGrid<'d> {
 			indices: indices,
 			program: program,
 			params: params,
-			// grid_side: GRID_SIDE,
 		}
 	}
 
-	pub fn draw<S: Surface>(&self, target: &mut S, /*grid_dims: (u32, u32),*/ elapsed_ms: f64, 
-				gang_buf: &GanglionBuffer)
+	pub fn draw<S: Surface>(&self, target: &mut S, elapsed_ms: f64, gang_buf: &GanglionBuffer)
 	{
 		// [FIXME]: TEMPORARY:
 		let grid_dims = (67u32, 67u32);
-		debug_assert!(gang_buf.v_buf().len() == (grid_dims.0 * grid_dims.1) as usize);
 
 		// Set up our frame-countery-thing:
 		let f_c = (elapsed_ms / 4000.0) as f32;
@@ -60,7 +56,7 @@ impl<'d> HexGrid<'d> {
 		let (width, height) = target.get_dimensions();
 
 		// Grid count:
-		let grid_count = (grid_dims.0 * grid_dims.1) as usize;	
+		// let grid_count = (grid_dims.0 * grid_dims.1) as usize;	
 
 		// Perspective transformation matrix:
 		let persp = persp_matrix(width, height, 3.0);
@@ -70,30 +66,16 @@ impl<'d> HexGrid<'d> {
 		// x and y scale factor:
 		let xy_scl = 0.2;
 
-		// Camera position:
-		let cam_x = f32::cos(f_c) * xy_scl;
-		let cam_y = f32::cos(f_c) * xy_scl;
-		let cam_z = f32::cos(f_c / 3.0) * z_scl; // <-- last arg sets zoom range
+		// // Camera position:
+		// let cam_x = f32::cos(f_c) * xy_scl;
+		// let cam_y = f32::cos(f_c) * xy_scl;
+		// let cam_z = f32::cos(f_c / 3.0) * z_scl;
+		let cam_pos = [0.0, 0.0, -15.0];
 
 		// View transformation matrix: { position(x,y,z), direction(x,y,z), up_dim(x,y,z)}
 		let view = view_matrix(
-			&[	cam_x, 
-				0.0 + cam_y, 
-				(0.4) + cam_z + -1.7],  // <-- second f32 sets z base
-			&[	0.0 - (cam_x / 5.0), 
-				0.0 - (cam_y / 5.0), 
-				0.5 ],  // <-- first f32 sets distant focus point
-			&[0.0, 1.0, 0.0]
-		);
-
-		// Model transformation matrix:
-		// TODO: DEPRICATE
-		let grid_model = [
-			[1.0, 0.0, 0.0, 0.0],
-			[0.0, 1.0, 0.0, 0.0],
-			[0.0, 0.0, 1.0, 0.0],
-			[0.0, 0.0, 0.0, 1.0f32]
-		];
+			&cam_pos, &[cam_pos[0], cam_pos[1], 0.5], &[0.0, 1.0, 0.0]
+		);		
 
 		// Light position:
 		let light_pos = [-1.0, 0.4, -0.9f32];
@@ -106,27 +88,54 @@ impl<'d> HexGrid<'d> {
 			// (f32::abs(f32::cos(f_c) * 0.30)),
 			// 30% blue static:
 			0.3f32,
-		];
+		];		
 
-		// Uniforms:
-		let uniforms = uniform! {		
-			model: grid_model,
-			view: view,
-			persp: persp,
-			u_light_pos: light_pos,
-			u_global_color: global_color,
-			grid_v_size: grid_dims.0,
-			grid_u_size: grid_dims.1,
-			// diffuse_tex: &diffuse_texture,
-			// normal_tex: &normal_map,
-		};
+		// Loop through currently visible slices:
+		for i in 0..gang_buf.cur_slc_range().len() as u8 {
+			// [FIXME]: Do something with this?
+			// debug_assert!(gang_buf.vertex_buf().len() == (grid_dims.0 * grid_dims.1) as usize);
 
-		// Draw Grid (with per-instance vertex buffer):
-		target.draw((&self.vertices, gang_buf.v_buf().per_instance().unwrap()),
-			&self.indices, &self.program, &uniforms, &self.params).unwrap();
+			// Set up model position:
+			let x_shift = -15.0 + (3.0 * i as f32);
+			let y_shift = 0.0;
+			let z_shift = 0.0;
+
+			// Model transformation matrix:
+			let model = [
+				[1.0, 0.0, 0.0, 0.0],
+				[0.0, 1.0, 0.0, 0.0],
+				[0.0, 0.0, 1.0, 0.0],
+				[x_shift, y_shift, z_shift, 1.0f32]
+			];
+
+			// Uniforms:
+			let uniforms = uniform! {		
+				model: model,
+				view: view,
+				persp: persp,
+				u_light_pos: light_pos,
+				u_global_color: global_color,
+				grid_v_size: grid_dims.0,
+				grid_u_size: grid_dims.1,
+				// diffuse_tex: &diffuse_texture,
+				// normal_tex: &normal_map,
+			};
+
+			// Draw Grid (with per-instance vertex buffer):
+			target.draw((&self.vertices, gang_buf.vertex_buf(i).per_instance().unwrap()),
+				&self.indices, &self.program, &uniforms, &self.params).unwrap();
+		}
 	}
 }
 
+fn identity_4x4() -> [[f32; 4]; 4] {
+	[
+		[1.0, 0.0, 0.0, 0.0],
+		[0.0, 1.0, 0.0, 0.0],
+		[0.0, 0.0, 1.0, 0.0],
+		[0.0, 0.0, 0.0, 1.0f32]
+	]
+}
 
 
 // Vertex Shader:
@@ -326,7 +335,7 @@ fn view_matrix(position: &[f32; 3], direction: &[f32; 3], up: &[f32; 3]) -> [[f3
 // 	{
 // 		// [FIXME]: TEMPORARY:
 // 		let grid_dims = (67u32, 67u32);
-// 		debug_assert!(gang_buf.v_buf().len() == (grid_dims.0 * grid_dims.1) as usize);
+// 		debug_assert!(gang_buf.vertex_buf().len() == (grid_dims.0 * grid_dims.1) as usize);
 
 // 		// Set up our frame-countery-thing:
 // 		let f_c = (elapsed_ms / 4000.0) as f32;
@@ -414,7 +423,7 @@ fn view_matrix(position: &[f32; 3], direction: &[f32; 3], up: &[f32; 3]) -> [[f3
 // 		// 	&self.indices, &self.program, &uniforms, &self.params).unwrap();
 
 // 		// Draw Grid (with per-instance vertex buffer):
-// 		target.draw((&self.vertices, gang_buf.v_buf().per_instance().unwrap()),
+// 		target.draw((&self.vertices, gang_buf.vertex_buf().per_instance().unwrap()),
 // 			&self.indices, &self.program, &uniforms, &self.params).unwrap();
 // 	}
 
