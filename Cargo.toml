@@ -12,7 +12,7 @@ git = "https://github.com/rust-lang/time.git"
 [dependencies]
 # -- 0.12 currently required  to work with glium_text -- yeah wtf...
 rand = "*"
-glium = "0.12"
+glium = "0.13"
 glium_text = "*"
 image = "*"
 find_folder = "*"
