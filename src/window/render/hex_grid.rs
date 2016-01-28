@@ -7,6 +7,9 @@ use window::GanglionBuffer;
 const HEX_X: f32 = 0.086602540378 + 0.01;
 const HEX_Y: f32 = 0.05 + 0.01;
 
+const TEXT_SCALE: f32 = 0.018;
+const TEXT_COLOR: (f32, f32, f32, f32) = (0.99, 0.99, 0.99, 1.0);
+
 
 pub struct HexGrid<'d> {
 	vertices: VertexBuffer<Vertex>,
@@ -70,11 +73,11 @@ impl<'d> HexGrid<'d> {
 		// let cam_x = f32::cos(f_c) * xy_scl;
 		// let cam_y = f32::cos(f_c) * xy_scl;
 		// let cam_z = f32::cos(f_c / 3.0) * z_scl;
-		let cam_pos = [0.0, 0.0, -15.0];
+		let cam_pos = [3.4, 0.0, -20.0];
 
 		// View transformation matrix: { position(x,y,z), direction(x,y,z), up_dim(x,y,z)}
 		let view = view_matrix(
-			&cam_pos, &[cam_pos[0], cam_pos[1], 0.5], &[0.0, 1.0, 0.0]
+			&cam_pos, &[0.0, cam_pos[1], 0.5], &[0.0, 1.0, 0.0]
 		);		
 
 		// Light position:
@@ -95,9 +98,11 @@ impl<'d> HexGrid<'d> {
 			// [FIXME]: Do something with this?
 			// debug_assert!(gang_buf.vertex_buf().len() == (grid_dims.0 * grid_dims.1) as usize);
 
+			// let grid_dims = 
+
 			// Set up model position:
-			let x_shift = -15.0 + (3.0 * i as f32);
-			let y_shift = 0.0;
+			let x_shift = -18.0 + (7.0 * i as f32);
+			let y_shift = -7.0 + (4.0 * i as f32);
 			let z_shift = 0.0;
 
 			// Model transformation matrix:

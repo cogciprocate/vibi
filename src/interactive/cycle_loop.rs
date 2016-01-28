@@ -135,7 +135,6 @@ fn refresh_gang_buf(ri: &RunInfo, range: Range<usize>, buf: Arc<Mutex<Vec<u8>>>)
 // #############################################################
 // #############################################################
 
-
 fn loop_cycles(ri: &mut RunInfo, control_rx: &Receiver<CyCtl>, result_tx: &mut Sender<CyRes>)
 		-> CyCtl
 {
@@ -206,8 +205,8 @@ fn cycle_print(ri: &mut RunInfo) -> LoopAction {
 		output_czar::print_sense_and_print(&mut ri.cortex, &ri.area_name);
 	}
 
-	if ri.view_sdr_only { ri.cortex.area_mut(&ri.area_name).psal_mut().dens.states.read_wait(); }
-	ri.cortex.area_mut(&ri.area_name).axns.states.read_wait();
+	if ri.view_sdr_only { ri.cortex.area_mut(&ri.area_name).psal_mut().dens.states.fill_vec_wait(); }
+	ri.cortex.area_mut(&ri.area_name).axns.states.fill_vec_wait();
 	print!("\n'{}' output:", &ri.area_name);
 	ri.cortex.area_mut(&ri.area_name).render_aff_out("", true);
 

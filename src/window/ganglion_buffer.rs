@@ -59,7 +59,8 @@ impl GanglionBuffer {
 		// let raw_states_res = raw_states_ptr.try_lock();
 
 		// Change to .lock() for smoother refreshes at the cost of slower cycling:		
-		if let Ok(ref raw_states) = self.raw_states.try_lock() {
+		// if let Ok(ref raw_states) = self.raw_states.try_lock() {
+		if let Ok(ref raw_states) = self.raw_states.lock() {
 			debug_assert!(raw_states.len() == self.state_vertices.len());
 
 			for (&rs, ref mut sv) in raw_states.iter().zip(self.state_vertices.iter_mut()) {
