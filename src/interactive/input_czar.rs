@@ -7,8 +7,8 @@ use rand::{ self, /*ThreadRng,*/ Rng };
 use cmn::{ self, CorticalDims, Sdr };
 use ocl::{ self };
 use cortex::{ Cortex };
-use encode:: { IdxReader };
-use input_source::{ InputGanglion };
+use encode:: { IdxStreamer };
+use input_source::{ InputTract };
 use super::motor_state;
 use microcosm::world::{ World };
 use microcosm::entity::{ EntityBody, EntityKind, /*EntityBrain, Mobile*/ };
@@ -143,7 +143,7 @@ impl InputCzar {
 				sdr_exp1(&mut self.vec_optical[..]);
 			},
 
-			InputKind::IdxReader(ref mut ir) => {
+			InputKind::IdxStreamer(ref mut ir) => {
 				input_status = ir.cycle(&mut self.vec_optical[..]);
 				//input_status = 999;
 			}
@@ -204,7 +204,7 @@ pub enum InputKind {
 	Stripes { stripe_size: usize, zeros_first: bool },
 	Hexballs { edge_size: usize, invert: bool, fill: bool },
 	Exp1,
-	IdxReader(Box<IdxReader>),
+	IdxStreamer(Box<IdxStreamer>),
 }
 
 pub struct InputSource {

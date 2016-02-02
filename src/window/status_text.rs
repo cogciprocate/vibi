@@ -3,6 +3,7 @@
 #![allow(dead_code, unused_variables)]
 use glium_text::{self, TextSystem, FontTexture, TextDisplay};
 use glium;
+use glium::backend::Facade;
 // use glium::{self, Surface};
 // use glium::backend::{self, Facade};
 // use glium::backend::glutin_backend::{ GlutinFacade };
@@ -23,7 +24,7 @@ pub struct StatusText {
 
 impl StatusText {
 	pub fn new<F>(display: &F) -> StatusText 
-			where F: glium::backend::Facade 
+			where F: Facade 
 	{
 		// Text system (experimental):
 		let text_system = TextSystem::new(display);

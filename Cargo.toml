@@ -9,11 +9,14 @@ path = "/home/nick/projects/bismit"
 [dependencies.time]
 git = "https://github.com/rust-lang/time.git"
 
+[dependencies.glium_text]
+git = "https://github.com/tomaka/glium_text.git"
+
 [dependencies]
 # -- 0.12 currently required  to work with glium_text -- yeah wtf...
 rand = "*"
 glium = "0.13"
-glium_text = "*"
+# glium_text = "*"
 image = "*"
 find_folder = "*"
 # elmesque = "*"

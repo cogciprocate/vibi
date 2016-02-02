@@ -3,7 +3,6 @@ use bismit::map::{self, LayerTags};
 use bismit::proto::{ProtolayerMap, ProtolayerMaps, ProtoareaMaps, Axonal, Spatial, Horizontal, 
 	Sensory, Thalamic, Protocell, Protofilter, Protoinput};
 
-
 /* Eventually move defines to a config file or some such */
 pub fn define_plmaps() -> ProtolayerMaps {
 	// const MOTOR_UID: u32 = 543;
@@ -44,9 +43,9 @@ pub fn define_pamaps() -> ProtoareaMaps {
 	const CYCLES_PER_FRAME: usize = 1;
 
 	ProtoareaMaps::new()		
-		//let mut ir_labels = IdxReader::new(CorticalDims::new(1, 1, 1, 0, None), "data/train-labels-idx1-ubyte", 1);
+		//let mut ir_labels = IdxStreamer::new(CorticalDims::new(1, 1, 1, 0, None), "data/train-labels-idx1-ubyte", 1);
 		// .area_ext("u0", "external", AREA_SIDE, AREA_SIDE, 
-		// 	Protoinput::IdxReader { 
+		// 	Protoinput::IdxStreamer { 
 		// 		file_name: "data/train-labels-idx1-ubyte", 
 		// 		cyc_per: CYCLES_PER_FRAME,
 		// 	},
@@ -61,7 +60,7 @@ pub fn define_pamaps() -> ProtoareaMaps {
 		// )
 
 		// .area_ext("o0sp", "v0_layer_map", AREA_SIDE,
-		// 	Protoinput::IdxReaderLoop { 
+		// 	Protoinput::IdxStreamerLoop { 
 		// 		file_name: "data/train-images-idx3-ubyte", 
 		// 		cyc_per: CYCLES_PER_FRAME, 
 		// 		scale: 1.3,
@@ -79,12 +78,13 @@ pub fn define_pamaps() -> ProtoareaMaps {
 		// )
 
 		.area_ext("v0", "v0_lm", AREA_SIDE,
-			Protoinput::IdxReaderLoop { 
-				file_name: "data/train-images-idx3-ubyte", 
-				cyc_per: CYCLES_PER_FRAME, 
-				scale: 1.4,
-				loop_frames: 1000000,
-			},
+			// Protoinput::IdxStreamerLoop { 
+			// 	file_name: "data/train-images-idx3-ubyte", 
+			// 	cyc_per: CYCLES_PER_FRAME, 
+			// 	scale: 1.4,
+			// 	loop_frames: 80,
+			// },
+			Protoinput::GlyphSequences { seq_lens: 9, seq_count: 9, scale: 1.4 },
 			None, 
 			None,
 		)

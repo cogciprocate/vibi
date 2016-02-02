@@ -5,7 +5,7 @@ use std::sync::{Arc, Mutex};
 use time::{self, Timespec, Duration};
 
 use bismit::cortex::{self, Cortex};
-use bismit::input_source::{InputGanglion};
+use bismit::input_source::{InputTract};
 use config;
 
 use interactive::{self, output_czar, CyCtl, CyRes, CyStatus};
@@ -14,6 +14,7 @@ const INITIAL_TEST_ITERATIONS: u32 	= 1;
 const STATUS_EVERY: u32 			= 5000;
 const PRINT_DETAILS_EVERY: u32		= 10000;
 const GUI_CONTROL: bool				= true;
+const PRINT_AFF_OUT: bool			= false;
 
 pub struct CycleLoop;
 
@@ -205,10 +206,12 @@ fn cycle_print(ri: &mut RunInfo) -> LoopAction {
 		output_czar::print_sense_and_print(&mut ri.cortex, &ri.area_name);
 	}
 
-	if ri.view_sdr_only { ri.cortex.area_mut(&ri.area_name).psal_mut().dens.states.fill_vec_wait(); }
-	ri.cortex.area_mut(&ri.area_name).axns.states.fill_vec_wait();
-	print!("\n'{}' output:", &ri.area_name);
-	ri.cortex.area_mut(&ri.area_name).render_aff_out("", true);
+	if PRINT_AFF_OUT && !ri.view_all_axons {
+		if ri.view_sdr_only { ri.cortex.area_mut(&ri.area_name).psal_mut().dens.states.fill_vec_wait(); }
+		ri.cortex.area_mut(&ri.area_name).axns.states.fill_vec_wait();
+		print!("\n'{}' output:", &ri.area_name);
+		ri.cortex.area_mut(&ri.area_name).render_aff_out("", true);
+	}
 
 	if ri.view_all_axons {
 		print!("\n\nAXON SPACE:\n");
