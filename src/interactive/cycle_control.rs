@@ -8,7 +8,7 @@ pub enum CyCtl {
 	Sample(Range<usize>, Arc<Mutex<Vec<u8>>>),
 	RequestCurrentAreaInfo,
 	// ViewAllSlices(bool),
-	// ViewEnvoyDebug(bool),
+	// ViewBufferDebug(bool),
 	Stop,
 	Exit,
 }

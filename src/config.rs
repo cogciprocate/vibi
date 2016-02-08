@@ -84,7 +84,7 @@ pub fn define_pamaps() -> ProtoareaMaps {
 			// 	scale: 1.4,
 			// 	loop_frames: 80,
 			// },
-			Protoinput::GlyphSequences { seq_lens: 9, seq_count: 9, scale: 1.4 },
+			Protoinput::GlyphSequences { seq_lens: (5, 5), seq_count: 10, scale: 1.4 },
 			None, 
 			None,
 		)
