@@ -11,139 +11,139 @@ use bismit::map::GanglionMap;
 /// Handles raw state data from a cortical ganglion and feeds it to a [vertex] buffer for rendering.
 // TODO: Rename these buffers to something more clear.
 pub struct GanglionBuffer {
-	raw_states: Arc<Mutex<Vec<u8>>>,
-	state_vertices: Vec<StateVertex>,
-	vertex_buf: VertexBuffer<StateVertex>,
-	total_slc_range: Range<u8>,
-	default_slc_range: Range<u8>,
-	cur_slc_range: Range<u8>,
-	gang_map: GanglionMap,
+    raw_states: Arc<Mutex<Vec<u8>>>,
+    state_vertices: Vec<StateVertex>,
+    vertex_buf: VertexBuffer<StateVertex>,
+    total_slc_range: Range<u8>,
+    default_slc_range: Range<u8>,
+    cur_slc_range: Range<u8>,
+    gang_map: GanglionMap,
 }
 
 impl GanglionBuffer {
-	pub fn new(default_slc_id_range: Range<u8>, gang_map: GanglionMap, display: &GlutinFacade) 
-			-> GanglionBuffer 
-	{
-		// DEBUG: TEMPORARY:
-		let default_slc_range = gang_map.slc_id_range();
+    pub fn new(default_slc_id_range: Range<u8>, gang_map: GanglionMap, display: &GlutinFacade) 
+            -> GanglionBuffer 
+    {
+        // DEBUG: TEMPORARY:
+        let default_slc_range = gang_map.slc_id_range();
 
 
-		let grid_count = gang_map.axn_count(default_slc_range.clone());
+        let grid_count = gang_map.axn_count(default_slc_range.clone());
 
-		// println!("\n###### GanglionBuffer::new(): d_slc_range: {:?}, grid_count: {}, gang_map: {:?}", 
-		// 	default_slc_range, grid_count, gang_map);
+        // println!("\n###### GanglionBuffer::new(): d_slc_range: {:?}, grid_count: {}, gang_map: {:?}", 
+        //     default_slc_range, grid_count, gang_map);
 
-		let raw_states = iter::repeat(0u8).cycle().take(grid_count).collect();
-		let state_vertices: Vec<StateVertex> = iter::repeat(StateVertex { state: 0.0 })
-			.cycle().take(grid_count).collect();
-		let vertex_buf = VertexBuffer::dynamic(display, &state_vertices).unwrap();
+        let raw_states = iter::repeat(0u8).cycle().take(grid_count).collect();
+        let state_vertices: Vec<StateVertex> = iter::repeat(StateVertex { state: 0.0 })
+            .cycle().take(grid_count).collect();
+        let vertex_buf = VertexBuffer::dynamic(display, &state_vertices).unwrap();
 
-		GanglionBuffer {			
-			raw_states: Arc::new(Mutex::new(raw_states)),
-			state_vertices: state_vertices,
-			vertex_buf: vertex_buf,
-			total_slc_range: gang_map.slc_id_range(),
-			default_slc_range: default_slc_range.clone(),
-			cur_slc_range: default_slc_range.clone(),
-			gang_map: gang_map,
-		}
-	}
+        GanglionBuffer {            
+            raw_states: Arc::new(Mutex::new(raw_states)),
+            state_vertices: state_vertices,
+            vertex_buf: vertex_buf,
+            total_slc_range: gang_map.slc_id_range(),
+            default_slc_range: default_slc_range.clone(),
+            cur_slc_range: default_slc_range.clone(),
+            gang_map: gang_map,
+        }
+    }
 
-	/// Refreshes the per-instance data within our vertex buffer.
-	///
-	///  *If* a lock on `raw_states` can be obtained (if it's not currently being written to by another thread): converts the u8s in `raw_states` to floats, store them in `state_vertices`, then writes the contents of `state_vertices` to `vertex_buf`.
-	///
-	/// This is an opportunistic refresh, it will sometimes do nothing at all.
-	pub fn refresh_vertex_buf(&mut self) {
-		// let raw_states_ptr = self.raw_states.clone();
-		// let raw_states_res = raw_states_ptr.try_lock();
+    /// Refreshes the per-instance data within our vertex buffer.
+    ///
+    ///  *If* a lock on `raw_states` can be obtained (if it's not currently being written to by another thread): converts the u8s in `raw_states` to floats, store them in `state_vertices`, then writes the contents of `state_vertices` to `vertex_buf`.
+    ///
+    /// This is an opportunistic refresh, it will sometimes do nothing at all.
+    pub fn refresh_vertex_buf(&mut self) {
+        // let raw_states_ptr = self.raw_states.clone();
+        // let raw_states_res = raw_states_ptr.try_lock();
 
-		// Change to .lock() for smoother refreshes at the cost of slower cycling:		
-		// if let Ok(ref raw_states) = self.raw_states.try_lock() {
-		if let Ok(ref raw_states) = self.raw_states.lock() {
-			debug_assert!(raw_states.len() == self.state_vertices.len());
+        // Change to .lock() for smoother refreshes at the cost of slower cycling:        
+        // if let Ok(ref raw_states) = self.raw_states.try_lock() {
+        if let Ok(ref raw_states) = self.raw_states.lock() {
+            debug_assert!(raw_states.len() == self.state_vertices.len());
 
-			for (&rs, ref mut sv) in raw_states.iter().zip(self.state_vertices.iter_mut()) {
-				sv.state = (rs as f32) / 255.0;
-			}
+            for (&rs, ref mut sv) in raw_states.iter().zip(self.state_vertices.iter_mut()) {
+                sv.state = (rs as f32) / 255.0;
+            }
 
-			self.vertex_buf.write(&self.state_vertices);
-		}		
-	}
+            self.vertex_buf.write(&self.state_vertices);
+        }        
+    }
 
-	pub fn set_default_slc_range(&mut self, slc_range: Range<u8>) {
-		self.default_slc_range = slc_range;
-	}
+    pub fn set_default_slc_range(&mut self, slc_range: Range<u8>) {
+        self.default_slc_range = slc_range;
+    }
 
-	pub fn set_gang_map(&mut self, gang_map: GanglionMap) {
-		self.gang_map = gang_map;
-	}
+    pub fn set_gang_map(&mut self, gang_map: GanglionMap) {
+        self.gang_map = gang_map;
+    }
  
- 	// [FIXME]: DEPRICATE OR MOVE TO TESTS MODULE
-	#[allow(dead_code)]
-	pub fn fill_rand(&mut self) {
-		let mut rng = rand::thread_rng();
-		let range = RandRange::new(0u8, 255);
+     // [FIXME]: DEPRICATE OR MOVE TO TESTS MODULE
+    #[allow(dead_code)]
+    pub fn fill_rand(&mut self) {
+        let mut rng = rand::thread_rng();
+        let range = RandRange::new(0u8, 255);
 
-		// let raw_states_ptr = self.raw_states.clone();
-		// let mut raw_states = raw_states_ptr.lock().unwrap();
-		let mut raw_states = self.raw_states.lock().unwrap();
+        // let raw_states_ptr = self.raw_states.clone();
+        // let mut raw_states = raw_states_ptr.lock().unwrap();
+        let mut raw_states = self.raw_states.lock().unwrap();
 
-		for rs in raw_states.iter_mut() {
-			*rs = range.ind_sample(&mut rng);
-		}
-	}
+        for rs in raw_states.iter_mut() {
+            *rs = range.ind_sample(&mut rng);
+        }
+    }
 
-	// ###################### PROBLEMS HERE ########################
-	// #############################################################
-	// #############################################################
-	// #############################################################
-	// Determines receiving end size (length);
-	pub fn raw_states(&mut self) -> Arc<Mutex<Vec<u8>>> {
-		self.raw_states.clone()
-	}
-	// #############################################################
-	// #############################################################
-	// #############################################################
+    // ###################### PROBLEMS HERE ########################
+    // #############################################################
+    // #############################################################
+    // #############################################################
+    // Determines receiving end size (length);
+    pub fn raw_states(&mut self) -> Arc<Mutex<Vec<u8>>> {
+        self.raw_states.clone()
+    }
+    // #############################################################
+    // #############################################################
+    // #############################################################
 
-	/// Returns a slice of the vertex buffer corresponding to a ganglion slice id.
-	pub fn vertex_buf(&self, gang_slc_id: u8) -> VertexBufferSlice<StateVertex> {
-		let axn_id_range: Range<usize> = self.gang_map.axn_id_range(gang_slc_id..gang_slc_id + 1);
+    /// Returns a slice of the vertex buffer corresponding to a ganglion slice id.
+    pub fn vertex_buf(&self, gang_slc_id: u8) -> VertexBufferSlice<StateVertex> {
+        let axn_id_range: Range<usize> = self.gang_map.axn_id_range(gang_slc_id..gang_slc_id + 1);
 
-		// println!("\n###### GanglionBuffer::vertex_buf({}): axn_id_range: {:?}", 
-		// 	gang_slc_id, axn_id_range);
+        // println!("\n###### GanglionBuffer::vertex_buf({}): axn_id_range: {:?}", 
+        //     gang_slc_id, axn_id_range);
 
-		self.vertex_buf.slice(axn_id_range).expect("GanglionBuffer::vertex_buf(): Out of range")
-	}
+        self.vertex_buf.slice(axn_id_range).expect("GanglionBuffer::vertex_buf(): Out of range")
+    }
 
-	pub fn cur_slc_range(&self) -> Range<u8> {
-		self.cur_slc_range.clone()
-	}
+    pub fn cur_slc_range(&self) -> Range<u8> {
+        self.cur_slc_range.clone()
+    }
 
-	pub fn cur_axn_range(&self) -> Range<usize> {
-		let cur_axn_range = self.gang_map.axn_id_range(self.cur_slc_range.clone());
-		// println!("###### GanglionBuffer::cur_axn_range(): \
-		// 		self.cur_slc_range: {:?}, cur_axn_range: {:?}",
-		// 	self.cur_slc_range,
-		// 	cur_axn_range);
+    pub fn cur_axn_range(&self) -> Range<usize> {
+        let cur_axn_range = self.gang_map.axn_id_range(self.cur_slc_range.clone());
+        // println!("###### GanglionBuffer::cur_axn_range(): \
+        //         self.cur_slc_range: {:?}, cur_axn_range: {:?}",
+        //     self.cur_slc_range,
+        //     cur_axn_range);
 
-		cur_axn_range
-	}
+        cur_axn_range
+    }
 
-	pub fn gang_map(&self) -> &GanglionMap {
-		&self.gang_map
-	}
+    pub fn gang_map(&self) -> &GanglionMap {
+        &self.gang_map
+    }
 }
 
 
 #[derive(Copy, Clone, Debug)]
 pub struct StateVertex {
-	state: f32,
+    state: f32,
 }
 
 // impl Vertex {
-// 	fn new(position: [f32; 3], color: [f32; 3], normal: [f32; 3]) -> Vertex {
-// 		Vertex { position: position, color: color, normal: normal }
-// 	}
+//     fn new(position: [f32; 3], color: [f32; 3], normal: [f32; 3]) -> Vertex {
+//         Vertex { position: position, color: color, normal: normal }
+//     }
 // }
 implement_vertex!(StateVertex, state);

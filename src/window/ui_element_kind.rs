@@ -1,5 +1,5 @@
 
 pub enum UiElementKind {
-	
+    
 }
 
