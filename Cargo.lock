@@ -3,6 +3,7 @@ name = "vibi"
 version = "0.1.0"
 dependencies = [
  "bismit 0.0.1",
+ "colorify 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "find_folder 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "glium 0.13.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "glium_text 0.8.0 (git+https://github.com/tomaka/glium_text.git)",
@@ -99,6 +100,11 @@ dependencies = [
 [[package]]
 name = "color_quant"
 version = "1.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+
+[[package]]
+name = "colorify"
+version = "0.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]

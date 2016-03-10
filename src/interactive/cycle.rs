@@ -6,15 +6,103 @@ use time::{self, Timespec, Duration};
 
 use bismit::cortex::{self, Cortex};
 use bismit::input_source::{InputTract};
-use config;
+use bismit::map::SliceTractMap;
 
-use interactive::{self, CyCtl, CyRes, CyStatus};
+use config;
+use interactive;
 
 const INITIAL_TEST_ITERATIONS: u32     = 1; 
 const STATUS_EVERY: u32             = 5000;
 const PRINT_DETAILS_EVERY: u32        = 10000;
 const GUI_CONTROL: bool                = true;
 const PRINT_AFF_OUT: bool            = false;
+
+
+/// Cycle control commands.
+pub enum CyCtl {
+    None,
+    Iterate(u32),
+    Sample(Range<usize>, Arc<Mutex<Vec<u8>>>),
+    RequestCurrentAreaInfo,
+    // ViewAllSlices(bool),
+    // ViewBufferDebug(bool),
+    Stop,
+    Exit,
+}
+
+
+/// Cycle result responses. 
+///
+/// Information about the cycling of the things and the stuff (and some of the
+/// non-stuff too... but not that much of it really... well... a fair
+/// amount... but not like a ton).
+#[derive(Clone)]
+pub enum CyRes {
+    // None,
+    Status(CyStatus),
+    CurrentAreaInfo(String, Range<u8>, SliceTractMap),
+    // OtherShit(SliceTractMap),
+}
+
+
+/// Cycle status.
+#[derive(Clone)]
+pub struct CyStatus {
+    // pub dims: (u32, u32),
+    pub cur_cycle: u32,
+    pub ttl_cycles: u32,
+    pub cur_elapsed: Duration,
+    pub ttl_elapsed: Duration,
+}
+
+impl CyStatus {
+    pub fn new(/*dims: (u32, u32)*/) -> CyStatus {
+        CyStatus {
+            // dims: dims,
+            cur_cycle: 0,
+            ttl_cycles: 0,
+            cur_elapsed: Duration::seconds(0),
+            ttl_elapsed: Duration::seconds(0),
+        }
+    }
+
+    pub fn ttl_cps(&self) -> f32 {
+        cps(self.ttl_cycles, self.ttl_elapsed)
+    }
+
+    pub fn cur_cps(&self) -> f32 {
+        cps(self.cur_cycle, self.cur_elapsed)
+    }
+}
+
+fn cps(cycle: u32, elapsed: Duration) -> f32 {
+    if elapsed.num_milliseconds() > 0 {
+        (cycle as f32 / elapsed.num_milliseconds() as f32) * 1000.0
+    } else {
+        0.0
+    }
+}
+
+
+struct RunInfo {
+    cortex: Cortex,
+    test_iters: u32, 
+    bypass_act: bool, 
+    autorun_iters: u32, 
+    first_run: bool, 
+    view_all_axons: bool, 
+    view_sdr_only: bool,
+    area_name: String,
+    status: CyStatus,    
+    loop_start_time: Timespec,
+}
+
+pub enum LoopAction {
+    None,
+    Break,
+    Continue,
+}
+
 
 pub struct CycleLoop;
 
@@ -58,19 +146,14 @@ impl CycleLoop {
                         CyCtl::Iterate(i) => ri.test_iters = i,
                         CyCtl::Exit => break,
                         CyCtl::Sample(range, buf) => {
-                            // refresh_gang_buf(&ri, range, buf);
-                            match buf.lock() {
-                                // Ok(ref mut b) => ri.cortex.area(&ri.area_name).sample_aff_out(&mut b[range]),
-                                Ok(ref mut b) => ri.cortex.area(&ri.area_name).sample_axn_space(b),
-                                Err(e) => panic!("Error locking ganglion buffer mutex: {:?}", e),
-                            }
+                            refresh_tract_buf(&ri, range, buf);
                             continue;
                         },
                         CyCtl::RequestCurrentAreaInfo => {
                             result_tx.send(CyRes::CurrentAreaInfo(
                                     ri.area_name.to_string(),
                                     ri.cortex.area(&ri.area_name).area_map().aff_out_slc_range(),
-                                    ri.cortex.area(&ri.area_name).axn_gang_map()
+                                    ri.cortex.area(&ri.area_name).axn_tract_map()
                                 )).expect("Error sending area name.");
                             continue;
                         },
@@ -123,13 +206,13 @@ impl CycleLoop {
 // #############################################################
 // #############################################################
 // #############################################################
-fn refresh_gang_buf(ri: &RunInfo, _: Range<usize>, buf: Arc<Mutex<Vec<u8>>>) {
-    // println!("###### cycle_loop::refresh_gang_buf(): range: {:?}", range);
+fn refresh_tract_buf(ri: &RunInfo, _: Range<usize>, buf: Arc<Mutex<Vec<u8>>>) {
+    // println!("###### cycle::refresh_tract_buf(): range: {:?}", range);
 
     match buf.lock() {
         // Ok(ref mut b) => ri.cortex.area(&ri.area_name).sample_aff_out(&mut b[range]),
         Ok(ref mut b) => ri.cortex.area(&ri.area_name).sample_axn_space(b),
-        Err(e) => panic!("Error locking ganglion buffer mutex: {:?}", e),
+        Err(e) => panic!("Error locking tract buffer mutex: {:?}", e),
     }
 }
 // #############################################################
@@ -173,7 +256,7 @@ fn loop_cycles(ri: &mut RunInfo, control_rx: &Receiver<CyCtl>, result_tx: &mut S
                 CyCtl::Sample(range, buf) => {
                     // println!("###### CycleLoop::run(): CANDIDATE 2 (RUNTIME): range: {:?}",
                     //     range);
-                    refresh_gang_buf(&ri, range, buf);
+                    refresh_tract_buf(&ri, range, buf);
                 },
                 // Otherwise return with the control code:
                 _ => return c,
@@ -225,7 +308,7 @@ fn cycle_print(ri: &mut RunInfo) -> LoopAction {
     }    
 
     if ri.status.cur_cycle > 1 {
-        printlny!("-> {} cycles @ [> {:02.2} c/s <]", 
+        printlnc!(yellow: "-> {} cycles @ [> {:02.2} c/s <]", 
             ri.status.cur_cycle, (ri.status.cur_cycle as f32 
                 / ri.status.cur_elapsed.num_milliseconds() as f32) * 1000.0);
     }    
@@ -420,24 +503,4 @@ pub fn rin(prompt: String) -> String {
     io::stdout().flush().unwrap();
     io::stdin().read_line(&mut in_string).ok().expect("Failed to read line");
     in_string.to_lowercase()
-}
-
-
-struct RunInfo {
-    cortex: Cortex,
-    test_iters: u32, 
-    bypass_act: bool, 
-    autorun_iters: u32, 
-    first_run: bool, 
-    view_all_axons: bool, 
-    view_sdr_only: bool,
-    area_name: String,
-    status: CyStatus,    
-    loop_start_time: Timespec,
-}
-
-pub enum LoopAction {
-    None,
-    Break,
-    Continue,
 }

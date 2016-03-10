@@ -22,6 +22,7 @@ find_folder = "*"
 num = "*"
 vecmath = "*"
 rustc-serialize = "*"
+colorify = "*"
 
 # piston_window = "*"
 # piston2d-opengl_graphics = "*"

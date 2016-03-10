@@ -6,7 +6,7 @@ use rand::distributions::{IndependentSample, Range as RandRange};
 use glium::backend::glutin_backend::{GlutinFacade};
 use glium::VertexBuffer;
 use glium::vertex::VertexBufferSlice;
-use bismit::map::GanglionMap;
+use bismit::map::SliceTractMap;
 
 /// Handles raw state data from a cortical ganglion and feeds it to a [vertex] buffer for rendering.
 // TODO: Rename these buffers to something more clear.
@@ -17,21 +17,21 @@ pub struct TractBuffer {
     total_slc_range: Range<u8>,
     default_slc_range: Range<u8>,
     cur_slc_range: Range<u8>,
-    gang_map: GanglionMap,
+    tract_map: SliceTractMap,
 }
 
 impl TractBuffer {
-    pub fn new(_: Range<u8>, gang_map: GanglionMap, display: &GlutinFacade) 
+    pub fn new(_: Range<u8>, tract_map: SliceTractMap, display: &GlutinFacade) 
             -> TractBuffer 
     {
         // DEBUG: TEMPORARY:
-        let default_slc_range = gang_map.slc_id_range();
+        let default_slc_range = tract_map.slc_id_range();
 
 
-        let grid_count = gang_map.axn_count(default_slc_range.clone());
+        let grid_count = tract_map.axn_count(default_slc_range.clone());
 
-        // println!("\n###### TractBuffer::new(): d_slc_range: {:?}, grid_count: {}, gang_map: {:?}", 
-        //     default_slc_range, grid_count, gang_map);
+        // println!("\n###### TractBuffer::new(): d_slc_range: {:?}, grid_count: {}, tract_map: {:?}", 
+        //     default_slc_range, grid_count, tract_map);
 
         let raw_states = iter::repeat(0u8).cycle().take(grid_count).collect();
         let state_vertices: Vec<StateVertex> = iter::repeat(StateVertex { state: 0.0 })
@@ -42,10 +42,10 @@ impl TractBuffer {
             raw_states: Arc::new(Mutex::new(raw_states)),
             state_vertices: state_vertices,
             vertex_buf: vertex_buf,
-            total_slc_range: gang_map.slc_id_range(),
+            total_slc_range: tract_map.slc_id_range(),
             default_slc_range: default_slc_range.clone(),
             cur_slc_range: default_slc_range.clone(),
-            gang_map: gang_map,
+            tract_map: tract_map,
         }
     }
 
@@ -75,8 +75,8 @@ impl TractBuffer {
         self.default_slc_range = slc_range;
     }
 
-    pub fn set_gang_map(&mut self, gang_map: GanglionMap) {
-        self.gang_map = gang_map;
+    pub fn set_tract_map(&mut self, tract_map: SliceTractMap) {
+        self.tract_map = tract_map;
     }
  
      // [FIXME]: DEPRICATE OR MOVE TO TESTS MODULE
@@ -101,7 +101,7 @@ impl TractBuffer {
 
     /// Returns a slice of the vertex buffer corresponding to a ganglion slice id.
     pub fn vertex_buf(&self, gang_slc_id: u8) -> VertexBufferSlice<StateVertex> {
-        let axn_id_range: Range<usize> = self.gang_map.axn_id_range(gang_slc_id..gang_slc_id + 1);
+        let axn_id_range: Range<usize> = self.tract_map.axn_id_range(gang_slc_id..gang_slc_id + 1);
 
         // println!("\n###### TractBuffer::vertex_buf({}): axn_id_range: {:?}", 
         //     gang_slc_id, axn_id_range);
@@ -114,7 +114,7 @@ impl TractBuffer {
     }
 
     pub fn cur_axn_range(&self) -> Range<usize> {
-        let cur_axn_range = self.gang_map.axn_id_range(self.cur_slc_range.clone());
+        let cur_axn_range = self.tract_map.axn_id_range(self.cur_slc_range.clone());
         // println!("###### TractBuffer::cur_axn_range(): \
         //         self.cur_slc_range: {:?}, cur_axn_range: {:?}",
         //     self.cur_slc_range,
@@ -123,8 +123,8 @@ impl TractBuffer {
         cur_axn_range
     }
 
-    pub fn gang_map(&self) -> &GanglionMap {
-        &self.gang_map
+    pub fn tract_map(&self) -> &SliceTractMap {
+        &self.tract_map
     }
 }
 

@@ -2,7 +2,6 @@ use glium::glutin::{VirtualKeyCode, ElementState};
 use glium::glutin::VirtualKeyCode::*;
 use window::{KeyboardState};
 
-
 pub fn key_into_string(key_state: ElementState, vk_code: Option<VirtualKeyCode>, kb_state: &KeyboardState, 
             string: &mut String) 
 {

@@ -8,6 +8,7 @@ extern crate num;
 extern crate vecmath;
 extern crate rustc_serialize;
 extern crate rand;
+#[macro_use] extern crate colorify;
 // #[macro_use] extern crate conrod;
 // extern crate piston_window;
 // extern crate elmesque;
@@ -24,6 +25,7 @@ extern crate rand;
 mod config;
 mod window;
 mod util;
+mod ui;
 
 // mod conrod_draw;
 // mod widgets;
@@ -34,7 +36,7 @@ fn main() {
     // use std::iter;
     use std::thread;
     use std::sync::mpsc;
-    // use ganglion_buffer::TractBuffer;
+    // use tract_buffer::TractBuffer;
     
     println!("================= Bismit: vibi::main() running... ==================");
     let time_start = time::get_time();    

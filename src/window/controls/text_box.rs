@@ -1,5 +1,7 @@
 // use super::{};
-use window::{self, ui_shape_2d, UiElement, KeyboardInputHandler, UiElementKind};
+// use util;
+use window::{KeyboardInputHandler};
+use ui::{self, UiShape2d, UiElement, UiElementKind};
 
 pub struct TextBox;
 
@@ -9,7 +11,7 @@ impl TextBox {
                 key_handler: KeyboardInputHandler) 
             -> UiElement
     {
-        let shape = ui_shape_2d::hexagon_panel(1.0, extra_width, 0.0, color);
+        let shape = UiShape2d::hexagon_panel(1.0, extra_width, 0.0, color);
 
         UiElement::new(UiElementKind::TextBox(TextBox), anchor_pos, [offset.0, offset.1, 0.0], shape)
             .text_string(label)
@@ -26,7 +28,7 @@ impl TextField {
                 key_handler: KeyboardInputHandler) -> UiElement
     {
         let color = [1.0, 1.0, 1.0, 1.0];
-        let shape = ui_shape_2d::rectangle(0.8, width + 2.4, -0.1, color);
+        let shape = UiShape2d::rectangle(0.8, width + 2.4, -0.1, color);
         let text_offset = (-(shape.radii).0 + 0.16, 0.0);
 
         let new_offset = [
@@ -36,7 +38,7 @@ impl TextField {
         ];
 
         UiElement::new(UiElementKind::TextField, anchor_pos, new_offset, shape)        
-            .border(0.05, window::C_BLACK, false)
+            .border(0.05, ui::C_BLACK, false)
             .text_offset(text_offset)
             .text_string(text_string)
             .keyboard_input_handler(key_handler)

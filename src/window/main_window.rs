@@ -4,8 +4,9 @@ use interactive::{CyCtl, CyRes, CyStatus};
 use glium::{self, DisplayBuild, Surface};
 // use glium::glutin::{ElementState};
 use util;
-use window::{C_ORANGE, /*INIT_GRID_SIZE,*/ MouseInputEventResult, KeyboardInputEventResult, 
-    WindowStats, HexGrid, StatusText, UiPane, TextBox, HexButton};
+use window::{MouseInputEventResult, KeyboardInputEventResult, 
+    WindowStats, HexGrid, StatusText, TextBox, HexButton};
+use ui::{self, UiPane};
 use super::TractBuffer;
 
 
@@ -13,14 +14,14 @@ use super::TractBuffer;
 pub struct MainWindow {
     pub cycle_status: CyStatus,
     pub area_name: String,
-    // pub gang_map: GanglionMap,
+    // pub tract_map: SliceTractMap,
     pub stats: WindowStats,
     pub close_pending: bool,
     // pub grid_dims: (u32, u32),
     pub iters_pending: u32,
     pub control_tx: Sender<CyCtl>, 
     pub result_rx: Receiver<CyRes>,
-    pub gang_buf: TractBuffer,
+    pub tract_buf: TractBuffer,
 }
 
 impl MainWindow {
@@ -33,10 +34,10 @@ impl MainWindow {
 
         // Get initial area name:
         control_tx.send(CyCtl::RequestCurrentAreaInfo).expect("Error requesting current area name.");
-        let (area_name, out_slc_range, gang_map) = match result_rx.recv()
+        let (area_name, out_slc_range, tract_map) = match result_rx.recv()
                 .expect("Current area name reception error.") 
         {
-            CyRes::CurrentAreaInfo(area_name, out_slc_range, gang_map) => (area_name, out_slc_range, gang_map),
+            CyRes::CurrentAreaInfo(area_name, out_slc_range, tract_map) => (area_name, out_slc_range, tract_map),
             _ => panic!("Invalid area name response."),
         };        
 
@@ -55,7 +56,7 @@ impl MainWindow {
         // let grid_count = (grid_dims.0 * grid_dims.1) as usize;
 
         // Ganglion buffer:
-        let gang_buf = TractBuffer::new(out_slc_range, gang_map, &display);
+        let tract_buf = TractBuffer::new(out_slc_range, tract_map, &display);
 
         // Hex grid:
         let hex_grid = HexGrid::new(&display);
@@ -66,7 +67,7 @@ impl MainWindow {
         // Primary user interface elements:
         let mut ui = UiPane::new(&display)
             // .element(HexButton::new([1.0, 1.0, 0.0], (-0.20, -0.07), 2.0, 
-            //         "Slice +", C_ORANGE)
+            //         "Slice +", ui::C_ORANGE)
             //     .mouse_input_handler(Box::new(|_, _, window| {
             //             // if window.grid_size < super::MAX_GRID_SIZE { window.grid_size += 1; }
             //             MouseInputEventResult::None
@@ -74,7 +75,7 @@ impl MainWindow {
             // )            
 
             // .element(HexButton::new([1.0, 1.0, 0.0], (-0.20, -0.17), 2.0, 
-            //         "Slice -", C_ORANGE)
+            //         "Slice -", ui::C_ORANGE)
             //     .mouse_input_handler(Box::new(|_, _, window| { 
             //         // if window.grid_size > 2 { window.grid_size -= 1; };
             //         MouseInputEventResult::None
@@ -82,7 +83,7 @@ impl MainWindow {
             // )
 
             // .element(HexButton::new([1.0, 1.0, 0.0], (-0.095, -0.07), 0.22, 
-            //         "* 2", C_ORANGE)
+            //         "* 2", ui::C_ORANGE)
             //     .mouse_input_handler(Box::new(|_, _, window| { 
             //             if window.grid_size < super::MAX_GRID_SIZE { window.grid_size *= 2; }
             //             MouseInputEventResult::None
@@ -90,7 +91,7 @@ impl MainWindow {
             // )    
 
             // .element(HexButton::new([1.0, 1.0, 0.0], (-0.095, -0.17), 0.22, 
-            //         "/ 2", C_ORANGE)
+            //         "/ 2", ui::C_ORANGE)
             //     .mouse_input_handler(Box::new(|_, _, window| { 
             //         if window.grid_size >= 4 { window.grid_size /= 2; }
             //         MouseInputEventResult::None
@@ -98,7 +99,7 @@ impl MainWindow {
             // )
 
             .element(HexButton::new([1.0, -1.0, 0.0], (-0.57, 0.60), 1.8, 
-                    "View One", C_ORANGE)
+                    "View One", ui::C_ORANGE)
                 .mouse_input_handler(Box::new(|_, _, _| {
                     // window.control_tx.send(CyCtl::Iterate(window.iters_pending))
                     //     .expect("View All Button button");
@@ -107,7 +108,7 @@ impl MainWindow {
             )
 
             .element(HexButton::new([1.0, -1.0, 0.0], (-0.20, 0.60), 1.8, 
-                    "View All", C_ORANGE)
+                    "View All", ui::C_ORANGE)
                 .mouse_input_handler(Box::new(|_, _, _| {
                     // window.control_tx.send(CyCtl::Iterate(window.iters_pending))
                     //     .expect("View All Button button");
@@ -116,7 +117,7 @@ impl MainWindow {
             )
 
             .element(TextBox::new([1.0, -1.0, 0.0], (-0.385, 0.500), 4.45, 
-                    "Iters:", C_ORANGE, "1", Box::new(|key_state, vk_code, kb_state, text_string, window| {
+                    "Iters:", ui::C_ORANGE, "1", Box::new(|key_state, vk_code, kb_state, text_string, window| {
                         util::key_into_string(key_state, vk_code, kb_state, text_string);
 
                         if let Ok(i) = text_string
@@ -136,7 +137,7 @@ impl MainWindow {
             )
 
             .element(HexButton::new([1.0, -1.0, 0.0], (-0.57, 0.40), 1.8, 
-                    "Cycle", C_ORANGE)
+                    "Cycle", ui::C_ORANGE)
                 .mouse_input_handler(Box::new(|_, _, window| {                     
                     window.control_tx.send(CyCtl::Iterate(window.iters_pending))
                         .expect("Iterate button");
@@ -145,7 +146,7 @@ impl MainWindow {
             )
 
             .element(HexButton::new([1.0, -1.0, 0.0], (-0.20, 0.40), 1.8, 
-                    "Stop", C_ORANGE)
+                    "Stop", ui::C_ORANGE)
                 .mouse_input_handler(Box::new(|_, _, window| {                     
                     window.control_tx.send(CyCtl::Stop)
                         .expect("Stop button");
@@ -154,7 +155,7 @@ impl MainWindow {
             )
 
             .element(HexButton::new([1.0, -1.0, 0.0], (-0.20, 0.07), 1.8, 
-                    "Exit", C_ORANGE)
+                    "Exit", ui::C_ORANGE)
                 .mouse_input_handler(Box::new(|_, _, window| { 
                     window.close_pending = true;
                     MouseInputEventResult::None
@@ -168,14 +169,14 @@ impl MainWindow {
         let mut window = MainWindow {
             cycle_status: CyStatus::new(),
             area_name: area_name,
-            // gang_map: gang_map,
+            // tract_map: tract_map,
             stats: WindowStats::new(),
             close_pending: false,
             // grid_dims: grid_dims,
             iters_pending: 1,
             control_tx: control_tx,
             result_rx: result_rx,
-            gang_buf: gang_buf,
+            tract_buf: tract_buf,
         };
 
         // // Print some stuff:
@@ -204,17 +205,17 @@ impl MainWindow {
             target.clear_color_and_depth((0.030, 0.050, 0.080, 1.0), 1.0);
 
             // Current ganglion range:
-            let cur_axn_range = window.gang_buf.cur_axn_range();
+            let cur_axn_range = window.tract_buf.cur_axn_range();
 
             // Refresh ganglion states:
-            window.control_tx.send(CyCtl::Sample(cur_axn_range, window.gang_buf.raw_states()))
+            window.control_tx.send(CyCtl::Sample(cur_axn_range, window.tract_buf.raw_states()))
                 .expect("Sample raw states");
 
-            // window.gang_buf.fill_rand();
-            window.gang_buf.refresh_vertex_buf();
+            // window.tract_buf.fill_rand();
+            window.tract_buf.refresh_vertex_buf();
 
             // Draw hex grid:
-            hex_grid.draw(&mut target, /*grid_dims,*/ window.stats.elapsed_ms(), &window.gang_buf);
+            hex_grid.draw(&mut target, /*grid_dims,*/ window.stats.elapsed_ms(), &window.tract_buf);
 
             // Draw status text:
             status_text.draw(&mut target, &window.cycle_status, &window.stats, &window.area_name);
@@ -253,13 +254,13 @@ impl MainWindow {
                 Ok(cr) => {
                     match cr {
                         CyRes::Status(cysts) => self.cycle_status = cysts,
-                        CyRes::CurrentAreaInfo(area_name, out_slc_range, gang_map) => {
+                        CyRes::CurrentAreaInfo(area_name, out_slc_range, tract_map) => {
                             self.area_name = area_name;
-                            self.gang_buf.set_default_slc_range(out_slc_range);
-                            self.gang_buf.set_gang_map(gang_map);
+                            self.tract_buf.set_default_slc_range(out_slc_range);
+                            self.tract_buf.set_tract_map(tract_map);
                             // [FIXME] TODO: Update ganglion buffer somehow.
                         },
-                        _ => (),
+                        // _ => (),
                     }
                 },
                 Err(_) => break,

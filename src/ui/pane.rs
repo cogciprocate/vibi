@@ -5,7 +5,8 @@ use glium::backend::glutin_backend::GlutinFacade;
 use glium::{self, VertexBuffer, IndexBuffer, Program, DrawParameters, Surface};
 use glium::vertex::{EmptyInstanceAttributes as EIAttribs};
 use glium::glutin::{ElementState, MouseButton, Event, VirtualKeyCode};
-use super::{UiVertex, UiElement, MainWindow, MouseState, KeyboardState, MouseInputEventResult};
+use window::{MainWindow, MouseState, KeyboardState, MouseInputEventResult};
+use ui::{self, UiVertex, UiElement};
 
 const TWOSR3: f32 = 1.15470053838;
 const DEFAULT_UI_SCALE: f32 = 0.9;
@@ -260,7 +261,7 @@ impl<'d> UiPane<'d> {
             panic!("Ui::draw(): Buffers not initialized.") 
         }
 
-        let model_color = super::C_ORANGE;
+        let model_color = ui::C_ORANGE;
 
         // Uniforms:
         let uniforms = uniform! {

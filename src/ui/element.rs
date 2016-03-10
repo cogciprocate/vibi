@@ -3,14 +3,14 @@
 use glium::Surface;
 use glium_text::{self, TextSystem, FontTexture, TextDisplay};
 use glium::glutin::{ElementState, MouseButton, VirtualKeyCode};
-use window::{self, UiVertex, UiShape2d, MainWindow, TextProperties, HandlerOption, MouseInputHandler, 
-    KeyboardInputHandler, MouseInputEventResult, KeyboardInputEventResult, KeyboardState, TextBox, Button};
+use ui::{UiVertex, UiShape2d, TextProperties};
 use util;
+use window::{self, MainWindow, HandlerOption, MouseInputHandler, 
+    KeyboardInputHandler, MouseInputEventResult, KeyboardInputEventResult, KeyboardState, TextBox, Button};
 
 pub const ELEMENT_BASE_SCALE: f32 = 0.07;
 pub const BORDER_SHADE: f32 = 0.1;
 pub const DEPRESS_SHADE: f32 = 0.1;
-
 
 // Notes:
 //
@@ -36,7 +36,7 @@ pub struct UiElementBorder {
 
 // impl UiElementBorder {
 //     pub fn thin_black() -> UiElementBorder {
-//         UiElementBorder { thickness: 0.05, color: window::C_BLACK }
+//         UiElementBorder { thickness: 0.05, color: ui::C_BLACK }
 //     }
 // }
 

@@ -47,7 +47,7 @@ impl<'d> HexGrid<'d> {
         }
     }
 
-    pub fn draw<S: Surface>(&self, target: &mut S, elapsed_ms: f64, gang_buf: &TractBuffer) {
+    pub fn draw<S: Surface>(&self, target: &mut S, elapsed_ms: f64, tract_buf: &TractBuffer) {
         // [FIXME]: TEMPORARY:
         
 
@@ -73,7 +73,7 @@ impl<'d> HexGrid<'d> {
         // let cam_y = f32::cos(f_c) * xy_scl;
         // let cam_z = f32::cos(f_c / 3.0) * z_scl;
 
-        let ttl_axn_count = gang_buf.gang_map().axn_count(gang_buf.cur_slc_range()) as f32;
+        let ttl_axn_count = tract_buf.tract_map().axn_count(tract_buf.cur_slc_range()) as f32;
         let cam_x_pos = 0.1455 * ttl_axn_count.powf(0.5);
         let cam_y_pos = 0.054 * ttl_axn_count.powf(0.5);
         let cam_z_pos = (-0.13 * ttl_axn_count.powf(0.5)) + -1.0;
@@ -100,11 +100,11 @@ impl<'d> HexGrid<'d> {
         ];
 
         // Loop through currently visible slices:
-        for i in 0..gang_buf.cur_slc_range().len() as u8 {
+        for i in 0..tract_buf.cur_slc_range().len() as u8 {
             // [FIXME]: Do something with this?
-            // debug_assert!(gang_buf.vertex_buf().len() == (grid_dims.0 * grid_dims.1) as usize);
+            // debug_assert!(tract_buf.vertex_buf().len() == (grid_dims.0 * grid_dims.1) as usize);
 
-            let grid_dims = gang_buf.gang_map().slc_dims(i);
+            let grid_dims = tract_buf.tract_map().slc_dims(i);
 
             let x_scl = (grid_dims.0 + grid_dims.1) as f32 * HEX_X;
             let y_scl = (grid_dims.0 + grid_dims.1) as f32 * HEX_Y;
@@ -140,7 +140,7 @@ impl<'d> HexGrid<'d> {
             };
 
             // Draw Grid (with per-instance vertex buffer):
-            target.draw((&self.vertices, gang_buf.vertex_buf(i).per_instance().unwrap()),
+            target.draw((&self.vertices, tract_buf.vertex_buf(i).per_instance().unwrap()),
                 &self.indices, &self.program, &uniforms, &self.params).unwrap();
         }
     }
@@ -350,11 +350,11 @@ fn view_matrix(position: &[f32; 3], direction: &[f32; 3], up: &[f32; 3]) -> [[f3
 
 
 //     pub fn draw_old<S: Surface>(&self, target: &mut S, elapsed_ms: f64, 
-//                 gang_buf: &TractBuffer)
+//                 tract_buf: &TractBuffer)
 //     {
 //         // [FIXME]: TEMPORARY:
 //         let grid_dims = (67u32, 67u32);
-//         debug_assert!(gang_buf.vertex_buf().len() == (grid_dims.0 * grid_dims.1) as usize);
+//         debug_assert!(tract_buf.vertex_buf().len() == (grid_dims.0 * grid_dims.1) as usize);
 
 //         // Set up our frame-countery-thing:
 //         let f_c = (elapsed_ms / 4000.0) as f32;
@@ -442,7 +442,7 @@ fn view_matrix(position: &[f32; 3], direction: &[f32; 3], up: &[f32; 3]) -> [[f3
 //         //     &self.indices, &self.program, &uniforms, &self.params).unwrap();
 
 //         // Draw Grid (with per-instance vertex buffer):
-//         target.draw((&self.vertices, gang_buf.vertex_buf().per_instance().unwrap()),
+//         target.draw((&self.vertices, tract_buf.vertex_buf().per_instance().unwrap()),
 //             &self.indices, &self.program, &uniforms, &self.params).unwrap();
 //     }
 
