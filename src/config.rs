@@ -39,8 +39,8 @@ pub fn define_plmaps() -> ProtolayerMaps {
 
 
 pub fn define_pamaps() -> ProtoareaMaps {
-    const AREA_SIDE: u32 = 67;
-    const CYCLES_PER_FRAME: usize = 1;
+    const AREA_SIDE: u32 = 32;
+    // const CYCLES_PER_FRAME: usize = 1;
 
     ProtoareaMaps::new()        
         //let mut ir_labels = IdxStreamer::new(CorticalDims::new(1, 1, 1, 0, None), "data/train-labels-idx1-ubyte", 1);
@@ -79,7 +79,7 @@ pub fn define_pamaps() -> ProtoareaMaps {
 
         .area_ext("v0", "v0_lm", AREA_SIDE,
             // Protoinput::IdxStreamerLoop { 
-            //     file_name: "data/train-images-idx3-ubyte", 
+            //     file_name: "data/train-images-idx3-ubyte".to_string(), 
             //     cyc_per: CYCLES_PER_FRAME, 
             //     scale: 1.4,
             //     loop_frames: 80,

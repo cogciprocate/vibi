@@ -3,9 +3,10 @@ use std::sync::mpsc::{Receiver, Sender};
 use interactive::{CyCtl, CyRes, CyStatus};
 use glium::{self, DisplayBuild, Surface};
 // use glium::glutin::{ElementState};
-use window::{util, C_ORANGE, /*INIT_GRID_SIZE,*/ MouseInputEventResult, KeyboardInputEventResult, 
+use util;
+use window::{C_ORANGE, /*INIT_GRID_SIZE,*/ MouseInputEventResult, KeyboardInputEventResult, 
     WindowStats, HexGrid, StatusText, UiPane, TextBox, HexButton};
-use super::GanglionBuffer;
+use super::TractBuffer;
 
 
 // [FIXME]: Needs a rename. Anything containing 'Window' is misleading (UiPane is the window).
@@ -19,7 +20,7 @@ pub struct MainWindow {
     pub iters_pending: u32,
     pub control_tx: Sender<CyCtl>, 
     pub result_rx: Receiver<CyRes>,
-    pub gang_buf: GanglionBuffer,
+    pub gang_buf: TractBuffer,
 }
 
 impl MainWindow {
@@ -54,7 +55,7 @@ impl MainWindow {
         // let grid_count = (grid_dims.0 * grid_dims.1) as usize;
 
         // Ganglion buffer:
-        let gang_buf = GanglionBuffer::new(out_slc_range, gang_map, &display);
+        let gang_buf = TractBuffer::new(out_slc_range, gang_map, &display);
 
         // Hex grid:
         let hex_grid = HexGrid::new(&display);
@@ -98,7 +99,7 @@ impl MainWindow {
 
             .element(HexButton::new([1.0, -1.0, 0.0], (-0.57, 0.60), 1.8, 
                     "View One", C_ORANGE)
-                .mouse_input_handler(Box::new(|_, _, window| {
+                .mouse_input_handler(Box::new(|_, _, _| {
                     // window.control_tx.send(CyCtl::Iterate(window.iters_pending))
                     //     .expect("View All Button button");
                     MouseInputEventResult::None
@@ -107,7 +108,7 @@ impl MainWindow {
 
             .element(HexButton::new([1.0, -1.0, 0.0], (-0.20, 0.60), 1.8, 
                     "View All", C_ORANGE)
-                .mouse_input_handler(Box::new(|_, _, window| {
+                .mouse_input_handler(Box::new(|_, _, _| {
                     // window.control_tx.send(CyCtl::Iterate(window.iters_pending))
                     //     .expect("View All Button button");
                     MouseInputEventResult::None
@@ -202,24 +203,12 @@ impl MainWindow {
             let mut target = display.draw();
             target.clear_color_and_depth((0.030, 0.050, 0.080, 1.0), 1.0);
 
-            // ###################### PROBLEMS HERE ########################
-            // #############################################################
-            // #############################################################
-            // #############################################################
-
             // Current ganglion range:
             let cur_axn_range = window.gang_buf.cur_axn_range();
 
             // Refresh ganglion states:
             window.control_tx.send(CyCtl::Sample(cur_axn_range, window.gang_buf.raw_states()))
                 .expect("Sample raw states");
-
-            // #############################################################
-            // #############################################################
-            // #############################################################
-
-
-
 
             // window.gang_buf.fill_rand();
             window.gang_buf.refresh_vertex_buf();

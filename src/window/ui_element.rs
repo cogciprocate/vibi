@@ -3,21 +3,25 @@
 use glium::Surface;
 use glium_text::{self, TextSystem, FontTexture, TextDisplay};
 use glium::glutin::{ElementState, MouseButton, VirtualKeyCode};
-use window::{self, util, UiVertex, UiShape2d, MainWindow, TextProperties, HandlerOption, MouseInputHandler, 
+use window::{self, UiVertex, UiShape2d, MainWindow, TextProperties, HandlerOption, MouseInputHandler, 
     KeyboardInputHandler, MouseInputEventResult, KeyboardInputEventResult, KeyboardState, TextBox, Button};
+use util;
 
 pub const ELEMENT_BASE_SCALE: f32 = 0.07;
 pub const BORDER_SHADE: f32 = 0.1;
 pub const DEPRESS_SHADE: f32 = 0.1;
 
-/* ////
-    Notes:
-    - 'raw' is intended to mean something based on a position which is unscaled by the screen and generally has a height of roughly 1.0f32.
-    - 'cur' is a pre-calculated value containing information about the current screen state (such as its size) and is used as a cached value.
 
-    - 'idz' is, as always, the index of item[0] within a larger set (think memory location).
+// Notes:
+//
+// * 'raw' is intended to mean something based on a position which is
+//   unscaled by the screen and generally has a height of roughly 1.0f32.
+// * 'cur' is a pre-calculated value containing information about the
+//   current screen state (such as its size) and is used as a cached value.
+// * 'idz' is, as always, the index of item[0] within a larger set (think
+//   memory location).
 
-//// */
+
 
 // pub struct UiElementBorderToggle {
 

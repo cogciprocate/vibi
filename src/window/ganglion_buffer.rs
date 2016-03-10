@@ -10,7 +10,7 @@ use bismit::map::GanglionMap;
 
 /// Handles raw state data from a cortical ganglion and feeds it to a [vertex] buffer for rendering.
 // TODO: Rename these buffers to something more clear.
-pub struct GanglionBuffer {
+pub struct TractBuffer {
     raw_states: Arc<Mutex<Vec<u8>>>,
     state_vertices: Vec<StateVertex>,
     vertex_buf: VertexBuffer<StateVertex>,
@@ -20,9 +20,9 @@ pub struct GanglionBuffer {
     gang_map: GanglionMap,
 }
 
-impl GanglionBuffer {
-    pub fn new(default_slc_id_range: Range<u8>, gang_map: GanglionMap, display: &GlutinFacade) 
-            -> GanglionBuffer 
+impl TractBuffer {
+    pub fn new(_: Range<u8>, gang_map: GanglionMap, display: &GlutinFacade) 
+            -> TractBuffer 
     {
         // DEBUG: TEMPORARY:
         let default_slc_range = gang_map.slc_id_range();
@@ -30,7 +30,7 @@ impl GanglionBuffer {
 
         let grid_count = gang_map.axn_count(default_slc_range.clone());
 
-        // println!("\n###### GanglionBuffer::new(): d_slc_range: {:?}, grid_count: {}, gang_map: {:?}", 
+        // println!("\n###### TractBuffer::new(): d_slc_range: {:?}, grid_count: {}, gang_map: {:?}", 
         //     default_slc_range, grid_count, gang_map);
 
         let raw_states = iter::repeat(0u8).cycle().take(grid_count).collect();
@@ -38,7 +38,7 @@ impl GanglionBuffer {
             .cycle().take(grid_count).collect();
         let vertex_buf = VertexBuffer::dynamic(display, &state_vertices).unwrap();
 
-        GanglionBuffer {            
+        TractBuffer {            
             raw_states: Arc::new(Mutex::new(raw_states)),
             state_vertices: state_vertices,
             vertex_buf: vertex_buf,
@@ -94,26 +94,19 @@ impl GanglionBuffer {
         }
     }
 
-    // ###################### PROBLEMS HERE ########################
-    // #############################################################
-    // #############################################################
-    // #############################################################
     // Determines receiving end size (length);
     pub fn raw_states(&mut self) -> Arc<Mutex<Vec<u8>>> {
         self.raw_states.clone()
     }
-    // #############################################################
-    // #############################################################
-    // #############################################################
 
     /// Returns a slice of the vertex buffer corresponding to a ganglion slice id.
     pub fn vertex_buf(&self, gang_slc_id: u8) -> VertexBufferSlice<StateVertex> {
         let axn_id_range: Range<usize> = self.gang_map.axn_id_range(gang_slc_id..gang_slc_id + 1);
 
-        // println!("\n###### GanglionBuffer::vertex_buf({}): axn_id_range: {:?}", 
+        // println!("\n###### TractBuffer::vertex_buf({}): axn_id_range: {:?}", 
         //     gang_slc_id, axn_id_range);
 
-        self.vertex_buf.slice(axn_id_range).expect("GanglionBuffer::vertex_buf(): Out of range")
+        self.vertex_buf.slice(axn_id_range).expect("TractBuffer::vertex_buf(): Out of range")
     }
 
     pub fn cur_slc_range(&self) -> Range<u8> {
@@ -122,7 +115,7 @@ impl GanglionBuffer {
 
     pub fn cur_axn_range(&self) -> Range<usize> {
         let cur_axn_range = self.gang_map.axn_id_range(self.cur_slc_range.clone());
-        // println!("###### GanglionBuffer::cur_axn_range(): \
+        // println!("###### TractBuffer::cur_axn_range(): \
         //         self.cur_slc_range: {:?}, cur_axn_range: {:?}",
         //     self.cur_slc_range,
         //     cur_axn_range);

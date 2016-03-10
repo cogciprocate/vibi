@@ -23,6 +23,7 @@ extern crate rand;
 #[macro_use] mod interactive;
 mod config;
 mod window;
+mod util;
 
 // mod conrod_draw;
 // mod widgets;
@@ -33,7 +34,7 @@ fn main() {
     // use std::iter;
     use std::thread;
     use std::sync::mpsc;
-    // use ganglion_buffer::GanglionBuffer;
+    // use ganglion_buffer::TractBuffer;
     
     println!("================= Bismit: vibi::main() running... ==================");
     let time_start = time::get_time();    

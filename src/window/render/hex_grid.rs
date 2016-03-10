@@ -2,7 +2,7 @@
 use glium::backend::glutin_backend::{GlutinFacade};
 use glium::{self, Surface, Program, DrawParameters, VertexBuffer, IndexBuffer};
 
-use window::GanglionBuffer;
+use window::TractBuffer;
 
 const HEX_X: f32 = 0.086602540378 + 0.01;
 const HEX_Y: f32 = 0.05 + 0.01;
@@ -47,9 +47,9 @@ impl<'d> HexGrid<'d> {
         }
     }
 
-    pub fn draw<S: Surface>(&self, target: &mut S, elapsed_ms: f64, gang_buf: &GanglionBuffer) {
+    pub fn draw<S: Surface>(&self, target: &mut S, elapsed_ms: f64, gang_buf: &TractBuffer) {
         // [FIXME]: TEMPORARY:
-        let grid_dims = (67u32, 67u32);
+        
 
         // Set up our frame-countery-thing:
         let f_c = (elapsed_ms / 4000.0) as f32;
@@ -64,20 +64,27 @@ impl<'d> HexGrid<'d> {
         let persp = persp_matrix(width, height, 3.0);
 
         // z scale factor:
-        let z_scl = 0.05;
+        // let z_scl = 0.05;
         // x and y scale factor:
-        let xy_scl = 0.2;
+        // let xy_scl = 0.2;
 
         // // Camera position:
         // let cam_x = f32::cos(f_c) * xy_scl;
         // let cam_y = f32::cos(f_c) * xy_scl;
         // let cam_z = f32::cos(f_c / 3.0) * z_scl;
-        let cam_pos = [3.4, 0.0, -20.0];
+
+        let ttl_axn_count = gang_buf.gang_map().axn_count(gang_buf.cur_slc_range()) as f32;
+        let cam_x_pos = 0.1455 * ttl_axn_count.powf(0.5);
+        let cam_y_pos = 0.054 * ttl_axn_count.powf(0.5);
+        let cam_z_pos = (-0.13 * ttl_axn_count.powf(0.5)) + -1.0;
+
+        // Camera position:
+        let cam_pos = [cam_x_pos, cam_y_pos, cam_z_pos];
 
         // View transformation matrix: { position(x,y,z), direction(x,y,z), up_dim(x,y,z)}
         let view = view_matrix(
-            &cam_pos, &[0.0, cam_pos[1], 0.5], &[0.0, 1.0, 0.0]
-        );        
+            &cam_pos, &[0.0, 0.0, 0.5], &[0.0, 1.0, 0.0]
+        );  
 
         // Light position:
         let light_pos = [-1.0, 0.4, -0.9f32];
@@ -90,18 +97,24 @@ impl<'d> HexGrid<'d> {
             // (f32::abs(f32::cos(f_c) * 0.30)),
             // 30% blue static:
             0.3f32,
-        ];        
+        ];
 
         // Loop through currently visible slices:
         for i in 0..gang_buf.cur_slc_range().len() as u8 {
             // [FIXME]: Do something with this?
             // debug_assert!(gang_buf.vertex_buf().len() == (grid_dims.0 * grid_dims.1) as usize);
 
-            // let grid_dims = 
+            let grid_dims = gang_buf.gang_map().slc_dims(i);
+
+            let x_scl = (grid_dims.0 + grid_dims.1) as f32 * HEX_X;
+            let y_scl = (grid_dims.0 + grid_dims.1) as f32 * HEX_Y;
+
+            // let x_cntr = -1.0;
+            // let y_cntr = -0.9;
 
             // Set up model position:
-            let x_shift = -18.0 + (7.0 * i as f32);
-            let y_shift = -7.0 + (4.0 * i as f32);
+            let x_shift = (0.60 * i as f32) * x_scl;
+            let y_shift = (0.50 * i as f32) * y_scl;
             let z_shift = 0.0;
 
             // Model transformation matrix:
@@ -110,7 +123,8 @@ impl<'d> HexGrid<'d> {
                 [0.0, 1.0, 0.0, 0.0],
                 [0.0, 0.0, 1.0, 0.0],
                 [x_shift, y_shift, z_shift, 1.0f32]
-            ];
+            ];  
+
 
             // Uniforms:
             let uniforms = uniform! {        
@@ -336,7 +350,7 @@ fn view_matrix(position: &[f32; 3], direction: &[f32; 3], up: &[f32; 3]) -> [[f3
 
 
 //     pub fn draw_old<S: Surface>(&self, target: &mut S, elapsed_ms: f64, 
-//                 gang_buf: &GanglionBuffer)
+//                 gang_buf: &TractBuffer)
 //     {
 //         // [FIXME]: TEMPORARY:
 //         let grid_dims = (67u32, 67u32);

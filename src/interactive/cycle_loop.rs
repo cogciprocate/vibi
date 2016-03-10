@@ -8,7 +8,7 @@ use bismit::cortex::{self, Cortex};
 use bismit::input_source::{InputTract};
 use config;
 
-use interactive::{self, output_czar, CyCtl, CyRes, CyStatus};
+use interactive::{self, CyCtl, CyRes, CyStatus};
 
 const INITIAL_TEST_ITERATIONS: u32     = 1; 
 const STATUS_EVERY: u32             = 5000;
@@ -58,7 +58,12 @@ impl CycleLoop {
                         CyCtl::Iterate(i) => ri.test_iters = i,
                         CyCtl::Exit => break,
                         CyCtl::Sample(range, buf) => {
-                            refresh_gang_buf(&ri, range, buf);
+                            // refresh_gang_buf(&ri, range, buf);
+                            match buf.lock() {
+                                // Ok(ref mut b) => ri.cortex.area(&ri.area_name).sample_aff_out(&mut b[range]),
+                                Ok(ref mut b) => ri.cortex.area(&ri.area_name).sample_axn_space(b),
+                                Err(e) => panic!("Error locking ganglion buffer mutex: {:?}", e),
+                            }
                             continue;
                         },
                         CyCtl::RequestCurrentAreaInfo => {
@@ -118,7 +123,7 @@ impl CycleLoop {
 // #############################################################
 // #############################################################
 // #############################################################
-fn refresh_gang_buf(ri: &RunInfo, range: Range<usize>, buf: Arc<Mutex<Vec<u8>>>) {
+fn refresh_gang_buf(ri: &RunInfo, _: Range<usize>, buf: Arc<Mutex<Vec<u8>>>) {
     // println!("###### cycle_loop::refresh_gang_buf(): range: {:?}", range);
 
     match buf.lock() {
@@ -151,7 +156,8 @@ fn loop_cycles(ri: &mut RunInfo, control_rx: &Receiver<CyCtl>, result_tx: &mut S
 
         if ri.status.cur_cycle % PRINT_DETAILS_EVERY == 0 {
             if !ri.view_sdr_only { 
-                output_czar::print_sense_only(&mut ri.cortex, &ri.area_name); 
+                // output_czar::print_sense_only(&mut ri.cortex, &ri.area_name); 
+                panic!("Currently disabled. Needs update.");
             }
         }
                     
@@ -199,20 +205,23 @@ fn cycle_print(ri: &mut RunInfo) -> LoopAction {
             print!("\nSENSORY INPUT VECTOR:");
         }
 
-        output_czar::print_sense_and_print(&mut ri.cortex, &ri.area_name);
+        // output_czar::print_sense_and_print(&mut ri.cortex, &ri.area_name);
+        panic!("Currently disabled. Needs update.");
     }
 
     if PRINT_AFF_OUT && !ri.view_all_axons {
-        if ri.view_sdr_only { ri.cortex.area_mut(&ri.area_name).psal_mut().dens.states.fill_vec(); }
-        ri.cortex.area_mut(&ri.area_name).axns.states.fill_vec();
-        print!("\n'{}' output:", &ri.area_name);
-        ri.cortex.area_mut(&ri.area_name).render_aff_out("", true);
+        // if ri.view_sdr_only { ri.cortex.area_mut(&ri.area_name).psal_mut().dens.states.fill_vec(); }
+        // ri.cortex.area_mut(&ri.area_name).axns.states.fill_vec();
+        // print!("\n'{}' output:", &ri.area_name);
+        // ri.cortex.area_mut(&ri.area_name).render_aff_out("", true);
+        panic!("Currently disabled. Needs update.");;
     }
 
     if ri.view_all_axons {
         print!("\n\nAXON SPACE:\n");
         
-        ri.cortex.area_mut(&ri.area_name).render_axn_space();
+        // ri.cortex.area_mut(&ri.area_name).render_axn_space();
+        panic!("Currently disabled. Needs update.");;
     }    
 
     if ri.status.cur_cycle > 1 {

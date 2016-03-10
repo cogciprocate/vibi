@@ -1,6 +1,6 @@
 use glium::glutin::{VirtualKeyCode, ElementState};
 use glium::glutin::VirtualKeyCode::*;
-use window::{util, KeyboardState};
+use window::{KeyboardState};
 
 
 pub fn key_into_string(key_state: ElementState, vk_code: Option<VirtualKeyCode>, kb_state: &KeyboardState, 
@@ -13,7 +13,7 @@ pub fn key_into_string(key_state: ElementState, vk_code: Option<VirtualKeyCode>,
             },
 
             _ => {
-                if let Some(mut c) = util::map_vkc(vk_code) {                    
+                if let Some(mut c) = map_vkc(vk_code) {                    
                     if kb_state.shift { c = c.to_uppercase().next().unwrap_or(c); }
                     string.push(c);                
                 }
