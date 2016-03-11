@@ -258,7 +258,7 @@ impl Window {
             let cur_axn_range = window.hex_grid_buf.cur_axn_range();
 
             // Refresh ganglion states:
-            window.control_tx.send(CyCtl::Sample(cur_axn_range, window.hex_grid_buf.raw_states()))
+            window.control_tx.send(CyCtl::Sample(cur_axn_range, window.hex_grid_buf.raw_states_vec()))
                 .expect("Sample raw states");
 
             // window.hex_grid_buf.fill_rand();

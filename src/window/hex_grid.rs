@@ -140,7 +140,7 @@ impl<'d> HexGrid<'d> {
             };
 
             // Draw Grid (with per-instance vertex buffer):
-            target.draw((&self.vertices, hex_grid_buf.vertex_buf(i).per_instance().unwrap()),
+            target.draw((&self.vertices, hex_grid_buf.raw_states_buf(i).per_instance().unwrap()),
                 &self.indices, &self.program, &uniforms, &self.params).unwrap();
         }
     }
@@ -166,11 +166,13 @@ static vertex_shader_src: &'static str = r#"
     in vec3 color;
     in vec3 normal;
     in float state;
+    // in uchar state;
 
     out vec3 v_position;
     out vec3 v_color;
     out vec3 v_normal;
     out float v_state;
+    // out uchar state;
 
     uniform uint grid_v_size;
     uniform uint grid_u_size;
@@ -214,6 +216,7 @@ static fragment_shader_src: &'static str = r#"
     in vec3 v_position;    
     // Determines red component:
     in float v_state;
+    // in uchar v_state;
 
     out vec4 color;
 
@@ -239,7 +242,8 @@ static fragment_shader_src: &'static str = r#"
         float specular = pow(max(dot(half_direction, normalize(v_normal)), 0.0), 
             specular_coeff);
 
-        vec3 tile_color = vec3(v_state, u_global_color.g, u_global_color.b);
+        float state_norm = v_state / 255.0;
+        vec3 tile_color = vec3(state_norm, u_global_color.g, u_global_color.b);
 
         color = vec4((ambient_color * tile_color) + diffuse_ampl
             * diffuse_color + specular * specular_color, 1.0);    
