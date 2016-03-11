@@ -1,7 +1,7 @@
 use std::sync::mpsc::{Receiver, Sender};
 use time::{self, Timespec, Duration};
 use glium::{self, DisplayBuild, Surface};
-use cycle::{CyCtl, CyRes, CyStatus};
+use cycle::{CyCtl, CyRes, Status, AreaInfo};
 use window::{HexGrid, StatusText};
 use ui::{self, Pane, MouseInputEventResult, KeyboardInputEventResult, TextBox, HexButton};
 use super::HexGridBuffer;
@@ -62,7 +62,7 @@ impl WindowStats {
 
 // [FIXME]: Needs a rename. Anything containing 'Window' is misleading (Pane is the window).
 pub struct Window {
-    pub cycle_status: CyStatus,
+    pub cycle_status: Status,
     pub area_name: String,
     // pub tract_map: SliceTractMap,
     pub stats: WindowStats,
@@ -72,6 +72,7 @@ pub struct Window {
     pub control_tx: Sender<CyCtl>, 
     pub result_rx: Receiver<CyRes>,
     pub hex_grid_buf: HexGridBuffer,
+    pub hex_grid_buf_is_clear: bool,
 }
 
 impl Window {
@@ -84,10 +85,10 @@ impl Window {
 
         // Get initial area name:
         control_tx.send(CyCtl::RequestCurrentAreaInfo).expect("Error requesting current area name.");
-        let (area_name, out_slc_range, tract_map) = match result_rx.recv()
-                .expect("Current area name reception error.") 
+        let AreaInfo { name: area_name, aff_out_slc_range: out_slc_range, tract_map } =
+                match result_rx.recv().expect("Current area name reception error.")
         {
-            CyRes::CurrentAreaInfo(area_name, out_slc_range, tract_map) => (area_name, out_slc_range, tract_map),
+            CyRes::AreaInfo(info) => *info,
             _ => panic!("Invalid area name response."),
         };        
 
@@ -97,7 +98,7 @@ impl Window {
             .with_title("Vibi".to_string())
             .with_multisampling(8)
             // Disabled for development ->> .with_gl_robustness(glium::glutin::Robustness::NoError)
-            .with_vsync()
+            // .with_vsync()
             // .with_transparency(true)
             // .with_fullscreen(glium::glutin::get_primary_monitor())
             .build_glium().unwrap();
@@ -116,40 +117,8 @@ impl Window {
 
         // Primary user interface elements:
         let mut ui = Pane::new(&display)
-            // .element(HexButton::new([1.0, 1.0, 0.0], (-0.20, -0.07), 2.0, 
-            //         "Slice +", ui::C_ORANGE)
-            //     .mouse_input_handler(Box::new(|_, _, window| {
-            //             // if window.grid_size < super::MAX_GRID_SIZE { window.grid_size += 1; }
-            //             MouseInputEventResult::None
-            //     }))
-            // )            
-
-            // .element(HexButton::new([1.0, 1.0, 0.0], (-0.20, -0.17), 2.0, 
-            //         "Slice -", ui::C_ORANGE)
-            //     .mouse_input_handler(Box::new(|_, _, window| { 
-            //         // if window.grid_size > 2 { window.grid_size -= 1; };
-            //         MouseInputEventResult::None
-            //     }))
-            // )
-
-            // .element(HexButton::new([1.0, 1.0, 0.0], (-0.095, -0.07), 0.22, 
-            //         "* 2", ui::C_ORANGE)
-            //     .mouse_input_handler(Box::new(|_, _, window| { 
-            //             if window.grid_size < super::MAX_GRID_SIZE { window.grid_size *= 2; }
-            //             MouseInputEventResult::None
-            //     }))
-            // )    
-
-            // .element(HexButton::new([1.0, 1.0, 0.0], (-0.095, -0.17), 0.22, 
-            //         "/ 2", ui::C_ORANGE)
-            //     .mouse_input_handler(Box::new(|_, _, window| { 
-            //         if window.grid_size >= 4 { window.grid_size /= 2; }
-            //         MouseInputEventResult::None
-            //     }))
-            // )
-
             .element(HexButton::new([1.0, -1.0, 0.0], (-0.57, 0.60), 1.8, 
-                    "View One", ui::C_ORANGE)
+                    "View Output", ui::C_ORANGE)
                 .mouse_input_handler(Box::new(|_, _, _| {
                     // window.control_tx.send(CyCtl::Iterate(window.iters_pending))
                     //     .expect("View All Button button");
@@ -217,7 +186,7 @@ impl Window {
 
         // Main window data struct:
         let mut window = Window {
-            cycle_status: CyStatus::new(),
+            cycle_status: Status::new(),
             area_name: area_name,
             // tract_map: tract_map,
             stats: WindowStats::new(),
@@ -227,6 +196,7 @@ impl Window {
             control_tx: control_tx,
             result_rx: result_rx,
             hex_grid_buf: hex_grid_buf,
+            hex_grid_buf_is_clear: false,
         };
 
         // // Print some stuff:
@@ -240,7 +210,12 @@ impl Window {
         ///////////////////// Primary Event & Rendering Loop /////////////////////
         //////////////////////////////////////////////////////////////////////////
         loop {
+            // Get read for new input:
             ui.set_input_stale();
+
+            // Create draw target and clear color and depth:
+            let mut target = display.draw();
+            target.clear_color_and_depth((0.030, 0.050, 0.080, 1.0), 1.0);
 
             // Check cycle status:
             window.recv_cycle_results();
@@ -250,22 +225,26 @@ impl Window {
                 ui.handle_event(ev, &mut window);
             }
 
-            // Create draw target and clear color and depth:
-            let mut target = display.draw();
-            target.clear_color_and_depth((0.030, 0.050, 0.080, 1.0), 1.0);
-
             // Current ganglion range:
             let cur_axn_range = window.hex_grid_buf.cur_axn_range();
 
-            // Refresh ganglion states:
-            window.control_tx.send(CyCtl::Sample(cur_axn_range, window.hex_grid_buf.raw_states_vec()))
-                .expect("Sample raw states");
+            // If the hex grid buffer is not clear, e.g. a sample request is
+            // pending, refresh the device vertex buffer to prepare for the draw.
+            if !window.hex_grid_buf_is_clear {
+                window.hex_grid_buf_is_clear = window.hex_grid_buf.refresh_vertex_buf();
+            }
 
-            // window.hex_grid_buf.fill_rand();
-            window.hex_grid_buf.refresh_vertex_buf();
+            // If the hex grid buffer is now clear, send a new refresh request
+            // for the next frame, otherwise, the previous request is still
+            // pending so do nothing.
+            if window.hex_grid_buf_is_clear {
+                window.control_tx.send(CyCtl::Sample(cur_axn_range, window.hex_grid_buf.raw_states_vec()))
+                    .expect("Sample raw states");
+                window.hex_grid_buf_is_clear = false;
+            }
 
             // Draw hex grid:
-            hex_grid.draw(&mut target, /*grid_dims,*/ window.stats.elapsed_ms(), &window.hex_grid_buf);
+            hex_grid.draw(&mut target, window.stats.elapsed_ms(), &window.hex_grid_buf);
 
             // Draw status text:
             status_text.draw(&mut target, &window.cycle_status, &window.stats, &window.area_name);
@@ -303,12 +282,12 @@ impl Window {
             match self.result_rx.try_recv() {
                 Ok(cr) => {
                     match cr {
-                        CyRes::Status(cysts) => self.cycle_status = cysts,
-                        CyRes::CurrentAreaInfo(area_name, out_slc_range, tract_map) => {
-                            self.area_name = area_name;
-                            self.hex_grid_buf.set_default_slc_range(out_slc_range);
+                        CyRes::Status(cysts) => self.cycle_status = *cysts,
+                        CyRes::AreaInfo(box info) => {
+                            let AreaInfo { name, aff_out_slc_range, tract_map } = info;
+                            self.area_name = name;
+                            self.hex_grid_buf.set_default_slc_range(aff_out_slc_range);
                             self.hex_grid_buf.set_tract_map(tract_map);
-                            // [FIXME] TODO: Update ganglion buffer somehow.
                         },
                         // _ => (),
                     }

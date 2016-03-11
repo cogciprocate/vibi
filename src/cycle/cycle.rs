@@ -39,15 +39,21 @@ pub enum CyCtl {
 #[derive(Clone)]
 pub enum CyRes {
     // None,
-    Status(CyStatus),
-    CurrentAreaInfo(String, Range<u8>, SliceTractMap),
+    Status(Box<Status>),
+    AreaInfo(Box<AreaInfo>),
     // OtherShit(SliceTractMap),
 }
 
+#[derive(Clone)] 
+pub struct AreaInfo {
+    pub name: String, 
+    pub aff_out_slc_range: Range<u8>, 
+    pub tract_map: SliceTractMap,
+}
 
 /// Cycle status.
 #[derive(Clone)]
-pub struct CyStatus {
+pub struct Status {
     // pub dims: (u32, u32),
     pub cur_cycle: u32,
     pub ttl_cycles: u32,
@@ -55,9 +61,9 @@ pub struct CyStatus {
     pub ttl_elapsed: Duration,
 }
 
-impl CyStatus {
-    pub fn new(/*dims: (u32, u32)*/) -> CyStatus {
-        CyStatus {
+impl Status {
+    pub fn new(/*dims: (u32, u32)*/) -> Status {
+        Status {
             // dims: dims,
             cur_cycle: 0,
             ttl_cycles: 0,
@@ -78,14 +84,14 @@ impl CyStatus {
 
 struct RunInfo {
     cortex: Cortex,
-    test_iters: u32, 
+    cycle_iters: u32, 
     bypass_act: bool, 
     autorun_iters: u32, 
     first_run: bool, 
     view_all_axons: bool, 
     view_sdr_only: bool,
     area_name: String,
-    status: CyStatus,    
+    status: Status,    
     loop_start_time: Timespec,
 }
 
@@ -114,7 +120,7 @@ impl CycleLoop {
         
         let mut ri = RunInfo {
             cortex: cortex,
-            test_iters: if autorun_iters > 0 {
+            cycle_iters: if autorun_iters > 0 {
                     autorun_iters
                 } else {
                     INITIAL_TEST_ITERATIONS
@@ -125,7 +131,7 @@ impl CycleLoop {
             view_all_axons: false, 
             view_sdr_only: true,
             area_name: area_name,
-            status: CyStatus::new(/*area_dims*/),
+            status: Status::new(/*area_dims*/),
             loop_start_time: time::get_time(),
         };
 
@@ -135,18 +141,18 @@ impl CycleLoop {
             if GUI_CONTROL {
                 match control_rx.recv() {
                     Ok(cyctl) => match cyctl {
-                        CyCtl::Iterate(i) => ri.test_iters = i,
+                        CyCtl::Iterate(i) => ri.cycle_iters = i,
                         CyCtl::Exit => break,
                         CyCtl::Sample(range, buf) => {
                             refresh_hex_grid_buf(&ri, range, buf);
                             continue;
                         },
                         CyCtl::RequestCurrentAreaInfo => {
-                            result_tx.send(CyRes::CurrentAreaInfo(
-                                    ri.area_name.to_string(),
-                                    ri.cortex.area(&ri.area_name).area_map().aff_out_slc_range(),
-                                    ri.cortex.area(&ri.area_name).axn_tract_map()
-                                )).expect("Error sending area name.");
+                            result_tx.send(CyRes::AreaInfo(Box::new(AreaInfo {
+                                name: ri.area_name.to_string(),
+                                aff_out_slc_range: ri.cortex.area(&ri.area_name).area_map().aff_out_slc_range(),
+                                tract_map: ri.cortex.area(&ri.area_name).axn_tract_map(),
+                            }))).expect("Error sending area info.");
                             continue;
                         },
                         _ => continue,
@@ -166,8 +172,8 @@ impl CycleLoop {
             ri.status.cur_cycle = 0;
             ri.status.cur_elapsed = Duration::seconds(0);
 
-            if ri.test_iters > 1 {
-                print!("Running {} iterations... \n", ri.test_iters);
+            if ri.cycle_iters > 1 {
+                print!("Running {} iterations... \n", ri.cycle_iters);
             }
 
             match loop_cycles(&mut ri, &control_rx, &mut result_tx) {
@@ -185,7 +191,7 @@ impl CycleLoop {
             ri.status.ttl_elapsed = ri.status.ttl_elapsed + ri.status.cur_elapsed;
             ri.status.cur_cycle = 0;
             ri.status.cur_elapsed = Duration::seconds(0);
-            result_tx.send(CyRes::Status(ri.status.clone())).ok();
+            result_tx.send(CyRes::Status(Box::new(ri.status.clone()))).ok();
         }
 
         println!("");
@@ -196,11 +202,15 @@ impl CycleLoop {
 
 fn refresh_hex_grid_buf(ri: &RunInfo, _: Range<usize>, buf: Arc<Mutex<Vec<u8>>>) {
     // println!("###### cycle::refresh_hex_grid_buf(): range: {:?}", range);
-
-    match buf.lock() {
+    // match buf.lock() {
+    //     // Ok(ref mut b) => ri.cortex.area(&ri.area_name).sample_aff_out(&mut b[range]),
+    //     Ok(ref mut b) => ri.cortex.area(&ri.area_name).sample_axn_space(b),
+    //     Err(e) => panic!("Error locking tract buffer mutex: {:?}", e),
+    // }
+    match buf.try_lock() {
         // Ok(ref mut b) => ri.cortex.area(&ri.area_name).sample_aff_out(&mut b[range]),
         Ok(ref mut b) => ri.cortex.area(&ri.area_name).sample_axn_space(b),
-        Err(e) => panic!("Error locking tract buffer mutex: {:?}", e),
+        Err(_) => (),
     }
 }
 
@@ -219,15 +229,15 @@ fn cps(cycle: u32, elapsed: Duration) -> f32 {
 fn loop_cycles(ri: &mut RunInfo, control_rx: &Receiver<CyCtl>, result_tx: &mut Sender<CyRes>)
         -> CyCtl
 {
-    if !ri.view_sdr_only { print!("\nRunning {} sense only loop(s) ... \n", ri.test_iters - 1); }
+    if !ri.view_sdr_only { print!("\nRunning {} sense only loop(s) ... \n", ri.cycle_iters - 1); }
     
     loop {
-        if ri.status.cur_cycle >= (ri.test_iters - 1) { break; }        
+        if ri.status.cur_cycle >= (ri.cycle_iters - 1) { break; }        
 
         let t = time::get_time() - ri.loop_start_time;
 
-        if ri.status.cur_cycle % STATUS_EVERY == 0 || ri.status.cur_cycle == (ri.test_iters - 2) {            
-            if ri.status.cur_cycle > 0 || (ri.test_iters > 1 && ri.status.cur_cycle == 0) {
+        if ri.status.cur_cycle % STATUS_EVERY == 0 || ri.status.cur_cycle == (ri.cycle_iters - 2) {            
+            if ri.status.cur_cycle > 0 || (ri.cycle_iters > 1 && ri.status.cur_cycle == 0) {
                 print!("[{}: {:01}ms]", ri.status.cur_cycle, t.num_milliseconds());
             }
             io::stdout().flush().ok();
@@ -254,6 +264,10 @@ fn loop_cycles(ri: &mut RunInfo, control_rx: &Receiver<CyCtl>, result_tx: &mut S
                     //     range);
                     refresh_hex_grid_buf(&ri, range, buf);
                 },
+                CyCtl::Stop => {
+                    // println!("\nSTOP RECIEVED!\n");
+                    return CyCtl::Stop;
+                },
                 // Otherwise return with the control code:
                 _ => return c,
             }
@@ -262,7 +276,7 @@ fn loop_cycles(ri: &mut RunInfo, control_rx: &Receiver<CyCtl>, result_tx: &mut S
         // Update and send status:
         ri.status.cur_cycle += 1;
         ri.status.cur_elapsed = t;
-        result_tx.send(CyRes::Status(ri.status.clone())).ok();
+        result_tx.send(CyRes::Status(Box::new(ri.status.clone()))).ok();
     }
 
     CyCtl::None
@@ -278,7 +292,7 @@ fn cycle_print(ri: &mut RunInfo) -> LoopAction {
     }
 
     if !ri.view_sdr_only {
-        print!("\n\n=== Iteration {}/{} ===", ri.status.cur_cycle, ri.test_iters);
+        print!("\n\n=== Iteration {}/{} ===", ri.status.cur_cycle, ri.cycle_iters);
 
         if false {
             print!("\nSENSORY INPUT VECTOR:");
@@ -309,8 +323,8 @@ fn cycle_print(ri: &mut RunInfo) -> LoopAction {
                 / ri.status.cur_elapsed.num_milliseconds() as f32) * 1000.0);
     }    
 
-    if ri.test_iters > 1000 {
-        ri.test_iters = 1;
+    if ri.cycle_iters > 1000 {
+        ri.cycle_iters = 1;
     }
 
     if ri.autorun_iters > 0 {
@@ -324,8 +338,8 @@ fn cycle_print(ri: &mut RunInfo) -> LoopAction {
 
 
 fn prompt(ri: &mut RunInfo) -> LoopAction {
-    if ri.test_iters == 0 {
-        ri.test_iters = 1;
+    if ri.cycle_iters == 0 {
+        ri.cycle_iters = 1;
         ri.bypass_act = true; 
     } else {
         ri.bypass_act = false;
@@ -342,7 +356,7 @@ fn prompt(ri: &mut RunInfo) -> LoopAction {
             rin(format!("bismit: [{ttl_i}/({loop_i})]: [v]iew:[{}] [a]xons:[{}] \
                 [m]otor:[X] a[r]ea:[{}] [t]ests [q]uit [i]ters:[{iters}]", 
                 view_state, axn_state, ri.area_name, 
-                iters = ri.test_iters,
+                iters = ri.cycle_iters,
                 loop_i = 0, //input_czar.counter(), 
                 ttl_i = ri.status.ttl_cycles,
             ))
@@ -353,14 +367,14 @@ fn prompt(ri: &mut RunInfo) -> LoopAction {
             print!("\nExiting interactive test mode... ");
             return LoopAction::Break;
         } else if "i\n" == in_string {
-            let in_s = rin(format!("Iterations: [i={}]", ri.test_iters));
+            let in_s = rin(format!("Iterations: [i={}]", ri.cycle_iters));
             if "\n" == in_s {
                 return LoopAction::Continue;
             } else {
                 let in_int = parse_iters(&in_s);
                 match in_int {
                     Ok(x)    => {
-                         ri.test_iters = x;
+                         ri.cycle_iters = x;
                          return LoopAction::None;
                     },
                     Err(_) => {
@@ -478,7 +492,7 @@ fn prompt(ri: &mut RunInfo) -> LoopAction {
                 //input_czar.motor_state.switch();
                 //println!("\nREPLACE ME - synapse_sources::run() - line 100ish");
                 return LoopAction::Continue;
-                //test_iters = TEST_ITERATIONS;
+                //cycle_iters = TEST_ITERATIONS;
 
             } else {
                 return LoopAction::Continue;

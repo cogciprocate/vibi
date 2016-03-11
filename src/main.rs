@@ -1,3 +1,5 @@
+#![feature(box_patterns)]
+
 #[macro_use] extern crate glium;
 extern crate glium_text;
 extern crate image;
@@ -9,26 +11,12 @@ extern crate vecmath;
 extern crate rustc_serialize;
 extern crate rand;
 #[macro_use] extern crate colorify;
-// #[macro_use] extern crate conrod;
-// extern crate piston_window;
-// extern crate elmesque;
-// extern crate gfx_graphics;
-// extern crate graphics;
-// extern crate opengl_graphics;
-// extern crate piston;
-
-// 
-// use cycle::loop_cycles::{ self };
-// use window_conrod as window;
 
 #[macro_use] mod cycle;
 mod config;
 mod window;
 mod util;
 mod ui;
-
-// mod conrod_draw;
-// mod widgets;
 
 
 fn main() {

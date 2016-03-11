@@ -10,7 +10,7 @@ use glium::backend::Facade;
 // use glium::backend::glutin_backend::{ GlutinFacade };
 
 use window::WindowStats;
-use cycle::CyStatus;
+use cycle::Status;
 
 const TEXT_SCALE: f32 = 0.018;
 const TEXT_COLOR: (f32, f32, f32, f32) = (0.99, 0.99, 0.99, 1.0);
@@ -61,7 +61,7 @@ impl StatusText {
         glium_text::draw(&text_display, &self.text_system, target, text_xform, self.color);
     }
 
-    pub fn draw<S>(&self, target: &mut S, cycle_status: &CyStatus, window_stats: &WindowStats, 
+    pub fn draw<S>(&self, target: &mut S, cycle_status: &Status, window_stats: &WindowStats, 
                 /*grid_dims: (u32, u32),*/ area_name: &str)
             where S: glium::Surface
     {

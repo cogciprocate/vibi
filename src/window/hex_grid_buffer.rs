@@ -45,7 +45,8 @@ impl HexGridBuffer {
         //     BufferMode::Persistent).unwrap();
         let vec_ref = unsafe { &*(&raw_states_vec as *const Vec<u8> 
             as *const _ as *const Vec<StateVertex>) };
-        let raw_states_buf = VertexBuffer::dynamic(display, vec_ref).unwrap();
+        // let raw_states_buf = VertexBuffer::dynamic(display, vec_ref).unwrap();
+        let raw_states_buf = VertexBuffer::persistent(display, vec_ref).unwrap();
 
 
         HexGridBuffer {            
@@ -60,30 +61,28 @@ impl HexGridBuffer {
         }
     }
 
-    fn write_to_buf(&self, raw_states: &Vec<u8>) {
+    fn write_to_buf(&self, raw_states: &Vec<u8>) -> bool {
         let vec_ref = unsafe { &*(raw_states as *const Vec<u8> 
             as *const _ as *const Vec<StateVertex>) };
         self.raw_states_buf.write(&vec_ref);
+        true
     }
 
     /// Refreshes the per-instance data within our vertex buffer.
     ///
-    ///  *If* a lock on `raw_states_vec` can be obtained (if it's not currently
-    ///  being written to by another thread): converts the u8s in `raw_states_vec`
-    ///  to floats, store them in `state_vertices`, then writes the contents
-    ///  of `state_vertices` to `vertex_buf`.
+    /// *If* a lock on `raw_states_vec` can be obtained (if it's not currently
+    /// being written to by another thread): converts the u8s in `raw_states_vec`
+    /// to floats, store them in `state_vertices`, then writes the contents
+    /// of `state_vertices` to `vertex_buf`.
     ///
-    /// Set `smooth_refresh` to true for smoother refreshes at the cost of
+    /// Set `SMOOTH_REFRESH` to true for smoother refreshes at the cost of
     /// slower cycling.
     ///
     /// This is an opportunistic refresh, it will sometimes do nothing at all.
-    pub fn refresh_vertex_buf(&mut self) {
+    pub fn refresh_vertex_buf(&mut self) -> bool {
         if SMOOTH_REFRESH {
             match self.raw_states_vec.lock() {
                 Ok(ref raw_states_vec) => {
-                    // let vec_ref = unsafe { &*(&(raw_states_vec.deref()) as *const Vec<u8> 
-                    //     as *const _ as *const Vec<StateVertex>) };
-                    // self.raw_states_buf.write(&vec_ref)
                     self.write_to_buf(raw_states_vec)
                 },
                 Err(err) => panic!(err.to_string()),
@@ -91,24 +90,11 @@ impl HexGridBuffer {
         } else {
             match self.raw_states_vec.try_lock() {
                 Ok(ref raw_states_vec) => {
-                    // let vec_ref = unsafe { &*(&(raw_states_vec.deref()) as *const Vec<u8> 
-                    //     as *const _ as *const Vec<StateVertex>) };
-                    // self.raw_states_buf.write(&raw_states_vec),
                     self.write_to_buf(raw_states_vec)
                 },
-                Err(_) => return,
+                Err(_) => false,
             }
         }
-
-        // debug_assert!(raw_states_vec.len() == self.state_vertices.len());
-
-        // for (&rs, ref mut sv) in raw_states_vec.iter().zip(self.state_vertices.iter_mut()) {
-        //     sv.state = (rs as f32) / 255.0;
-        // }
-
-        // self.vertex_buf.write(&self.state_vertices);  
-        // self.vertex_buf.write(&raw_states_vec);
-        // self.raw_states_buf.write(&raw_states_vec);
     }
 
     pub fn set_default_slc_range(&mut self, slc_range: Range<u8>) {
