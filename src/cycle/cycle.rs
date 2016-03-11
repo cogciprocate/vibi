@@ -2,6 +2,7 @@ use std::ops::Range;
 use std::io::{self, Write};
 use std::sync::mpsc::{Sender, Receiver};
 use std::sync::{Arc, Mutex};
+use std::str::{FromStr};
 use time::{self, Timespec, Duration};
 
 use bismit::cortex::{self, Cortex};
@@ -9,7 +10,6 @@ use bismit::input_source::{InputTract};
 use bismit::map::SliceTractMap;
 
 use config;
-use interactive;
 
 const INITIAL_TEST_ITERATIONS: u32     = 1; 
 const STATUS_EVERY: u32             = 5000;
@@ -72,14 +72,6 @@ impl CyStatus {
 
     pub fn cur_cps(&self) -> f32 {
         cps(self.cur_cycle, self.cur_elapsed)
-    }
-}
-
-fn cps(cycle: u32, elapsed: Duration) -> f32 {
-    if elapsed.num_milliseconds() > 0 {
-        (cycle as f32 / elapsed.num_milliseconds() as f32) * 1000.0
-    } else {
-        0.0
     }
 }
 
@@ -202,10 +194,6 @@ impl CycleLoop {
     }
 }
 
-
-// #############################################################
-// #############################################################
-// #############################################################
 fn refresh_hex_grid_buf(ri: &RunInfo, _: Range<usize>, buf: Arc<Mutex<Vec<u8>>>) {
     // println!("###### cycle::refresh_hex_grid_buf(): range: {:?}", range);
 
@@ -215,10 +203,18 @@ fn refresh_hex_grid_buf(ri: &RunInfo, _: Range<usize>, buf: Arc<Mutex<Vec<u8>>>)
         Err(e) => panic!("Error locking tract buffer mutex: {:?}", e),
     }
 }
-// #############################################################
-// #############################################################
-// #############################################################
 
+pub fn parse_iters(in_s: &str) -> Result<u32, <u32 as FromStr>::Err> {
+    in_s.trim().replace("k","000").replace("m","000000").parse()
+}
+
+fn cps(cycle: u32, elapsed: Duration) -> f32 {
+    if elapsed.num_milliseconds() > 0 {
+        (cycle as f32 / elapsed.num_milliseconds() as f32) * 1000.0
+    } else {
+        0.0
+    }
+}
 
 fn loop_cycles(ri: &mut RunInfo, control_rx: &Receiver<CyCtl>, result_tx: &mut Sender<CyRes>)
         -> CyCtl
@@ -361,7 +357,7 @@ fn prompt(ri: &mut RunInfo) -> LoopAction {
             if "\n" == in_s {
                 return LoopAction::Continue;
             } else {
-                let in_int = interactive::parse_iters(&in_s);
+                let in_int = parse_iters(&in_s);
                 match in_int {
                     Ok(x)    => {
                          ri.test_iters = x;

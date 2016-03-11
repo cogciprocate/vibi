@@ -10,7 +10,7 @@ use glium::backend::Facade;
 // use glium::backend::glutin_backend::{ GlutinFacade };
 
 use window::WindowStats;
-use interactive::CyStatus;
+use cycle::CyStatus;
 
 const TEXT_SCALE: f32 = 0.018;
 const TEXT_COLOR: (f32, f32, f32, f32) = (0.99, 0.99, 0.99, 1.0);

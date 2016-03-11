@@ -18,10 +18,10 @@ extern crate rand;
 // extern crate piston;
 
 // 
-// use interactive::loop_cycles::{ self };
+// use cycle::loop_cycles::{ self };
 // use window_conrod as window;
 
-#[macro_use] mod interactive;
+#[macro_use] mod cycle;
 mod config;
 mod window;
 mod util;
@@ -48,7 +48,7 @@ fn main() {
     }).expect("Error creating 'win' thread");
 
     let th_vis = thread::Builder::new().name("vis".to_string()).spawn(move || {
-        interactive::CycleLoop::run(0, control_rx, result_tx);
+        cycle::CycleLoop::run(0, control_rx, result_tx);
     }).expect("Error creating 'vis' thread");
 
     if let Err(e) = th_win.join() { println!("th_win.join(): Error: '{:?}'", e); }

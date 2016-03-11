@@ -1,7 +1,7 @@
 use std::sync::mpsc::{Receiver, Sender};
 use time::{self, Timespec, Duration};
 use glium::{self, DisplayBuild, Surface};
-use interactive::{CyCtl, CyRes, CyStatus};
+use cycle::{CyCtl, CyRes, CyStatus};
 use window::{HexGrid, StatusText};
 use ui::{self, Pane, MouseInputEventResult, KeyboardInputEventResult, TextBox, HexButton};
 use super::HexGridBuffer;

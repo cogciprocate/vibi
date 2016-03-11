@@ -52,24 +52,36 @@ impl HexGridBuffer {
 
     /// Refreshes the per-instance data within our vertex buffer.
     ///
-    ///  *If* a lock on `raw_states` can be obtained (if it's not currently being written to by another thread): converts the u8s in `raw_states` to floats, store them in `state_vertices`, then writes the contents of `state_vertices` to `vertex_buf`.
+    ///  *If* a lock on `raw_states` can be obtained (if it's not currently
+    ///  being written to by another thread): converts the u8s in `raw_states`
+    ///  to floats, store them in `state_vertices`, then writes the contents
+    ///  of `state_vertices` to `vertex_buf`.
+    ///
+    /// Set `smooth_refresh` to true for smoother refreshes at the cost of
+    /// slower cycling.
     ///
     /// This is an opportunistic refresh, it will sometimes do nothing at all.
     pub fn refresh_vertex_buf(&mut self) {
-        // let raw_states_ptr = self.raw_states.clone();
-        // let raw_states_res = raw_states_ptr.try_lock();
+        let smooth_refresh = false;
 
-        // Change to .lock() for smoother refreshes at the cost of slower cycling:        
-        // if let Ok(ref raw_states) = self.raw_states.try_lock() {
-        if let Ok(ref raw_states) = self.raw_states.lock() {
-            debug_assert!(raw_states.len() == self.state_vertices.len());
-
-            for (&rs, ref mut sv) in raw_states.iter().zip(self.state_vertices.iter_mut()) {
-                sv.state = (rs as f32) / 255.0;
+        let raw_states = if smooth_refresh {
+            match self.raw_states.lock() {
+                Ok(raw_states) => raw_states,
+                Err(err) => panic!(err.to_string()),
             }
+        } else {
+            match self.raw_states.try_lock() {
+                Ok(raw_states) => raw_states,
+                Err(_) => return,
+            }
+        };
 
-            self.vertex_buf.write(&self.state_vertices);
-        }        
+        debug_assert!(raw_states.len() == self.state_vertices.len());
+
+        for (&rs, ref mut sv) in raw_states.iter().zip(self.state_vertices.iter_mut()) {
+            sv.state = (rs as f32) / 255.0;
+        }
+        self.vertex_buf.write(&self.state_vertices);  
     }
 
     pub fn set_default_slc_range(&mut self, slc_range: Range<u8>) {
