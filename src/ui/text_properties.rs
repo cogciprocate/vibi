@@ -1,12 +1,12 @@
 #![allow(dead_code)]
 use glium_text::{TextSystem, FontTexture, TextDisplay};
-use window::{TextAlign};
+use ui::{TextAlign};
 
 pub const DEFAULT_TEXT_COLOR: (f32, f32, f32, f32) = (0.01, 0.01, 0.01, 1.0);
 pub const TEXT_BASE_SCALE: f32 = 0.39;
 
 
-pub struct TextProperties {
+pub struct ElementText {
     pub string: String,
     pub color: (f32, f32, f32, f32),
     pub base_scale: f32,
@@ -17,12 +17,12 @@ pub struct TextProperties {
     pub cur_center_pos: (f32, f32),
 }
 
-impl TextProperties {
-    pub fn new(new_str: &str) -> TextProperties {
+impl ElementText {
+    pub fn new(new_str: &str) -> ElementText {
         let mut string = String::with_capacity(64);
         string.push_str(new_str);
 
-        TextProperties {
+        ElementText {
             string: string,
             color: DEFAULT_TEXT_COLOR,
             base_scale: TEXT_BASE_SCALE,
@@ -34,7 +34,7 @@ impl TextProperties {
         }
     }
 
-    pub fn color(mut self, color: (f32, f32, f32, f32)) -> TextProperties {
+    pub fn color(mut self, color: (f32, f32, f32, f32)) -> ElementText {
         self.color = color;
         self
     }

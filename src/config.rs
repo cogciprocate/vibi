@@ -1,3 +1,4 @@
+// use find_folder::Search;
 use bismit::cortex::{Cortex};
 use bismit::map::{self, LayerTags};
 use bismit::proto::{ProtolayerMap, ProtolayerMaps, ProtoareaMaps, Axonal, Spatial, Horizontal, 
@@ -41,6 +42,7 @@ pub fn define_plmaps() -> ProtolayerMaps {
 pub fn define_pamaps() -> ProtoareaMaps {
     const AREA_SIDE: u32 = 32;
     // const CYCLES_PER_FRAME: usize = 1;
+    // let file_name = Search::ParentsThenKids(3, 3).for_folder("data").unwrap().join("kernel_file.cl");
 
     ProtoareaMaps::new()        
         //let mut ir_labels = IdxStreamer::new(CorticalDims::new(1, 1, 1, 0, None), "data/train-labels-idx1-ubyte", 1);

@@ -1,25 +1,7 @@
-use glium::glutin::{VirtualKeyCode, ElementState};
-use glium::glutin::VirtualKeyCode::*;
-use window::{KeyboardState};
+// use glium::glutin::{VirtualKeyCode, ElementState};
+// use glium::glutin::VirtualKeyCode::*;
+// use ui::{KeyboardState};
 
-pub fn key_into_string(key_state: ElementState, vk_code: Option<VirtualKeyCode>, kb_state: &KeyboardState, 
-            string: &mut String) 
-{
-    if let ElementState::Pressed = key_state {
-        match vk_code {
-            Some(Back) => {
-                string.pop();
-            },
-
-            _ => {
-                if let Some(mut c) = map_vkc(vk_code) {                    
-                    if kb_state.shift { c = c.to_uppercase().next().unwrap_or(c); }
-                    string.push(c);                
-                }
-            },
-        }
-    }
-}
 
 /// Brighten or darken a single color component. 
 ///
@@ -46,60 +28,6 @@ pub fn adjust_color(color: [f32; 4], amount: f32) -> [f32; 4] {
         color[3],
     ]
 }
-
-// [FIXME]: TODO: 
-// - Consider using a hashmap? Could be more efficient.
-pub fn map_vkc(vkc: Option<VirtualKeyCode>) -> Option<char> {
-    if let Some(vkc) = vkc { 
-        match vkc {
-            Key1 | Numpad0 => Some('1'),
-            Key2 | Numpad1 => Some('2'),
-            Key3 | Numpad2 => Some('3'),
-            Key4 | Numpad3 => Some('4'),
-            Key5 | Numpad4 => Some('5'),
-            Key6 | Numpad5 => Some('6'),
-            Key7 | Numpad6 => Some('7'),
-            Key8 | Numpad7 => Some('8'),
-            Key9 | Numpad8 => Some('9'),
-            Key0 | Numpad9 => Some('0'),    
-
-            A => Some('a'),
-            B => Some('b'),
-            C => Some('c'),
-            D => Some('d'),
-            E => Some('e'),
-            F => Some('f'),
-            G => Some('g'),
-            H => Some('h'),
-            I => Some('i'),
-            J => Some('j'),
-            K => Some('k'),
-            L => Some('l'),
-            M => Some('m'),
-            N => Some('n'),
-            O => Some('o'),
-            P => Some('p'),
-            Q => Some('q'),
-            R => Some('r'),
-            S => Some('s'),
-            T => Some('t'),
-            U => Some('u'),
-            V => Some('v'),
-            W => Some('w'),
-            X => Some('x'),
-            Y => Some('y'),
-            Z => Some('z'),
-
-            Space => Some(' '),
-
-            _ => None
-
-        }
-    } else {
-        None
-    }
-}
-
 
 #[cfg(test)]
 mod tests {

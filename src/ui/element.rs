@@ -3,14 +3,17 @@
 use glium::Surface;
 use glium_text::{self, TextSystem, FontTexture, TextDisplay};
 use glium::glutin::{ElementState, MouseButton, VirtualKeyCode};
-use ui::{UiVertex, UiShape2d, TextProperties};
+use ui::{Vertex, Shape2d, HandlerOption, MouseInputHandler, 
+    KeyboardInputHandler, MouseInputEventResult, KeyboardInputEventResult, KeyboardState,};
 use util;
-use window::{self, MainWindow, HandlerOption, MouseInputHandler, 
-    KeyboardInputHandler, MouseInputEventResult, KeyboardInputEventResult, KeyboardState, TextBox, Button};
+use window::{Window, TextBox, Button};
+use ui::{self, TextAlign}; 
 
 pub const ELEMENT_BASE_SCALE: f32 = 0.07;
 pub const BORDER_SHADE: f32 = 0.1;
 pub const DEPRESS_SHADE: f32 = 0.1;
+pub const DEFAULT_TEXT_COLOR: (f32, f32, f32, f32) = (0.01, 0.01, 0.01, 1.0);
+pub const TEXT_BASE_SCALE: f32 = 0.39;
 
 // Notes:
 //
@@ -23,49 +26,113 @@ pub const DEPRESS_SHADE: f32 = 0.1;
 
 
 
-// pub struct UiElementBorderToggle {
+pub struct ElementText {
+    pub string: String,
+    pub color: (f32, f32, f32, f32),
+    pub base_scale: f32,
+    pub element_offset: (f32, f32),
+    pub align: TextAlign,
+    pub raw_width: f32,    
+    pub cur_scale: (f32, f32),
+    pub cur_center_pos: (f32, f32),
+}
+
+impl ElementText {
+    pub fn new(new_str: &str) -> ElementText {
+        let mut string = String::with_capacity(64);
+        string.push_str(new_str);
+
+        ElementText {
+            string: string,
+            color: DEFAULT_TEXT_COLOR,
+            base_scale: TEXT_BASE_SCALE,
+            element_offset: (0.0, 0.0),
+            align: TextAlign::Center,
+            raw_width: 0.0,
+            cur_scale: (0.0, 0.0), 
+            cur_center_pos: (0.0, 0.0),
+        }
+    }
+
+    pub fn color(mut self, color: (f32, f32, f32, f32)) -> ElementText {
+        self.color = color;
+        self
+    }
+
+    pub fn matrix(&self) -> [[f32; 4]; 4] {
+        [    
+            [self.cur_scale.0, 0.0, 0.0, 0.0,],
+            [0.0, self.cur_scale.1, 0.0, 0.0,],
+            [0.0, 0.0, 1.0, 0.0,],
+            [    
+                self.cur_center_pos.0, 
+                self.cur_center_pos.1, 
+                0.0, 1.0f32,
+            ],     
+        ]
+    }
+
+    pub fn set_raw_width(&mut self, ts: &TextSystem, ft: &FontTexture) {
+        let text_display = TextDisplay::new(ts, ft, &self.string);
+        self.raw_width = text_display.get_width();
+    }
+
+    pub fn get_color(&self) -> (f32, f32, f32, f32) {
+        self.color
+    }
+
+    // pub fn get_string(&self) -> &str {
+    //     &self.string
+    // }
+}
+
+
+
+
+
+// pub struct ElementBorderToggle {
 
 // }
 
-pub struct UiElementBorder {
+pub struct ElementBorder {
     thickness: f32,
     color: [f32; 4],
-    shape: UiShape2d,
+    shape: Shape2d,
     is_visible: bool,
 }
 
-// impl UiElementBorder {
-//     pub fn thin_black() -> UiElementBorder {
-//         UiElementBorder { thickness: 0.05, color: ui::C_BLACK }
+// impl ElementBorder {
+//     pub fn thin_black() -> ElementBorder {
+//         ElementBorder { thickness: 0.05, color: ui::C_BLACK }
 //     }
 // }
 
 #[allow(dead_code)]
-pub enum UiElementKind {
+pub enum ElementKind {
     Button(Button),
     Panel,
     TextBox(TextBox),
     TextField,
 }
 
-impl UiElementKind {
+impl ElementKind {
     pub fn is_depressable(&self) -> bool {
         match self {
-            &UiElementKind::Button(_) | &UiElementKind::TextBox(_) => true,
+            &ElementKind::Button(_) | &ElementKind::TextBox(_) => true,
             _ => false,
         }
     }
 
     // pub fn is_depressed(&self) -> bool {
     //     match self {
-    //         &UiElementKind::Button(ref button) => button.is_depressed(),
+    //         &ElementKind::Button(ref button) => button.is_depressed(),
     //         _ => false,
     //     }
     // }
 
     // pub fn depress(&mut self, depress: bool) {
     //     match self {
-    //         &mut UiElementKind::Button(ref mut button) => button.depress(depress),
+    //         &mut ElementKind::Button(ref mut button) => button.depress(depress),
     //         _ => (),
     //     }    
     // }
@@ -75,11 +142,11 @@ impl UiElementKind {
 // [FIXME]: TODO: 
 // - Revamp 'new()' into builder style functions.
 // - Clean up and consolidate stored positions, scales, etc.
-pub struct UiElement {
-    kind: UiElementKind,
-    text: TextProperties,
-    sub_elements: Vec<UiElement>,    
-    shape: UiShape2d,
+pub struct Element {
+    kind: ElementKind,
+    text: ElementText,
+    sub_elements: Vec<Element>,    
+    shape: Shape2d,
     is_depressed: bool,
     has_mouse_focus: bool,
     has_keybd_focus: bool,
@@ -88,27 +155,27 @@ pub struct UiElement {
     base_scale: (f32, f32),
     cur_scale: [f32; 3],
     cur_center_pos: [f32; 3],        
-    border: Option<UiElementBorder>,
+    border: Option<ElementBorder>,
     mouse_input_handler: HandlerOption<MouseInputHandler>,
     keyboard_input_handler: HandlerOption<KeyboardInputHandler>,
 }
 
-impl<'a> UiElement {
+impl<'a> Element {
     // [FIXME]: TODO: Sort out the whole dual border color/thickness issue (create a ::new()).
-    pub fn new(kind: UiElementKind, anchor_point: [f32; 3], anchor_ofs: [f32; 3], shape: UiShape2d,
-            ) -> UiElement
+    pub fn new(kind: ElementKind, anchor_point: [f32; 3], anchor_ofs: [f32; 3], shape: Shape2d,
+            ) -> Element
     {
         verify_position(anchor_point);
 
         let border_thickness = 0.05;
         let border_color = util::adjust_color(shape.color, BORDER_SHADE);
 
-        let border = Some(UiElementBorder { thickness: border_thickness, color: border_color,
+        let border = Some(ElementBorder { thickness: border_thickness, color: border_color,
             is_visible: false, shape: shape.as_border(border_thickness, border_color) });
 
-        UiElement { 
+        Element { 
             kind: kind,
-            text: TextProperties::new(""),
+            text: ElementText::new(""),
             sub_elements: Vec::with_capacity(0),
             shape: shape,
             is_depressed: false,
@@ -133,23 +200,23 @@ impl<'a> UiElement {
         }
     }
 
-    pub fn mouse_input_handler(mut self, mouse_input_handler: MouseInputHandler) -> UiElement {
+    pub fn mouse_input_handler(mut self, mouse_input_handler: MouseInputHandler) -> Element {
         self.mouse_input_handler = HandlerOption::Fn(mouse_input_handler);
         self
     }
 
-    pub fn keyboard_input_handler(mut self, keyboard_input_handler: KeyboardInputHandler) -> UiElement {
+    pub fn keyboard_input_handler(mut self, keyboard_input_handler: KeyboardInputHandler) -> Element {
         if let HandlerOption::None = self.keyboard_input_handler {
                 self.keyboard_input_handler = HandlerOption::Fn(keyboard_input_handler);
                 self
         } else {
-            panic!("UiElement::keyboard_input_handler(): Keyboard input already assigned \
+            panic!("Element::keyboard_input_handler(): Keyboard input already assigned \
                 to: '{:?}'", self.keyboard_input_handler);
         }
     }
 
-    pub fn sub(mut self, mut sub_element: UiElement) -> UiElement {
-        sub_element.anchor_point[2] += window::SUBDEPTH;
+    pub fn sub(mut self, mut sub_element: Element) -> Element {
+        sub_element.anchor_point[2] += ui::SUBDEPTH;
         self.sub_elements.reserve_exact(1);
 
         if sub_element.keyboard_input_handler.is_some() {
@@ -157,7 +224,7 @@ impl<'a> UiElement {
                 let next_sub_ele_idx = self.sub_elements.len();
                 self.keyboard_input_handler = HandlerOption::Sub(next_sub_ele_idx);
             } else {
-                panic!("UiElement::sub(): Cannot assign a sub-element to handle keyboard \
+                panic!("Element::sub(): Cannot assign a sub-element to handle keyboard \
                     input if it has already been assigned. Current assignment: '{:?}'."
                     , self.keyboard_input_handler);
             }
@@ -167,28 +234,28 @@ impl<'a> UiElement {
         self
     }
 
-    pub fn text_string(mut self, text_string: &str) -> UiElement {
+    pub fn text_string(mut self, text_string: &str) -> Element {
         self.text.string = text_string.to_string();
         self
     }
 
-    pub fn text_color(mut self, color: (f32, f32, f32, f32)) -> UiElement {
+    pub fn text_color(mut self, color: (f32, f32, f32, f32)) -> Element {
         self.text.color = color;
         self
     }
 
-    pub fn text_offset(mut self, element_offset: (f32, f32)) -> UiElement {
+    pub fn text_offset(mut self, element_offset: (f32, f32)) -> Element {
         self.text.element_offset = element_offset;
         self
     }
 
-    pub fn border(mut self, thickness: f32, color: [f32; 4], is_visible: bool) -> UiElement {
-        self.border = Some(UiElementBorder { thickness: thickness, color: color, 
+    pub fn border(mut self, thickness: f32, color: [f32; 4], is_visible: bool) -> Element {
+        self.border = Some(ElementBorder { thickness: thickness, color: color, 
             is_visible: is_visible, shape: self.shape.as_border(thickness, color)});
         self
     }
 
-    pub fn vertices_raw(&self) -> &[UiVertex] {
+    pub fn vertices_raw(&self) -> &[Vertex] {
         &self.shape.vertices[..]
     }
 
@@ -196,7 +263,7 @@ impl<'a> UiElement {
         &self.shape.indices[..]
     }
 
-    pub fn vertices(&mut self, window_dims: (u32, u32), ui_scale: f32) -> Vec<UiVertex> {
+    pub fn vertices(&mut self, window_dims: (u32, u32), ui_scale: f32) -> Vec<Vertex> {
         // Element color:
         let color = if self.kind.is_depressable() && self.is_depressed {
                 util::adjust_color(self.shape.color, DEPRESS_SHADE)
@@ -230,14 +297,14 @@ impl<'a> UiElement {
         );        
 
         // Add vertices for this element's shape:
-        let mut vertices: Vec<UiVertex> = self.shape.vertices.iter().map(|&vrt| 
+        let mut vertices: Vec<Vertex> = self.shape.vertices.iter().map(|&vrt| 
                 vrt.transform(&self.cur_scale, &self.cur_center_pos)
                 .color(color)
             ).collect();
 
         // If we have a border, create a "shadow" of our shape...
         if let Some(ref border) = self.border {
-            let border_vertices: Vec<UiVertex> = if border.is_visible {
+            let border_vertices: Vec<Vertex> = if border.is_visible {
                 border.shape.vertices.iter().map(|&vrt| 
                         vrt.transform(&self.cur_scale, &self.cur_center_pos)
                     ).collect()
@@ -311,7 +378,7 @@ impl<'a> UiElement {
         &self.text.string
     }
 
-    pub fn text(&self) -> &TextProperties {
+    pub fn text(&self) -> &ElementText {
         &self.text
     }
 
@@ -362,7 +429,7 @@ impl<'a> UiElement {
     // [FIXME]: Unused Vars.
     #[allow(unused_variables)]
     pub fn handle_mouse_input(&mut self, state: ElementState, button: MouseButton, 
-                window: &mut MainWindow) -> MouseInputEventResult 
+                window: &mut Window) -> MouseInputEventResult 
     {
         let mut result = MouseInputEventResult::None;
 
@@ -397,12 +464,12 @@ impl<'a> UiElement {
     // [FIXME]: Error message (set up result type).
     #[allow(unused_variables)]
     pub fn handle_keyboard_input(&mut self, key_state: ElementState, vk_code: Option<VirtualKeyCode>, 
-                kb_state: &KeyboardState, window: &mut MainWindow) -> KeyboardInputEventResult 
+                kb_state: &KeyboardState, window: &mut Window) -> KeyboardInputEventResult 
     {
         let result = match self.keyboard_input_handler {
             HandlerOption::Fn(ref mut kih) => kih(key_state, vk_code, kb_state, &mut self.text.string, window),
             HandlerOption::Sub(ele_idx) => {
-                assert!(ele_idx < self.sub_elements.len(), "{}UiElement::handle_keyboard_input(): {}:{}",
+                assert!(ele_idx < self.sub_elements.len(), "{}Element::handle_keyboard_input(): {}:{}",
                     module_path!(), column!(), line!());
                 // print!("        Passing keyboard input, '{:?}::{:?}', to sub element '{}' --->", 
                 //     key_state, vk_code, ele_idx);
@@ -470,7 +537,7 @@ impl<'a> UiElement {
 fn verify_position(position: [f32; 3]) {
     assert!((position[0] <= 1.0 && position[0] >= -1.0) 
             || (position[1] <= 1.0 && position[1] >= -1.0), 
-        format!("UiElement::new(): Position out of range: [x: {}, y: {}, z:{}]. \
+        format!("Element::new(): Position out of range: [x: {}, y: {}, z:{}]. \
             'x' and 'y' must both be between -1.0 and 1.0.", 
             position[0], position[1], position[2])
     );

@@ -46,7 +46,7 @@ fn main() {
     let (control_tx, control_rx) = mpsc::channel();
 
     let th_win = thread::Builder::new().name("win".to_string()).spawn(move || {
-        window::MainWindow::open(control_tx, result_rx);
+        window::Window::open(control_tx, result_rx);
         // window::conrod::window_conrod::open(control_tx, result_rx);
     }).expect("Error creating 'win' thread");
 

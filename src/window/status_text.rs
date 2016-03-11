@@ -1,4 +1,5 @@
 // <<<<< THIS MODULE IS MARKED FOR DEPRICATION >>>>>
+// TODO: Convert this into a UiElement or something.
 
 #![allow(dead_code, unused_variables)]
 use glium_text::{self, TextSystem, FontTexture, TextDisplay};

@@ -3,15 +3,14 @@ use std::sync::mpsc::{Receiver, Sender};
 use interactive::{CyCtl, CyRes, CyStatus};
 use glium::{self, DisplayBuild, Surface};
 // use glium::glutin::{ElementState};
-use util;
-use window::{MouseInputEventResult, KeyboardInputEventResult, 
-    WindowStats, HexGrid, StatusText, TextBox, HexButton};
-use ui::{self, UiPane};
+// use util;
+use window::{WindowStats, HexGrid, StatusText, TextBox, HexButton};
+use ui::{self, Pane, MouseInputEventResult, KeyboardInputEventResult};
 use super::TractBuffer;
 
 
-// [FIXME]: Needs a rename. Anything containing 'Window' is misleading (UiPane is the window).
-pub struct MainWindow {
+// [FIXME]: Needs a rename. Anything containing 'Window' is misleading (Pane is the window).
+pub struct Window {
     pub cycle_status: CyStatus,
     pub area_name: String,
     // pub tract_map: SliceTractMap,
@@ -24,7 +23,7 @@ pub struct MainWindow {
     pub tract_buf: TractBuffer,
 }
 
-impl MainWindow {
+impl Window {
     pub fn open(control_tx: Sender<CyCtl>, result_rx: Receiver<CyRes>) {
         // // Get initial grid dims:
         // let grid_dims = match result_rx.recv().expect("Initial status reception error.") {
@@ -65,7 +64,7 @@ impl MainWindow {
         let status_text = StatusText::new(&display);
 
         // Primary user interface elements:
-        let mut ui = UiPane::new(&display)
+        let mut ui = Pane::new(&display)
             // .element(HexButton::new([1.0, 1.0, 0.0], (-0.20, -0.07), 2.0, 
             //         "Slice +", ui::C_ORANGE)
             //     .mouse_input_handler(Box::new(|_, _, window| {
@@ -118,7 +117,7 @@ impl MainWindow {
 
             .element(TextBox::new([1.0, -1.0, 0.0], (-0.385, 0.500), 4.45, 
                     "Iters:", ui::C_ORANGE, "1", Box::new(|key_state, vk_code, kb_state, text_string, window| {
-                        util::key_into_string(key_state, vk_code, kb_state, text_string);
+                        ui::key_into_string(key_state, vk_code, kb_state, text_string);
 
                         if let Ok(i) = text_string
                                 .trim()
@@ -166,7 +165,7 @@ impl MainWindow {
 
 
         // Main window data struct:
-        let mut window = MainWindow {
+        let mut window = Window {
             cycle_status: CyStatus::new(),
             area_name: area_name,
             // tract_map: tract_map,

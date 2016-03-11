@@ -1,9 +1,9 @@
 #[allow(dead_code)]
 
-use window::{self};
-use ui::UiVertex;
+// use window::{self};
+use ui::{self, Vertex};
 
-const BRDR_Z_OFFSET: f32 = window::SUBSUBDEPTH;
+const BRDR_Z_OFFSET: f32 = ui::SUBSUBDEPTH;
 
 #[derive(Clone, Copy)]
 struct Line {
@@ -14,18 +14,18 @@ struct Line {
 
 
 #[derive(Clone, Debug)]
-pub struct UiShape2d {
-    pub vertices: Vec<UiVertex>,
+pub struct Shape2d {
+    pub vertices: Vec<Vertex>,
     pub indices: Vec<u16>,
     pub perim: Vec<u16>,
     pub radii: (f32, f32),
     pub color: [f32; 4],
 }
 
-impl UiShape2d {
+impl Shape2d {
     pub fn rectangle(height: f32, width: f32, depth: f32, color: [f32; 4], 
-            // ) -> (Vec<UiVertex>, Vec<u16>, (f32, f32)) 
-            ) -> UiShape2d
+            // ) -> (Vec<Vertex>, Vec<u16>, (f32, f32)) 
+            ) -> Shape2d
     {
         let top = height / 2.0;
         let bot = -height / 2.0;
@@ -35,11 +35,11 @@ impl UiShape2d {
         let xy_normal = [0.0, 0.0];
 
         let vertices = vec![
-            UiVertex::new([ 0.0,      0.0,      depth], color, xy_normal, false),
-            UiVertex::new([ left,      top,      depth], color, xy_normal, true),
-            UiVertex::new([ right,      top,      depth], color, xy_normal, true),
-            UiVertex::new([ right,      bot,      depth], color, xy_normal, true),
-            UiVertex::new([ left,      bot,      depth], color, xy_normal, true),
+            Vertex::new([ 0.0,      0.0,      depth], color, xy_normal, false),
+            Vertex::new([ left,      top,      depth], color, xy_normal, true),
+            Vertex::new([ right,      top,      depth], color, xy_normal, true),
+            Vertex::new([ right,      bot,      depth], color, xy_normal, true),
+            Vertex::new([ left,      bot,      depth], color, xy_normal, true),
         ];
 
         // println!("\n\n##### Rectangle vertices: {:?}\n", vertices[0].position());
@@ -58,14 +58,14 @@ impl UiShape2d {
         let radii = (right, top);
 
         // (vertices, indices, radii)
-        UiShape2d { vertices: vertices, indices: indices, perim: perim, radii: radii, 
+        Shape2d { vertices: vertices, indices: indices, perim: perim, radii: radii, 
             color: color }    
     }
 
     
     pub fn hexagon_panel(height: f32, ew: f32, depth: f32, color: [f32; 4], 
-            // ) -> (Vec<UiVertex>, Vec<u16>, (f32, f32)) 
-            ) -> UiShape2d
+            // ) -> (Vec<Vertex>, Vec<u16>, (f32, f32)) 
+            ) -> Shape2d
     {
         // NOTE: width(x): 1.15470053838 (2/sqrt(3)), height(y): 1.0
         let sqrt_3_inv = 1.732050808;
@@ -75,13 +75,13 @@ impl UiShape2d {
         let hs = s * 0.5;
 
         let vertices = vec![
-            UiVertex::new([ 0.0,          0.0,      depth], color, [0.0, 0.0], false),
-            UiVertex::new([-(hs + ew),     a,       depth], color, [0.0, 0.0], true),
-            UiVertex::new([ hs + ew,      a,       depth], color, [0.0, 0.0], true),
-            UiVertex::new([ s + ew,      0.0,       depth], color, [0.0, 0.0], true),
-            UiVertex::new([ hs + ew,     -a,      depth], color, [0.0, 0.0], true),
-            UiVertex::new([-(hs + ew),     -a,       depth], color, [0.0, 0.0], true),
-            UiVertex::new([-(s + ew),       0.0,       depth], color, [0.0, 0.0], true),
+            Vertex::new([ 0.0,          0.0,      depth], color, [0.0, 0.0], false),
+            Vertex::new([-(hs + ew),     a,       depth], color, [0.0, 0.0], true),
+            Vertex::new([ hs + ew,      a,       depth], color, [0.0, 0.0], true),
+            Vertex::new([ s + ew,      0.0,       depth], color, [0.0, 0.0], true),
+            Vertex::new([ hs + ew,     -a,      depth], color, [0.0, 0.0], true),
+            Vertex::new([-(hs + ew),     -a,       depth], color, [0.0, 0.0], true),
+            Vertex::new([-(s + ew),       0.0,       depth], color, [0.0, 0.0], true),
         ];
 
         let indices = vec![
@@ -100,7 +100,7 @@ impl UiShape2d {
         let radii = (ew + (s * 0.75), a);
 
         // (vertices, indices, radii)
-        UiShape2d { vertices: vertices, indices: indices, perim: perim, radii: radii, 
+        Shape2d { vertices: vertices, indices: indices, perim: perim, radii: radii, 
             color: color }    
     }
 
@@ -123,7 +123,7 @@ impl UiShape2d {
     }
 
     /// Returns a shape with edges extended away from the center by the desired border thickness 't'.
-    pub fn as_border(&self, t: f32, color: [f32; 4]) -> UiShape2d {
+    pub fn as_border(&self, t: f32, color: [f32; 4]) -> Shape2d {
         let perim_edges = self.perim_edges();
         let mut border_lines = Vec::<Line>::with_capacity(perim_edges.len());
 
@@ -197,11 +197,11 @@ impl UiShape2d {
             // if l_idx > 1 { break; }
 
             vertices[vert_idx] = 
-                UiVertex::new([v_x, v_y, self.vertices[vert_idx].position()[2] + BRDR_Z_OFFSET],
+                Vertex::new([v_x, v_y, self.vertices[vert_idx].position()[2] + BRDR_Z_OFFSET],
                     color, [0.0, 0.0], self.vertices[vert_idx].is_perimeter());
         }
 
-        let new_shape = UiShape2d { 
+        let new_shape = Shape2d { 
             vertices: vertices, 
             indices: self.indices.clone(),
             perim: self.perim.clone(),

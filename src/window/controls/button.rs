@@ -1,5 +1,5 @@
 
-use ui::{UiShape2d, UiElement, UiElementKind};
+use ui::{Shape2d, Element, ElementKind};
 
 pub struct Button {
     is_depressed: bool,
@@ -24,11 +24,11 @@ pub struct HexButton;
 
 impl HexButton {
     pub fn new(anchor_pos: [f32; 3], offset: (f32, f32), extra_width: f32,
-            text: &str, color: [f32; 4]) -> UiElement
+            text: &str, color: [f32; 4]) -> Element
     {
-        let shape = UiShape2d::hexagon_panel(1.0, extra_width, 0.0, color);
+        let shape = Shape2d::hexagon_panel(1.0, extra_width, 0.0, color);
 
-        UiElement::new(UiElementKind::Button(Button::new()), anchor_pos, [offset.0, offset.1, 0.0], shape)
+        Element::new(ElementKind::Button(Button::new()), anchor_pos, [offset.0, offset.1, 0.0], shape)
             .text_string(text)
     }
 }

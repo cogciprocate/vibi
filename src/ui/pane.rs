@@ -5,16 +5,16 @@ use glium::backend::glutin_backend::GlutinFacade;
 use glium::{self, VertexBuffer, IndexBuffer, Program, DrawParameters, Surface};
 use glium::vertex::{EmptyInstanceAttributes as EIAttribs};
 use glium::glutin::{ElementState, MouseButton, Event, VirtualKeyCode};
-use window::{MainWindow, MouseState, KeyboardState, MouseInputEventResult};
-use ui::{self, UiVertex, UiElement};
+use window::{Window, };
+use ui::{self, Vertex, Element, MouseState, KeyboardState, MouseInputEventResult};
 
 const TWOSR3: f32 = 1.15470053838;
 const DEFAULT_UI_SCALE: f32 = 0.9;
 
-pub struct UiPane<'d> {
-    vbo: Option<VertexBuffer<UiVertex>>,
+pub struct Pane<'d> {
+    vbo: Option<VertexBuffer<Vertex>>,
     ibo: Option<IndexBuffer<u16>>,
-    elements: Vec<UiElement>,
+    elements: Vec<Element>,
     program: Program,
     params: DrawParameters<'d>,
     display: &'d GlutinFacade,
@@ -27,8 +27,8 @@ pub struct UiPane<'d> {
     keybd_focused: Option<usize>,
 }
 
-impl<'d> UiPane<'d> {
-    pub fn new(display: &'d GlutinFacade) -> UiPane<'d> {
+impl<'d> Pane<'d> {
+    pub fn new(display: &'d GlutinFacade) -> Pane<'d> {
         let scale = DEFAULT_UI_SCALE;
         let vbo = None;
         let ibo = None;
@@ -57,7 +57,7 @@ impl<'d> UiPane<'d> {
                 "/home/nick/projects/vibi/assets/fonts/NotoSans/NotoSans-Bold.ttf"
             )[..], font_size).unwrap();
 
-        UiPane { 
+        Pane { 
             vbo: vbo,
             ibo: ibo,
             elements: Vec::new(),
@@ -74,7 +74,7 @@ impl<'d> UiPane<'d> {
         }
     }
 
-    pub fn element(mut self, element: UiElement) -> UiPane<'d> {
+    pub fn element(mut self, element: Element) -> Pane<'d> {
         if self.vbo.is_some() || self.ibo.is_some() { 
             panic!("Ui::element(): [FIXME]: Cannot (yet) add element after initialization.") 
         }
@@ -83,8 +83,8 @@ impl<'d> UiPane<'d> {
         self
     }
 
-    pub fn init(mut self) -> UiPane<'d> {
-        let mut vertices: Vec<UiVertex> = Vec::new();
+    pub fn init(mut self) -> Pane<'d> {
+        let mut vertices: Vec<Vertex> = Vec::new();
         let mut indices: Vec<u16> = Vec::new();
 
         for element in self.elements.iter_mut() {
@@ -112,7 +112,7 @@ impl<'d> UiPane<'d> {
     pub fn refresh_vertices(&mut self) {
         match self.vbo {
             Some(ref mut vbo) => {
-                let mut vertices: Vec<UiVertex> = Vec::with_capacity(vbo.len());
+                let mut vertices: Vec<Vertex> = Vec::with_capacity(vbo.len());
 
                 for element in self.elements.iter_mut() {
 
@@ -129,7 +129,7 @@ impl<'d> UiPane<'d> {
         }
     }
 
-    pub fn handle_event(&mut self, event: Event, window: &mut MainWindow) {
+    pub fn handle_event(&mut self, event: Event, window: &mut Window) {
         use glium::glutin::Event::{Closed, Resized, KeyboardInput, MouseInput, MouseMoved};
         // use glium::glutin::ElementState::{Released, Pressed};
 
@@ -160,7 +160,7 @@ impl<'d> UiPane<'d> {
     }
 
     fn handle_mouse_input(&mut self, state: ElementState, button: MouseButton, 
-                window: &mut MainWindow)
+                window: &mut Window)
     {
         match self.mouse_focused {
             Some(ele_idx) => {
@@ -203,7 +203,7 @@ impl<'d> UiPane<'d> {
     }
     
     fn handle_keyboard_input(&mut self, key_state: ElementState, vk_code: Option<VirtualKeyCode>,
-                window: &mut MainWindow) 
+                window: &mut Window) 
     {
         // Update keyboard state (modifiers, etc.):
         self.keybd_state.update(key_state, vk_code);
