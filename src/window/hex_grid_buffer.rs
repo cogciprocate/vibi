@@ -10,7 +10,8 @@ use bismit::map::SliceTractMap;
 
 /// Handles raw state data from a cortical ganglion and feeds it to a [vertex] buffer for rendering.
 // TODO: Rename these buffers to something more clear.
-pub struct TractBuffer {
+#[allow(dead_code)]
+pub struct HexGridBuffer {
     raw_states: Arc<Mutex<Vec<u8>>>,
     state_vertices: Vec<StateVertex>,
     vertex_buf: VertexBuffer<StateVertex>,
@@ -20,9 +21,9 @@ pub struct TractBuffer {
     tract_map: SliceTractMap,
 }
 
-impl TractBuffer {
+impl HexGridBuffer {
     pub fn new(_: Range<u8>, tract_map: SliceTractMap, display: &GlutinFacade) 
-            -> TractBuffer 
+            -> HexGridBuffer 
     {
         // DEBUG: TEMPORARY:
         let default_slc_range = tract_map.slc_id_range();
@@ -30,7 +31,7 @@ impl TractBuffer {
 
         let grid_count = tract_map.axn_count(default_slc_range.clone());
 
-        // println!("\n###### TractBuffer::new(): d_slc_range: {:?}, grid_count: {}, tract_map: {:?}", 
+        // println!("\n###### HexGridBuffer::new(): d_slc_range: {:?}, grid_count: {}, tract_map: {:?}", 
         //     default_slc_range, grid_count, tract_map);
 
         let raw_states = iter::repeat(0u8).cycle().take(grid_count).collect();
@@ -38,7 +39,7 @@ impl TractBuffer {
             .cycle().take(grid_count).collect();
         let vertex_buf = VertexBuffer::dynamic(display, &state_vertices).unwrap();
 
-        TractBuffer {            
+        HexGridBuffer {            
             raw_states: Arc::new(Mutex::new(raw_states)),
             state_vertices: state_vertices,
             vertex_buf: vertex_buf,
@@ -103,10 +104,10 @@ impl TractBuffer {
     pub fn vertex_buf(&self, gang_slc_id: u8) -> VertexBufferSlice<StateVertex> {
         let axn_id_range: Range<usize> = self.tract_map.axn_id_range(gang_slc_id..gang_slc_id + 1);
 
-        // println!("\n###### TractBuffer::vertex_buf({}): axn_id_range: {:?}", 
+        // println!("\n###### HexGridBuffer::vertex_buf({}): axn_id_range: {:?}", 
         //     gang_slc_id, axn_id_range);
 
-        self.vertex_buf.slice(axn_id_range).expect("TractBuffer::vertex_buf(): Out of range")
+        self.vertex_buf.slice(axn_id_range).expect("HexGridBuffer::vertex_buf(): Out of range")
     }
 
     pub fn cur_slc_range(&self) -> Range<u8> {
@@ -115,7 +116,7 @@ impl TractBuffer {
 
     pub fn cur_axn_range(&self) -> Range<usize> {
         let cur_axn_range = self.tract_map.axn_id_range(self.cur_slc_range.clone());
-        // println!("###### TractBuffer::cur_axn_range(): \
+        // println!("###### HexGridBuffer::cur_axn_range(): \
         //         self.cur_slc_range: {:?}, cur_axn_range: {:?}",
         //     self.cur_slc_range,
         //     cur_axn_range);

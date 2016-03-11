@@ -9,7 +9,7 @@ use glium::backend::Facade;
 // use glium::backend::{self, Facade};
 // use glium::backend::glutin_backend::{ GlutinFacade };
 
-use super::window_stats::WindowStats;
+use window::WindowStats;
 use interactive::CyStatus;
 
 const TEXT_SCALE: f32 = 0.018;

@@ -32,11 +32,8 @@ mod ui;
 
 
 fn main() {
-    #![allow(unused_variables)]
-    // use std::iter;
     use std::thread;
     use std::sync::mpsc;
-    // use tract_buffer::TractBuffer;
     
     println!("================= Bismit: vibi::main() running... ==================");
     let time_start = time::get_time();    

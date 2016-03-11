@@ -7,7 +7,9 @@ mod text_properties;
 mod vertex;
 mod keyboard_state;
 mod mouse_state;
+mod controls;
 
+pub use self::controls::{Button, HexButton, TextBox};
 pub use self::mouse_state::MouseState;
 pub use self::keyboard_state::KeyboardState;
 pub use self::element::{Element, ElementBorder, ElementKind, ElementText};
@@ -39,8 +41,7 @@ mod traits {
 
 mod types {
     use glium::glutin::{ElementState, MouseButton, VirtualKeyCode};
-
-    use ui::{MouseInputEventResult, KeyboardInputEventResult, KeyboardState, };
+    use ui::{MouseInputEventResult, KeyboardInputEventResult, KeyboardState};
     use window::Window;
 
     pub type MouseInputHandler = Box<FnMut(ElementState, MouseButton, 

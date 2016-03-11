@@ -6,8 +6,8 @@ use glium::glutin::{ElementState, MouseButton, VirtualKeyCode};
 use ui::{Vertex, Shape2d, HandlerOption, MouseInputHandler, 
     KeyboardInputHandler, MouseInputEventResult, KeyboardInputEventResult, KeyboardState,};
 use util;
-use window::{Window, TextBox, Button};
-use ui::{self, TextAlign}; 
+use window::{Window};
+use ui::{self, TextAlign, TextBox, Button}; 
 
 pub const ELEMENT_BASE_SCALE: f32 = 0.07;
 pub const BORDER_SHADE: f32 = 0.1;

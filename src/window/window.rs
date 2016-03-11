@@ -1,12 +1,63 @@
-// use std::iter;
 use std::sync::mpsc::{Receiver, Sender};
-use interactive::{CyCtl, CyRes, CyStatus};
+use time::{self, Timespec, Duration};
 use glium::{self, DisplayBuild, Surface};
-// use glium::glutin::{ElementState};
-// use util;
-use window::{WindowStats, HexGrid, StatusText, TextBox, HexButton};
-use ui::{self, Pane, MouseInputEventResult, KeyboardInputEventResult};
-use super::TractBuffer;
+use interactive::{CyCtl, CyRes, CyStatus};
+use window::{HexGrid, StatusText};
+use ui::{self, Pane, MouseInputEventResult, KeyboardInputEventResult, TextBox, HexButton};
+use super::HexGridBuffer;
+
+
+pub struct WindowStats {
+    pub frame_count: usize,
+    pub start_time: Timespec,
+    prev_event: Timespec,
+    cur_fps: f32,
+}
+
+#[allow(dead_code)]
+impl WindowStats {
+    pub fn new() -> WindowStats {
+        WindowStats {
+            frame_count: 0usize,
+            start_time: time::get_time(),
+            prev_event: time::get_time(),
+            cur_fps: 0.0,
+        }
+    }
+
+    pub fn fps(&self) -> f32 {
+        // (self.event_count as f32 / (time::get_time() - self.start_time)
+        //     .num_milliseconds() as f32) * 1000.0
+        self.cur_fps
+    }
+
+    pub fn elapsed_secs(&self) -> f32 {
+        (time::get_time() - self.start_time).num_seconds() as f32
+    }
+
+    /// Returns microseconds elapsed since the window was created (mu = μ).
+    pub fn elapsed_mus(&self) -> f64 {
+        (time::get_time() - self.start_time).num_microseconds().unwrap() as f64
+    }
+
+    /// Returns milliseconds elapsed since the window was created.
+    pub fn elapsed_ms(&self) -> f64 {
+        (time::get_time() - self.start_time).num_milliseconds() as f64
+    }
+
+    /// Increment the frame counter by one and calculate fps for previous frame.
+    pub fn incr(&mut self) {
+        let now = time::get_time();
+
+        let prev_frame_dur = now - self.prev_event;
+        self.cur_fps = Duration::seconds(1).num_microseconds().unwrap() as f32
+            / prev_frame_dur.num_microseconds().unwrap() as f32;
+
+        self.frame_count += 1;
+        self.prev_event = now;
+    }
+}
+
 
 
 // [FIXME]: Needs a rename. Anything containing 'Window' is misleading (Pane is the window).
@@ -20,7 +71,7 @@ pub struct Window {
     pub iters_pending: u32,
     pub control_tx: Sender<CyCtl>, 
     pub result_rx: Receiver<CyRes>,
-    pub tract_buf: TractBuffer,
+    pub hex_grid_buf: HexGridBuffer,
 }
 
 impl Window {
@@ -55,7 +106,7 @@ impl Window {
         // let grid_count = (grid_dims.0 * grid_dims.1) as usize;
 
         // Ganglion buffer:
-        let tract_buf = TractBuffer::new(out_slc_range, tract_map, &display);
+        let hex_grid_buf = HexGridBuffer::new(out_slc_range, tract_map, &display);
 
         // Hex grid:
         let hex_grid = HexGrid::new(&display);
@@ -175,7 +226,7 @@ impl Window {
             iters_pending: 1,
             control_tx: control_tx,
             result_rx: result_rx,
-            tract_buf: tract_buf,
+            hex_grid_buf: hex_grid_buf,
         };
 
         // // Print some stuff:
@@ -204,17 +255,17 @@ impl Window {
             target.clear_color_and_depth((0.030, 0.050, 0.080, 1.0), 1.0);
 
             // Current ganglion range:
-            let cur_axn_range = window.tract_buf.cur_axn_range();
+            let cur_axn_range = window.hex_grid_buf.cur_axn_range();
 
             // Refresh ganglion states:
-            window.control_tx.send(CyCtl::Sample(cur_axn_range, window.tract_buf.raw_states()))
+            window.control_tx.send(CyCtl::Sample(cur_axn_range, window.hex_grid_buf.raw_states()))
                 .expect("Sample raw states");
 
-            // window.tract_buf.fill_rand();
-            window.tract_buf.refresh_vertex_buf();
+            // window.hex_grid_buf.fill_rand();
+            window.hex_grid_buf.refresh_vertex_buf();
 
             // Draw hex grid:
-            hex_grid.draw(&mut target, /*grid_dims,*/ window.stats.elapsed_ms(), &window.tract_buf);
+            hex_grid.draw(&mut target, /*grid_dims,*/ window.stats.elapsed_ms(), &window.hex_grid_buf);
 
             // Draw status text:
             status_text.draw(&mut target, &window.cycle_status, &window.stats, &window.area_name);
@@ -255,8 +306,8 @@ impl Window {
                         CyRes::Status(cysts) => self.cycle_status = cysts,
                         CyRes::CurrentAreaInfo(area_name, out_slc_range, tract_map) => {
                             self.area_name = area_name;
-                            self.tract_buf.set_default_slc_range(out_slc_range);
-                            self.tract_buf.set_tract_map(tract_map);
+                            self.hex_grid_buf.set_default_slc_range(out_slc_range);
+                            self.hex_grid_buf.set_tract_map(tract_map);
                             // [FIXME] TODO: Update ganglion buffer somehow.
                         },
                         // _ => (),

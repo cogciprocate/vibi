@@ -146,7 +146,7 @@ impl CycleLoop {
                         CyCtl::Iterate(i) => ri.test_iters = i,
                         CyCtl::Exit => break,
                         CyCtl::Sample(range, buf) => {
-                            refresh_tract_buf(&ri, range, buf);
+                            refresh_hex_grid_buf(&ri, range, buf);
                             continue;
                         },
                         CyCtl::RequestCurrentAreaInfo => {
@@ -206,8 +206,8 @@ impl CycleLoop {
 // #############################################################
 // #############################################################
 // #############################################################
-fn refresh_tract_buf(ri: &RunInfo, _: Range<usize>, buf: Arc<Mutex<Vec<u8>>>) {
-    // println!("###### cycle::refresh_tract_buf(): range: {:?}", range);
+fn refresh_hex_grid_buf(ri: &RunInfo, _: Range<usize>, buf: Arc<Mutex<Vec<u8>>>) {
+    // println!("###### cycle::refresh_hex_grid_buf(): range: {:?}", range);
 
     match buf.lock() {
         // Ok(ref mut b) => ri.cortex.area(&ri.area_name).sample_aff_out(&mut b[range]),
@@ -256,7 +256,7 @@ fn loop_cycles(ri: &mut RunInfo, control_rx: &Receiver<CyCtl>, result_tx: &mut S
                 CyCtl::Sample(range, buf) => {
                     // println!("###### CycleLoop::run(): CANDIDATE 2 (RUNTIME): range: {:?}",
                     //     range);
-                    refresh_tract_buf(&ri, range, buf);
+                    refresh_hex_grid_buf(&ri, range, buf);
                 },
                 // Otherwise return with the control code:
                 _ => return c,
