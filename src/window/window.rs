@@ -69,6 +69,7 @@ pub struct Window {
     pub stats: WindowStats,
     pub close_pending: bool,
     pub grid_dims: (u32, u32),
+    pub cam_dst: f32,
     pub iters_pending: u32,
     pub control_tx: Sender<CyCtl>, 
     pub result_rx: Receiver<CyRes>,
@@ -195,6 +196,7 @@ impl Window {
             stats: WindowStats::new(),
             close_pending: false,
             grid_dims: grid_dims,
+            cam_dst: 1.0,
             iters_pending: 1,
             control_tx: control_tx,
             result_rx: result_rx,
@@ -222,6 +224,7 @@ impl Window {
 
             // Check cycle status:
             window.recv_cycle_results();
+            window.control_tx.send(CyCtl::RequestCurrentIter).unwrap();
 
             // Check input events:
             for ev in display.poll_events() {
@@ -244,11 +247,12 @@ impl Window {
             }
 
             // Draw hex grid:
-            hex_grid.draw(&mut target, window.stats.elapsed_ms(), &window.hex_grid_buf);
+            hex_grid.draw(&mut target, window.stats.elapsed_ms(), &window.hex_grid_buf, 
+                window.cam_dst);
 
             // Draw status text:
             status_text.draw(&mut target, &window.cycle_status, &window.stats, window.grid_dims,
-                &window.area_name);
+                &window.area_name, window.cam_dst);
 
             // Draw UI:
             ui.draw(&mut target);
@@ -283,6 +287,7 @@ impl Window {
             match self.result_rx.try_recv() {
                 Ok(cr) => {
                     match cr {
+                        CyRes::CurrentIter(iter) => self.cycle_status.cur_cycle = iter,
                         CyRes::Status(cysts) => self.cycle_status = *cysts,
                         CyRes::AreaInfo(box info) => {
                             let AreaInfo { name, aff_out_slc_range, tract_map } = info.clone();
@@ -297,5 +302,14 @@ impl Window {
                 Err(_) => break,
             };
         }
+    }
+
+    /// Moves the camera position in our out (horizontal scrolling ignored).
+    pub fn scroll(&mut self, hrz: f32, vrt: f32) {
+        let _ = hrz;
+        let vrt_delta = vrt * -0.01;
+        let new_cam_dst = self.cam_dst + vrt_delta;
+        let new_dst_valid = (new_cam_dst >= 0.00 && new_cam_dst <= 2.99) as i32 as f32;
+        self.cam_dst += vrt_delta * new_dst_valid;
     }
 }

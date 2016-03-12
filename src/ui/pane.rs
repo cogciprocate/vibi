@@ -230,9 +230,9 @@ impl<'d> Pane<'d> {
         // println!("    Keyboard Focus: {:?}", self.keybd_focused);
     }
 
-    fn handle_mouse_scroll(&mut self, scroll_delta: MouseScrollDelta, window: Window) {
+    fn handle_mouse_scroll(&mut self, scroll_delta: MouseScrollDelta, window: &mut Window) {
         match scroll_delta {
-            MouseScrollDelta::LineDelta(v, h) => (),
+            MouseScrollDelta::LineDelta(v, h) => window.scroll(v, h),
             MouseScrollDelta::PixelDelta(x, y) => println!("vibi: Pixel delta recieved: ({}, {})", x, y),
         }
     }

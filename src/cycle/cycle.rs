@@ -25,6 +25,7 @@ pub enum CyCtl {
     Iterate(u32),
     Sample(Range<u8>, Arc<Mutex<Vec<u8>>>),
     RequestCurrentAreaInfo,
+    RequestCurrentIter,
     // ViewAllSlices(bool),
     // ViewBufferDebug(bool),
     Stop,
@@ -40,10 +41,12 @@ pub enum CyCtl {
 #[derive(Clone)]
 pub enum CyRes {
     // None,
+    CurrentIter(u32),
     Status(Box<Status>),
     AreaInfo(Box<AreaInfo>),
     // OtherShit(SliceTractMap),
 }
+
 
 #[derive(Clone)] 
 pub struct AreaInfo {
@@ -51,6 +54,7 @@ pub struct AreaInfo {
     pub aff_out_slc_range: Range<u8>, 
     pub tract_map: SliceTractMap,
 }
+
 
 /// Cycle status.
 #[derive(Clone)]
@@ -60,6 +64,7 @@ pub struct Status {
     pub ttl_cycles: u32,
     pub cur_elapsed: Duration,
     pub ttl_elapsed: Duration,
+    pub cur_start_time: Timespec,
 }
 
 impl Status {
@@ -70,6 +75,7 @@ impl Status {
             ttl_cycles: 0,
             cur_elapsed: Duration::seconds(0),
             ttl_elapsed: Duration::seconds(0),
+            cur_start_time: time::get_time(),
         }
     }
 
@@ -93,8 +99,9 @@ struct RunInfo {
     view_sdr_only: bool,
     area_name: String,
     status: Status,    
-    loop_start_time: Timespec,
+    // loop_start_time: Timespec,
 }
+
 
 pub enum LoopAction {
     None,
@@ -132,8 +139,8 @@ impl CycleLoop {
             view_all_axons: false, 
             view_sdr_only: true,
             area_name: area_name,
-            status: Status::new(/*area_dims*/),
-            loop_start_time: time::get_time(),
+            status: Status::new(),
+            // loop_start_time: time::get_time(),
         };
 
         // result_tx.send(CyRes::Status(ri.status.clone())).expect("Error sending initial status.");
@@ -169,7 +176,8 @@ impl CycleLoop {
                 }
             }        
 
-            ri.loop_start_time = time::get_time();
+            // ri.loop_start_time = time::get_time();
+            ri.status.cur_start_time = time::get_time();
             ri.status.cur_cycle = 0;
             ri.status.cur_elapsed = Duration::seconds(0);
 
@@ -201,6 +209,7 @@ impl CycleLoop {
     }
 }
 
+
 fn refresh_hex_grid_buf(ri: &RunInfo, slc_range: Range<u8>, buf: Arc<Mutex<Vec<u8>>>) 
         -> Option<OclEvent> 
 {
@@ -214,9 +223,6 @@ fn refresh_hex_grid_buf(ri: &RunInfo, slc_range: Range<u8>, buf: Arc<Mutex<Vec<u
     }
 }
 
-pub fn parse_iters(in_s: &str) -> Result<u32, <u32 as FromStr>::Err> {
-    in_s.trim().replace("k","000").replace("m","000000").parse()
-}
 
 fn cps(cycle: u32, elapsed: Duration) -> f32 {
     if elapsed.num_milliseconds() > 0 {
@@ -226,6 +232,7 @@ fn cps(cycle: u32, elapsed: Duration) -> f32 {
     }
 }
 
+
 fn loop_cycles(ri: &mut RunInfo, control_rx: &Receiver<CyCtl>, result_tx: &mut Sender<CyRes>)
         -> CyCtl
 {
@@ -234,11 +241,11 @@ fn loop_cycles(ri: &mut RunInfo, control_rx: &Receiver<CyCtl>, result_tx: &mut S
     loop {
         if ri.status.cur_cycle >= (ri.cycle_iters - 1) { break; }        
 
-        let t = time::get_time() - ri.loop_start_time;
+        let elapsed = time::get_time() - ri.status.cur_start_time;
 
         if ri.status.cur_cycle % STATUS_EVERY == 0 || ri.status.cur_cycle == (ri.cycle_iters - 2) {            
             if ri.status.cur_cycle > 0 || (ri.cycle_iters > 1 && ri.status.cur_cycle == 0) {
-                print!("[{}: {:01}ms]", ri.status.cur_cycle, t.num_milliseconds());
+                print!("[{}: {:01}ms]", ri.status.cur_cycle, elapsed.num_milliseconds());
             }
             io::stdout().flush().ok();
         }
@@ -257,8 +264,9 @@ fn loop_cycles(ri: &mut RunInfo, control_rx: &Receiver<CyCtl>, result_tx: &mut S
         // Check if any controls requests have been sent:
         if let Ok(c) = control_rx.try_recv() {
             match c {
+                CyCtl::RequestCurrentIter => result_tx.send(
+                    CyRes::CurrentIter(ri.status.cur_cycle + 1)).unwrap(),
                 // If a new sample has been requested, fulfill it:
-                // ########### CANDIDATE 2 (RUNTIME)
                 CyCtl::Sample(range, buf) => {
                     // println!("###### CycleLoop::run(): CANDIDATE 2 (RUNTIME): range: {:?}",
                     //     range);
@@ -275,8 +283,8 @@ fn loop_cycles(ri: &mut RunInfo, control_rx: &Receiver<CyCtl>, result_tx: &mut S
 
         // Update and send status:
         ri.status.cur_cycle += 1;
-        ri.status.cur_elapsed = t;
-        result_tx.send(CyRes::Status(Box::new(ri.status.clone()))).ok();
+        ri.status.cur_elapsed = elapsed;
+        // result_tx.send(CyRes::Status(Box::new(ri.status.clone()))).ok();
     }
 
     CyCtl::None
@@ -333,8 +341,6 @@ fn cycle_print(ri: &mut RunInfo) -> LoopAction {
         LoopAction::None
     }
 }
-
-
 
 
 fn prompt(ri: &mut RunInfo) -> LoopAction {
@@ -505,6 +511,10 @@ fn prompt(ri: &mut RunInfo) -> LoopAction {
     LoopAction::None
 }
 
+
+pub fn parse_iters(in_s: &str) -> Result<u32, <u32 as FromStr>::Err> {
+    in_s.trim().replace("k","000").replace("m","000000").parse()
+}
 
 
 pub fn rin(prompt: String) -> String {

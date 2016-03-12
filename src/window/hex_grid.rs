@@ -47,12 +47,13 @@ impl<'d> HexGrid<'d> {
         }
     }
 
-    pub fn draw<S: Surface>(&self, target: &mut S, elapsed_ms: f64, hex_grid_buf: &HexGridBuffer) {
+    pub fn draw<S: Surface>(&self, target: &mut S, elapsed_ms: f64, hex_grid_buf: &HexGridBuffer,
+            cam_dst_factor: f32) {
         // [FIXME]: TEMPORARY:
         
 
         // Set up our frame-countery-thing:
-        let f_c = (elapsed_ms / 4000.0) as f32;
+        let f_c = (elapsed_ms * 0.00025) as f32;
 
         // Get frame dimensions:
         let (width, height) = target.get_dimensions();
@@ -77,10 +78,10 @@ impl<'d> HexGrid<'d> {
         let slc_count_gt_one = (slc_count > 1) as i32 as f32;
         // let slc_count_odd = (slc_count % 2) as f32;
         let ttl_axn_count = hex_grid_buf.tract_map().axn_count(hex_grid_buf.cur_slc_range()) as f32;
-        let cam_x_pos = (0.1455 * ttl_axn_count.powf(0.5)) + 
-            (slc_count_eq_one * -(0.080 * ttl_axn_count.powf(0.5)) / 2.0);
-        let cam_y_pos = 0.054 * ttl_axn_count.powf(0.5) * slc_count_gt_one;
-        let cam_z_pos = (-0.13 * ttl_axn_count.powf(0.5)) + -1.0;
+        let cam_x_pos = (0.1455 * ttl_axn_count.sqrt()) + 
+            (slc_count_eq_one * (-0.080 * ttl_axn_count.sqrt() * 0.5));
+        let cam_y_pos = 0.054 * ttl_axn_count.sqrt() * slc_count_gt_one;
+        let cam_z_pos = (-0.13 * ttl_axn_count.sqrt()).mul_add(cam_dst_factor, -1.0);
 
         // Camera position:
         let cam_pos = [cam_x_pos, cam_y_pos, cam_z_pos];
