@@ -18,7 +18,7 @@ pub use self::shape_2d::Shape2d;
 // pub use self::text_properties::TextProperties;
 pub use self::vertex::Vertex;
 pub use self::types::{MouseInputHandler, KeyboardInputHandler};
-pub use self::enums::{TextAlign, MouseInputEventResult, KeyboardInputEventResult, HandlerOption};
+pub use self::enums::{TextAlign, EventResult, HandlerOption};
 pub use self::functions::{ key_into_string };
 // pub use self::traits::HandlerWindow;
 
@@ -43,13 +43,13 @@ mod traits {
 
 mod types {
     use glium::glutin::{ElementState, MouseButton, VirtualKeyCode};
-    use ui::{MouseInputEventResult, KeyboardInputEventResult, KeyboardState};
+    use ui::{EventResult, KeyboardState};
     use window::Window;
 
     pub type MouseInputHandler = Box<FnMut(ElementState, MouseButton, 
-        &mut Window) -> MouseInputEventResult>;
+        &mut Window) -> EventResult>;
     pub type KeyboardInputHandler = Box<FnMut(ElementState, Option<VirtualKeyCode>, &KeyboardState, &mut String,
-        &mut Window) -> KeyboardInputEventResult>;
+        &mut Window) -> EventResult>;
 }
 
 
@@ -62,17 +62,22 @@ mod enums {
         Right,
     }
 
-    pub enum MouseInputEventResult {
+    // pub enum MouseInputEventResult {
+    //     None,
+    //     RequestKeyboardFocus(bool),
+    //     RequestRedraw,
+    // }
+
+    // pub enum KeyboardInputEventResult {
+    //     None,
+    //     RequestRedraw,
+    // }
+
+    pub enum EventResult {
         None,
         RequestKeyboardFocus(bool),
         RequestRedraw,
     }
-
-    pub enum KeyboardInputEventResult {
-        None,
-        RequestRedraw,
-    }
-
 
     pub enum HandlerOption<T> {
         None,

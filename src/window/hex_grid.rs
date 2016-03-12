@@ -1,6 +1,7 @@
 #![allow(dead_code, unused_variables)]
 use glium::backend::glutin_backend::{GlutinFacade};
 use glium::{self, Surface, Program, DrawParameters, VertexBuffer, IndexBuffer};
+use ui::{ElementState, MouseButton, MouseState};
 
 use cycle::AreaInfo;
 use window::HexGridBuffer;
@@ -20,6 +21,7 @@ pub struct HexGrid<'d> {
     pub cam_pos_norm: [f32; 3],
     pub cam_pos_raw: [f32; 3],
     pub buffer: HexGridBuffer,
+    being_dragged: bool,
 }
 
 impl<'d> HexGrid<'d> {
@@ -53,6 +55,7 @@ impl<'d> HexGrid<'d> {
             cam_pos_norm: [0.0, 0.0, 1.0],
             cam_pos_raw: [0.0, 0.0, -1.0],
             buffer: buffer,
+            being_dragged: false,
         };
         hg.update_cam_pos();
         hg
@@ -170,6 +173,14 @@ impl<'d> HexGrid<'d> {
         let new_dst_valid = (new_cam_dst >= 0.00 && new_cam_dst <= 2.99) as i32 as f32;
         self.cam_pos_norm[2] = new_dst_valid.mul_add(delta_z, self.cam_pos_norm[2]);
         self.update_cam_pos();
+    }
+
+    pub fn handle_mouse_input(&mut self, button_state: ElementState, button: MouseButton) {
+
+    }
+
+    pub fn handle_mouse_moved(&mut self, mouse_state: &MouseState) {
+
     }
 
     pub fn camera_pos(&self) -> [f32; 3] {

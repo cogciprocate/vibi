@@ -6,7 +6,7 @@ use glium::{self, VertexBuffer, IndexBuffer, Program, DrawParameters, Surface};
 use glium::vertex::{EmptyInstanceAttributes as EIAttribs};
 use glium::glutin::{ElementState, MouseButton, Event, VirtualKeyCode};
 use window::{Window, };
-use ui::{self, Vertex, Element, MouseState, KeyboardState, MouseInputEventResult};
+use ui::{self, Vertex, Element, MouseState, KeyboardState, EventResult};
 
 const TWOSR3: f32 = 1.15470053838;
 const DEFAULT_UI_SCALE: f32 = 0.9;
@@ -194,7 +194,7 @@ impl<'d> Pane<'d> {
         match self.mouse_focused {
             Some(ele_idx) => {
                 match self.elements[ele_idx].handle_mouse_input(state, button, window) {
-                    MouseInputEventResult::RequestKeyboardFocus(on_off) => {
+                    EventResult::RequestKeyboardFocus(on_off) => {
                         if on_off {                             
                             self.keybd_focused = Some(ele_idx);
                             self.elements[ele_idx].set_keybd_focus(true);
@@ -206,7 +206,7 @@ impl<'d> Pane<'d> {
                         self.refresh_vertices();
                     },
 
-                    MouseInputEventResult::RequestRedraw => {
+                    EventResult::RequestRedraw => {
                         self.refresh_vertices();
                     },
 

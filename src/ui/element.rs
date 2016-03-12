@@ -4,7 +4,7 @@ use glium::Surface;
 use glium_text::{self, TextSystem, FontTexture, TextDisplay};
 use glium::glutin::{ElementState, MouseButton, VirtualKeyCode};
 use ui::{Vertex, Shape2d, HandlerOption, MouseInputHandler, 
-    KeyboardInputHandler, MouseInputEventResult, KeyboardInputEventResult, KeyboardState,};
+    KeyboardInputHandler, EventResult, KeyboardState,};
 use util;
 use window::{Window};
 use ui::{self, TextAlign, TextBox, Button}; 
@@ -429,15 +429,15 @@ impl<'a> Element {
     // [FIXME]: Unused Vars.
     #[allow(unused_variables)]
     pub fn handle_mouse_input(&mut self, state: ElementState, button: MouseButton, 
-                window: &mut Window) -> MouseInputEventResult 
+                window: &mut Window) -> EventResult 
     {
-        let mut result = MouseInputEventResult::None;
+        let mut result = EventResult::None;
 
         if let MouseButton::Left = button {
             match state {
                 ElementState::Pressed => {
                     self.depress(true);
-                    result = MouseInputEventResult::RequestRedraw;
+                    result = EventResult::RequestRedraw;
                 },
                 ElementState::Released => {
                     let was_clicked = self.is_depressed;
@@ -446,13 +446,13 @@ impl<'a> Element {
                     if was_clicked {
                         if let HandlerOption::Fn(ref mut mih) = self.mouse_input_handler {
                             match mih(state, button, window) {
-                                MouseInputEventResult::None => (),
+                                EventResult::None => (),
                                 r @ _ => return r,
                             }
                         }
                     }                    
 
-                    result = MouseInputEventResult::RequestRedraw;
+                    result = EventResult::RequestRedraw;
                 },
             }
         }
@@ -464,7 +464,7 @@ impl<'a> Element {
     // [FIXME]: Error message (set up result type).
     #[allow(unused_variables)]
     pub fn handle_keyboard_input(&mut self, key_state: ElementState, vk_code: Option<VirtualKeyCode>, 
-                kb_state: &KeyboardState, window: &mut Window) -> KeyboardInputEventResult 
+                kb_state: &KeyboardState, window: &mut Window) -> EventResult 
     {
         let result = match self.keyboard_input_handler {
             HandlerOption::Fn(ref mut kih) => kih(key_state, vk_code, kb_state, &mut self.text.string, window),
@@ -474,17 +474,17 @@ impl<'a> Element {
                 // print!("        Passing keyboard input, '{:?}::{:?}', to sub element '{}' --->", 
                 //     key_state, vk_code, ele_idx);
                 self.sub_elements[ele_idx].handle_keyboard_input(key_state, vk_code, kb_state, window);
-                KeyboardInputEventResult::None
+                EventResult::None
             },
-            _ => KeyboardInputEventResult::None,
+            _ => EventResult::None,
         };
 
         // match result {
-        //     KeyboardInputEventResult::PushTextString(c) => {
-        //         // println!("        KeyboardInputEventResult: {}", c);
+        //     EventResult::PushTextString(c) => {
+        //         // println!("        EventResult: {}", c);
         //         self.text.string.push(c);
         //     },
-        //     KeyboardInputEventResult::PopTextString => { self.text.string.pop(); },
+        //     EventResult::PopTextString => { self.text.string.pop(); },
         //     _ => (),
         // }
 

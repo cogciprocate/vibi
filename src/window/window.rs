@@ -3,7 +3,7 @@ use time::{self, Timespec, Duration};
 use glium::{self, DisplayBuild, Surface};
 use cycle::{CyCtl, CyRes, Status, AreaInfo};
 use window::{HexGrid, StatusText};
-use ui::{self, Pane, MouseInputEventResult, KeyboardInputEventResult, TextBox, HexButton, 
+use ui::{self, Pane, EventResult, TextBox, HexButton, 
     ElementState, MouseButton, MouseScrollDelta, MouseState};
 // use super::HexGridBuffer;
 
@@ -125,7 +125,7 @@ impl<'d> Window<'d> {
                     // window.control_tx.send(CyCtl::Iterate(window.iters_pending))
                     //     .expect("View All Button button");
                     window.hex_grid.buffer.use_default_slc_range();
-                    MouseInputEventResult::None
+                    EventResult::None
                 }))
             )
 
@@ -135,7 +135,7 @@ impl<'d> Window<'d> {
                     // window.control_tx.send(CyCtl::Iterate(window.iters_pending))
                     //     .expect("View All Button button");
                     window.hex_grid.buffer.use_full_slc_range();
-                    MouseInputEventResult::None
+                    EventResult::None
                 }))
             )
 
@@ -152,10 +152,10 @@ impl<'d> Window<'d> {
                             window.iters_pending = i;
                         }
 
-                        KeyboardInputEventResult::RequestRedraw
+                        EventResult::RequestRedraw
                     })
                 )
-                .mouse_input_handler(Box::new(|_, _, _| MouseInputEventResult::RequestKeyboardFocus(true)))
+                .mouse_input_handler(Box::new(|_, _, _| EventResult::RequestKeyboardFocus(true)))
 
             )
 
@@ -164,7 +164,7 @@ impl<'d> Window<'d> {
                 .mouse_input_handler(Box::new(|_, _, window| {
                     window.control_tx.send(CyCtl::Iterate(window.iters_pending))
                         .expect("Iterate button");
-                    MouseInputEventResult::None
+                    EventResult::None
                 }))
             )
 
@@ -173,7 +173,7 @@ impl<'d> Window<'d> {
                 .mouse_input_handler(Box::new(|_, _, window| {                     
                     window.control_tx.send(CyCtl::Stop)
                         .expect("Stop button");
-                    MouseInputEventResult::None
+                    EventResult::None
                 }))
             )
 
@@ -181,7 +181,7 @@ impl<'d> Window<'d> {
                     "Exit", ui::C_ORANGE)
                 .mouse_input_handler(Box::new(|_, _, window| { 
                     window.close_pending = true;
-                    MouseInputEventResult::None
+                    EventResult::None
                 }))
             )            
 
