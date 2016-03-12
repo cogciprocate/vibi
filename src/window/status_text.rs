@@ -74,7 +74,7 @@ impl StatusText {
         self.draw_line(&format!("Total Cycles: {:.1}", cycle_status.ttl_cycles), 6, 176, target);
         self.draw_line(&format!("Total CPS: {:.1}", cycle_status.ttl_cps()), 6, 206, target);
         self.draw_line(&format!("Area: \"{}\"", area_name), 6, 236, target);
-        self.draw_line(&format!("Distance: {:.1}", cam_dst * 100.0), 6, 266, target);
+        self.draw_line(&format!("Distance: {:.0}%", cam_dst * 100.0), 6, 266, target);
     }    
 }
 

@@ -3,8 +3,9 @@ use time::{self, Timespec, Duration};
 use glium::{self, DisplayBuild, Surface};
 use cycle::{CyCtl, CyRes, Status, AreaInfo};
 use window::{HexGrid, StatusText};
-use ui::{self, Pane, MouseInputEventResult, KeyboardInputEventResult, TextBox, HexButton};
-use super::HexGridBuffer;
+use ui::{self, Pane, MouseInputEventResult, KeyboardInputEventResult, TextBox, HexButton, 
+    ElementState, MouseButton, MouseScrollDelta, MouseState};
+// use super::HexGridBuffer;
 
 
 pub struct WindowStats {
@@ -61,23 +62,24 @@ impl WindowStats {
 
 
 // [FIXME]: Needs a rename. Anything containing 'Window' is misleading (Pane is the window).
-pub struct Window {
+pub struct Window<'d> {
     pub cycle_status: Status,
     pub area_info: AreaInfo,
-    pub area_name: String,
+    // pub area_name: String,
     // pub tract_map: SliceTractMap,
     pub stats: WindowStats,
     pub close_pending: bool,
     pub grid_dims: (u32, u32),
-    pub cam_dst: f32,
+    // pub cam_dst: f32,
     pub iters_pending: u32,
     pub control_tx: Sender<CyCtl>, 
     pub result_rx: Receiver<CyRes>,
-    pub hex_grid_buf: HexGridBuffer,
-    pub hex_grid_buf_is_clear: bool,
+    pub hex_grid: HexGrid<'d>,
+    // pub hex_grid_buf: HexGridBuffer,
+    // pub hex_grid.buffer.is_clear: bool,
 }
 
-impl Window {
+impl<'d> Window<'d> {
     pub fn open(control_tx: Sender<CyCtl>, result_rx: Receiver<CyRes>) {
         // // Get initial grid dims:
         // let grid_dims = match result_rx.recv().expect("Initial status reception error.") {
@@ -87,7 +89,7 @@ impl Window {
 
         // Get initial area name:
         control_tx.send(CyCtl::RequestCurrentAreaInfo).expect("Error requesting current area name.");
-        let info = match result_rx.recv().expect("Current area name reception error.") {
+        let area_info = match result_rx.recv().expect("Current area name reception error.") {
             CyRes::AreaInfo(box info) => info,
             _ => panic!("Invalid area name response."),
         };        
@@ -106,11 +108,11 @@ impl Window {
         // Total hex tile count:
         // let grid_count = (grid_dims.0 * grid_dims.1) as usize;
 
-        // Ganglion buffer:
-        let hex_grid_buf = HexGridBuffer::new(info.aff_out_slc_range.clone(), info.tract_map.clone(), &display);
+        // // Ganglion buffer:
+        // let hex_grid_buf = HexGridBuffer::new(info.aff_out_slc_range.clone(), info.tract_map.clone(), &display);
 
         // Hex grid:
-        let hex_grid = HexGrid::new(&display);
+        let hex_grid = HexGrid::new(&display, area_info.clone());
 
         // Status text UI element (fps & grid side):
         let status_text = StatusText::new(&display);
@@ -122,7 +124,7 @@ impl Window {
                 .mouse_input_handler(Box::new(|_, _, window| {
                     // window.control_tx.send(CyCtl::Iterate(window.iters_pending))
                     //     .expect("View All Button button");
-                    window.hex_grid_buf.use_default_slc_range();
+                    window.hex_grid.buffer.use_default_slc_range();
                     MouseInputEventResult::None
                 }))
             )
@@ -132,7 +134,7 @@ impl Window {
                 .mouse_input_handler(Box::new(|_, _, window| {
                     // window.control_tx.send(CyCtl::Iterate(window.iters_pending))
                     //     .expect("View All Button button");
-                    window.hex_grid_buf.use_full_slc_range();
+                    window.hex_grid.buffer.use_full_slc_range();
                     MouseInputEventResult::None
                 }))
             )
@@ -185,23 +187,24 @@ impl Window {
 
             .init();
 
-        let grid_dims = hex_grid_buf.aff_out_grid_dims();
+        let grid_dims = hex_grid.buffer.aff_out_grid_dims();
 
         // Main window data struct:
         let mut window = Window {
             cycle_status: Status::new(),
-            area_info: info.clone(),
-            area_name: info.name,
+            area_info: area_info.clone(),
+            // area_name: info.name,
             // tract_map: tract_map,
             stats: WindowStats::new(),
             close_pending: false,
             grid_dims: grid_dims,
-            cam_dst: 1.0,
+            // cam_dst: 1.0,
             iters_pending: 1,
             control_tx: control_tx,
             result_rx: result_rx,
-            hex_grid_buf: hex_grid_buf,
-            hex_grid_buf_is_clear: false,
+            hex_grid: hex_grid,
+            // hex_grid_buf: hex_grid_buf,
+            // hex_grid.buffer.is_clear: false,
         };
 
         // // Print some stuff:
@@ -234,25 +237,25 @@ impl Window {
             // If the hex grid buffer is not clear, e.g. the last sample
             // request is still unwritten, clear it, if possible, by
             // attempting to write to the device vertex buffer.
-            if !window.hex_grid_buf_is_clear {
-                window.hex_grid_buf_is_clear = window.hex_grid_buf.refresh_vertex_buf();
+            if !window.hex_grid.buffer.is_clear() {
+                let is_clear = window.hex_grid.buffer.refresh_vertex_buf();
+                window.hex_grid.buffer.set_clear(is_clear);
             }
 
             // If the hex grid buffer is now clear, send a new sample request
             // for the next frame.
-            if window.hex_grid_buf_is_clear {
-                window.control_tx.send(CyCtl::Sample(window.hex_grid_buf.cur_slc_range(),
-                    window.hex_grid_buf.raw_states_vec())) .expect("Sample raw states");
-                window.hex_grid_buf_is_clear = false;
+            if window.hex_grid.buffer.is_clear() {
+                window.control_tx.send(CyCtl::Sample(window.hex_grid.buffer.cur_slc_range(),
+                    window.hex_grid.buffer.raw_states_vec())) .expect("Sample raw states");
+                window.hex_grid.buffer.set_clear(false);
             }
 
             // Draw hex grid:
-            hex_grid.draw(&mut target, window.stats.elapsed_ms(), &window.hex_grid_buf, 
-                window.cam_dst);
+            window.hex_grid.draw(&mut target, window.stats.elapsed_ms(), &window.hex_grid.buffer);
 
             // Draw status text:
             status_text.draw(&mut target, &window.cycle_status, &window.stats, window.grid_dims,
-                &window.area_name, window.cam_dst);
+                &window.area_info.name, window.hex_grid.camera_pos()[2]);
 
             // Draw UI:
             ui.draw(&mut target);
@@ -290,11 +293,11 @@ impl Window {
                         CyRes::CurrentIter(iter) => self.cycle_status.cur_cycle = iter,
                         CyRes::Status(cysts) => self.cycle_status = *cysts,
                         CyRes::AreaInfo(box info) => {
-                            let AreaInfo { name, aff_out_slc_range, tract_map } = info.clone();
-                            self.area_info = info;
-                            self.area_name = name;
-                            self.hex_grid_buf.set_default_slc_range(aff_out_slc_range);
-                            self.hex_grid_buf.set_tract_map(tract_map);
+                            // let AreaInfo { area, aff_out_slc_range, tract_map } = info.clone();
+                            self.area_info = info.clone();
+                            // self.area_name = name;
+                            self.hex_grid.buffer.set_default_slc_range(info.aff_out_slc_range.clone());
+                            self.hex_grid.buffer.set_tract_map(info.tract_map);
                         },
                         // _ => (),
                     }
@@ -305,11 +308,26 @@ impl Window {
     }
 
     /// Moves the camera position in our out (horizontal scrolling ignored).
-    pub fn scroll(&mut self, hrz: f32, vrt: f32) {
+    pub fn handle_mouse_wheel(&mut self, scroll_delta: MouseScrollDelta) {
+        let (hrz, vrt) = match scroll_delta {
+            MouseScrollDelta::LineDelta(h, v) => (h * 0.01, v * 0.01),
+            MouseScrollDelta::PixelDelta(x, y) => (x * 0.001, y * 0.001),
+        };
+
+        self.hex_grid.move_camera([0.0, 0.0, vrt]);
         let _ = hrz;
-        let vrt_delta = vrt * -0.01;
-        let new_cam_dst = self.cam_dst + vrt_delta;
-        let new_dst_valid = (new_cam_dst >= 0.00 && new_cam_dst <= 2.99) as i32 as f32;
-        self.cam_dst += vrt_delta * new_dst_valid;
+
+        // let vrt_delta = vrt * -0.01;
+        // let new_cam_dst = self.cam_dst + vrt_delta;
+        // let new_dst_valid = (new_cam_dst >= 0.00 && new_cam_dst <= 2.99) as i32 as f32;
+        // self.cam_dst += vrt_delta * new_dst_valid;
+    }
+
+    pub fn handle_mouse_input(&mut self, button_state: ElementState, button: MouseButton) {
+
+    }
+
+    pub fn handle_mouse_moved(&mut self, mouse_state: &MouseState) {
+
     }
 }

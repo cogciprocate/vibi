@@ -4,7 +4,7 @@ use glium_text::{self, TextSystem, FontTexture, TextDisplay};
 use glium::backend::glutin_backend::GlutinFacade;
 use glium::{self, VertexBuffer, IndexBuffer, Program, DrawParameters, Surface};
 use glium::vertex::{EmptyInstanceAttributes as EIAttribs};
-use glium::glutin::{ElementState, MouseButton, MouseScrollDelta, Event, VirtualKeyCode};
+use glium::glutin::{ElementState, MouseButton, Event, VirtualKeyCode};
 use window::{Window, };
 use ui::{self, Vertex, Element, MouseState, KeyboardState, MouseInputEventResult};
 
@@ -148,12 +148,12 @@ impl<'d> Pane<'d> {
                 self.mouse_state.update_button(button, state);
             },
             Event::MouseMoved(p) => {
-                self.mouse_state.update_position(p)
+                self.mouse_state.update_position(p);
+                window.handle_mouse_moved(&self.mouse_state);
             },
             Event::MouseWheel(scroll_delta) => {
-                // Probably use this eventually:
                 // let _ = touch_phase;
-                self.handle_mouse_scroll(scroll_delta, window);
+                window.handle_mouse_wheel(scroll_delta);
             },
             _ => ()
         }
@@ -214,6 +214,7 @@ impl<'d> Pane<'d> {
                 }
             },
             None => {
+                // Clear keyboard focus:
                 self.keybd_focused = match self.keybd_focused {
                     Some(ele_idx) => {
                         self.elements[ele_idx].set_keybd_focus(false);
@@ -221,7 +222,10 @@ impl<'d> Pane<'d> {
                         None
                     },
                     None => None,
-                }
+                };
+
+                // Let window handle non-element mouse input:
+                window.handle_mouse_input(state, button);
             }
         };
 
@@ -230,12 +234,13 @@ impl<'d> Pane<'d> {
         // println!("    Keyboard Focus: {:?}", self.keybd_focused);
     }
 
-    fn handle_mouse_scroll(&mut self, scroll_delta: MouseScrollDelta, window: &mut Window) {
-        match scroll_delta {
-            MouseScrollDelta::LineDelta(v, h) => window.scroll(v, h),
-            MouseScrollDelta::PixelDelta(x, y) => println!("vibi: Pixel delta recieved: ({}, {})", x, y),
-        }
-    }
+    // [DEPRICATED]
+    // fn handle_mouse_scroll(&mut self, scroll_delta: MouseScrollDelta, window: &mut Window) {
+    //     match scroll_delta {
+    //         MouseScrollDelta::LineDelta(v, h) => window.scroll(v, h),
+    //         MouseScrollDelta::PixelDelta(x, y) => println!("vibi: Pixel delta recieved: ({}, {})", x, y),
+    //     }
+    // }
 
     pub fn update_mouse_focus<S: Surface>(&mut self, target: &mut S) {
         // Update elements:

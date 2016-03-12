@@ -6,6 +6,7 @@ use rand::distributions::{IndependentSample, Range as RandRange};
 use glium::backend::glutin_backend::{GlutinFacade};
 // use glium::buffer::{Buffer, BufferSlice, BufferMode, BufferType};
 use glium::vertex::{VertexBuffer, VertexBufferSlice};
+use cycle::AreaInfo;
 use bismit::map::SliceTractMap;
 
 const SMOOTH_REFRESH: bool = false;
@@ -22,14 +23,15 @@ pub struct HexGridBuffer {
     default_slc_range: Range<u8>,
     cur_slc_range: Range<u8>,
     tract_map: SliceTractMap,
+    is_clear: bool,
 }
 
 impl HexGridBuffer {
-    pub fn new(aff_out_slc_range: Range<u8>, tract_map: SliceTractMap, display: &GlutinFacade) 
+    pub fn new(area_info: AreaInfo, display: &GlutinFacade) 
             -> HexGridBuffer 
     {
-        let full_slc_range = tract_map.slc_id_range();
-        let grid_count = tract_map.axn_count(full_slc_range.clone());
+        let full_slc_range = area_info.tract_map.slc_id_range();
+        let grid_count = area_info.tract_map.axn_count(full_slc_range.clone());
 
         // println!("\n###### HexGridBuffer::new(): d_slc_range: {:?}, grid_count: {}, tract_map: {:?}", 
         //     default_slc_range, grid_count, tract_map);
@@ -55,9 +57,10 @@ impl HexGridBuffer {
             raw_states_buf: raw_states_buf,
             full_slc_range: full_slc_range.clone(),
             // default_slc_range: full_slc_range.clone(),
-            default_slc_range: aff_out_slc_range,
+            default_slc_range: area_info.aff_out_slc_range,
             cur_slc_range: full_slc_range.clone(),
-            tract_map: tract_map,
+            tract_map: area_info.tract_map,
+            is_clear: false,
         }
     }
 
@@ -164,6 +167,14 @@ impl HexGridBuffer {
 
     pub fn tract_map(&self) -> &SliceTractMap {
         &self.tract_map
+    }
+
+    pub fn is_clear(&self) -> bool {
+        self.is_clear
+    }
+
+    pub fn set_clear(&mut self, is_clear: bool) {
+        self.is_clear = is_clear;
     }
 }
 

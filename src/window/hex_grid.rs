@@ -2,6 +2,7 @@
 use glium::backend::glutin_backend::{GlutinFacade};
 use glium::{self, Surface, Program, DrawParameters, VertexBuffer, IndexBuffer};
 
+use cycle::AreaInfo;
 use window::HexGridBuffer;
 
 const HEX_X: f32 = 0.086602540378 + 0.01;
@@ -16,10 +17,13 @@ pub struct HexGrid<'d> {
     indices: IndexBuffer<u16>,
     program: Program,
     params: DrawParameters<'d>,
+    pub cam_pos_norm: [f32; 3],
+    pub cam_pos_raw: [f32; 3],
+    pub buffer: HexGridBuffer,
 }
 
 impl<'d> HexGrid<'d> {
-    pub fn new(display: &GlutinFacade) -> HexGrid {
+    pub fn new(display: &GlutinFacade, area_info: AreaInfo) -> HexGrid {
         // The greatest hexagon ever made (o rly?):
         let vertices = hex_vbo(display);
         let indices = hex_ibo(display);
@@ -39,16 +43,22 @@ impl<'d> HexGrid<'d> {
             .. Default::default()
         };
 
-        HexGrid {
+        let buffer = HexGridBuffer::new(area_info, &display);
+
+        let mut hg = HexGrid {
             vertices: vertices,
             indices: indices,
             program: program,
             params: params,
-        }
+            cam_pos_norm: [0.0, 0.0, 1.0],
+            cam_pos_raw: [0.0, 0.0, -1.0],
+            buffer: buffer,
+        };
+        hg.update_cam_pos();
+        hg
     }
 
-    pub fn draw<S: Surface>(&self, target: &mut S, elapsed_ms: f64, hex_grid_buf: &HexGridBuffer,
-            cam_dst_factor: f32) {
+    pub fn draw<S: Surface>(&self, target: &mut S, elapsed_ms: f64, hex_grid_buf: &HexGridBuffer) {
         // [FIXME]: TEMPORARY:
         
 
@@ -56,38 +66,17 @@ impl<'d> HexGrid<'d> {
         let f_c = (elapsed_ms * 0.00025) as f32;
 
         // Get frame dimensions:
-        let (width, height) = target.get_dimensions();
-
-        // Grid count:
-        // let grid_count = (grid_dims.0 * grid_dims.1) as usize;    
+        let (width, height) = target.get_dimensions();   
 
         // Perspective transformation matrix:
         let persp = persp_matrix(width, height, 3.0);
 
-        // z scale factor:
-        // let z_scl = 0.05;
-        // x and y scale factor:
-        // let xy_scl = 0.2;
-
-        // // Camera position:
-        // let cam_x = f32::cos(f_c) * xy_scl;
-        // let cam_y = f32::cos(f_c) * xy_scl;
-        // let cam_z = f32::cos(f_c / 3.0) * z_scl;
-        let slc_count = hex_grid_buf.cur_slc_range().len();
-        let slc_count_eq_one = (slc_count == 1) as i32 as f32;
-        let slc_count_gt_one = (slc_count > 1) as i32 as f32;
-        // let slc_count_odd = (slc_count % 2) as f32;
-        let ttl_axn_count = hex_grid_buf.tract_map().axn_count(hex_grid_buf.cur_slc_range()) as f32;
-        let cam_x_pos = (0.1455 * ttl_axn_count.sqrt()) + 
-            (slc_count_eq_one * (-0.080 * ttl_axn_count.sqrt() * 0.5));
-        let cam_y_pos = 0.054 * ttl_axn_count.sqrt() * slc_count_gt_one;
-        let cam_z_pos = (-0.13 * ttl_axn_count.sqrt()).mul_add(cam_dst_factor, -1.0);
-
-        // Camera position:
-        let cam_pos = [cam_x_pos, cam_y_pos, cam_z_pos];
+        // [TEMP]
+        // self.update_cam_pos(, hex_grid_buf.cur_slc_range().len(), 
+        //     hex_grid_buf.tract_map().axn_count(hex_grid_buf.cur_slc_range()));
 
         // View transformation matrix: { position(x,y,z), direction(x,y,z), up_dim(x,y,z)}
-        let view = view_matrix(&cam_pos, &[0.0, 0.0, 0.5], &[0.0, 1.0, 0.0]);
+        let view = view_matrix(&self.cam_pos_raw, &[0.0, 0.0, 0.5], &[0.0, 1.0, 0.0]);
 
         // Light position:
         let light_pos = [-1.0, 0.4, -0.9f32];
@@ -101,6 +90,8 @@ impl<'d> HexGrid<'d> {
             // 30% blue static:
             0.3f32,
         ];
+
+        let slc_count = hex_grid_buf.cur_slc_range().len();
 
         // Loop through currently visible slices:
         for slc_id in hex_grid_buf.cur_slc_range().clone() {
@@ -147,6 +138,42 @@ impl<'d> HexGrid<'d> {
             target.draw((&self.vertices, hex_grid_buf.raw_states_buf(slc_id).per_instance().unwrap()),
                 &self.indices, &self.program, &uniforms, &self.params).unwrap();
         }
+    }
+
+    pub fn update_cam_pos(&mut self) {
+        // // Camera position:
+        // let cam_x = f32::cos(f_c) * xy_scl;
+        // let cam_y = f32::cos(f_c) * xy_scl;
+        // let cam_z = f32::cos(f_c / 3.0) * z_scl;
+        // let slc_count = hex_grid_buf.cur_slc_range().len();
+        let slc_count = self.buffer.cur_slc_range().len();
+        let hex_count = self.buffer.tract_map().axn_count(self.buffer.cur_slc_range()) as f32;
+
+        let slc_count_eq_one = (slc_count == 1) as i32 as f32;
+        let slc_count_gt_one = (slc_count > 1) as i32 as f32;
+        // let slc_count_odd = (slc_count % 2) as f32;
+        // let ttl_axn_count = hex_count as f32;
+        let cam_x_pos = slc_count_eq_one.mul_add((-0.080 * hex_count.sqrt() * 0.5), 
+            (0.1455 * hex_count.sqrt()));
+        let cam_y_pos = slc_count_gt_one * (0.054 * hex_count.sqrt());
+        let cam_z_pos = (-0.13 * hex_count.sqrt()).mul_add(self.cam_pos_norm[2], -1.0);
+
+        // Camera position:
+        self.cam_pos_raw = [cam_x_pos, cam_y_pos, cam_z_pos];
+    }
+
+    /// Moves the camera by a three dimensional vector each component having
+    /// bounds [-1.0, 1.0] (closed).
+    pub fn move_camera(&mut self, delta: [f32; 3]) {
+        let delta_z = -delta[2];
+        let new_cam_dst = self.cam_pos_norm[2] + delta_z;
+        let new_dst_valid = (new_cam_dst >= 0.00 && new_cam_dst <= 2.99) as i32 as f32;
+        self.cam_pos_norm[2] = new_dst_valid.mul_add(delta_z, self.cam_pos_norm[2]);
+        self.update_cam_pos();
+    }
+
+    pub fn camera_pos(&self) -> [f32; 3] {
+        self.cam_pos_norm
     }
 }
 
