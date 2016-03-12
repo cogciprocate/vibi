@@ -4,7 +4,7 @@ use glium_text::{self, TextSystem, FontTexture, TextDisplay};
 use glium::backend::glutin_backend::GlutinFacade;
 use glium::{self, VertexBuffer, IndexBuffer, Program, DrawParameters, Surface};
 use glium::vertex::{EmptyInstanceAttributes as EIAttribs};
-use glium::glutin::{ElementState, MouseButton, Event, VirtualKeyCode};
+use glium::glutin::{ElementState, MouseButton, MouseScrollDelta, Event, VirtualKeyCode};
 use window::{Window, };
 use ui::{self, Vertex, Element, MouseState, KeyboardState, MouseInputEventResult};
 
@@ -130,76 +130,33 @@ impl<'d> Pane<'d> {
     }
 
     pub fn handle_event(&mut self, event: Event, window: &mut Window) {
-        use glium::glutin::Event::{Closed, Resized, KeyboardInput, MouseInput, MouseMoved};
+        // use glium::glutin::Event::{Closed, Resized, KeyboardInput, MouseInput, MouseMoved};
         // use glium::glutin::ElementState::{Released, Pressed};
 
         match event {
-            Closed => {                    
+            Event::Closed => {                    
                 window.close_pending = true;
             },
-
-            Resized(..) => {
+            Event::Resized(..) => {
                 self.refresh_vertices()
             },
-
-            KeyboardInput(key_state, _, vk_code) => {
+            Event::KeyboardInput(key_state, _, vk_code) => {
                 self.handle_keyboard_input(key_state, vk_code, window);
             },
-
-            MouseInput(state, button) => {
+            Event::MouseInput(state, button) => {
                 self.handle_mouse_input(state, button, window);
                 self.mouse_state.update_button(button, state);
             },
-
-            MouseMoved(p) => {
+            Event::MouseMoved(p) => {
                 self.mouse_state.update_position(p)
             },
-
+            Event::MouseWheel(scroll_delta) => {
+                // Probably use this eventually:
+                // let _ = touch_phase;
+                self.handle_mouse_scroll(scroll_delta, window);
+            },
             _ => ()
         }
-    }
-
-    fn handle_mouse_input(&mut self, state: ElementState, button: MouseButton, 
-                window: &mut Window)
-    {
-        match self.mouse_focused {
-            Some(ele_idx) => {
-                match self.elements[ele_idx].handle_mouse_input(state, button, window) {
-                    MouseInputEventResult::RequestKeyboardFocus(on_off) => {
-                        if on_off {                             
-                            self.keybd_focused = Some(ele_idx);
-                            self.elements[ele_idx].set_keybd_focus(true);
-                        } else {
-                            self.keybd_focused = None;
-                            self.elements[ele_idx].set_keybd_focus(false);
-                        }
-
-                        self.refresh_vertices();
-                    },
-
-                    MouseInputEventResult::RequestRedraw => {
-                        self.refresh_vertices();
-                    },
-
-                    _ => (),
-                }
-            },
-            _ => {
-                self.keybd_focused = match self.keybd_focused {
-                    Some(ele_idx) => {
-                        self.elements[ele_idx].set_keybd_focus(false);
-                        self.refresh_vertices();
-                        None
-                    }
-
-                    None => None,
-                }
-            }
-        };
-
-        self.refresh_vertices();
-
-        // println!("    Keyboard Focus: {:?}", self.keybd_focused);
     }
     
     fn handle_keyboard_input(&mut self, key_state: ElementState, vk_code: Option<VirtualKeyCode>,
@@ -228,6 +185,55 @@ impl<'d> Pane<'d> {
             if let Some(ele_idx) = self.keybd_focused {
                 self.elements[ele_idx].handle_keyboard_input(key_state, vk_code, &self.keybd_state, window);
             }
+        }
+    }
+
+    fn handle_mouse_input(&mut self, state: ElementState, button: MouseButton, 
+                window: &mut Window)
+    {
+        match self.mouse_focused {
+            Some(ele_idx) => {
+                match self.elements[ele_idx].handle_mouse_input(state, button, window) {
+                    MouseInputEventResult::RequestKeyboardFocus(on_off) => {
+                        if on_off {                             
+                            self.keybd_focused = Some(ele_idx);
+                            self.elements[ele_idx].set_keybd_focus(true);
+                        } else {
+                            self.keybd_focused = None;
+                            self.elements[ele_idx].set_keybd_focus(false);
+                        }
+
+                        self.refresh_vertices();
+                    },
+
+                    MouseInputEventResult::RequestRedraw => {
+                        self.refresh_vertices();
+                    },
+
+                    _ => (),
+                }
+            },
+            None => {
+                self.keybd_focused = match self.keybd_focused {
+                    Some(ele_idx) => {
+                        self.elements[ele_idx].set_keybd_focus(false);
+                        self.refresh_vertices();
+                        None
+                    },
+                    None => None,
+                }
+            }
+        };
+
+        self.refresh_vertices();
+
+        // println!("    Keyboard Focus: {:?}", self.keybd_focused);
+    }
+
+    fn handle_mouse_scroll(&mut self, scroll_delta: MouseScrollDelta, window: Window) {
+        match scroll_delta {
+            MouseScrollDelta::LineDelta(v, h) => (),
+            MouseScrollDelta::PixelDelta(x, y) => println!("vibi: Pixel delta recieved: ({}, {})", x, y),
         }
     }
 

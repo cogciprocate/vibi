@@ -18,21 +18,18 @@ pub struct HexGridBuffer {
     // state_vertices: Vec<StateVertex>,
     // vertex_buf: VertexBuffer<StateVertex>,
     raw_states_buf: VertexBuffer<StateVertex>,
-    total_slc_range: Range<u8>,
+    full_slc_range: Range<u8>,
     default_slc_range: Range<u8>,
     cur_slc_range: Range<u8>,
     tract_map: SliceTractMap,
 }
 
 impl HexGridBuffer {
-    pub fn new(_: Range<u8>, tract_map: SliceTractMap, display: &GlutinFacade) 
+    pub fn new(aff_out_slc_range: Range<u8>, tract_map: SliceTractMap, display: &GlutinFacade) 
             -> HexGridBuffer 
     {
-        // DEBUG: TEMPORARY:
-        let default_slc_range = tract_map.slc_id_range();
-
-
-        let grid_count = tract_map.axn_count(default_slc_range.clone());
+        let full_slc_range = tract_map.slc_id_range();
+        let grid_count = tract_map.axn_count(full_slc_range.clone());
 
         // println!("\n###### HexGridBuffer::new(): d_slc_range: {:?}, grid_count: {}, tract_map: {:?}", 
         //     default_slc_range, grid_count, tract_map);
@@ -45,6 +42,8 @@ impl HexGridBuffer {
         //     BufferMode::Persistent).unwrap();
         let vec_ref = unsafe { &*(&raw_states_vec as *const Vec<u8> 
             as *const _ as *const Vec<StateVertex>) };
+
+        // [NOTE]: `persistent` gives performance improvement:
         // let raw_states_buf = VertexBuffer::dynamic(display, vec_ref).unwrap();
         let raw_states_buf = VertexBuffer::persistent(display, vec_ref).unwrap();
 
@@ -54,18 +53,18 @@ impl HexGridBuffer {
             // state_vertices: state_vertices,
             // vertex_buf: vertex_buf,
             raw_states_buf: raw_states_buf,
-            total_slc_range: tract_map.slc_id_range(),
-            default_slc_range: default_slc_range.clone(),
-            cur_slc_range: default_slc_range.clone(),
+            full_slc_range: full_slc_range.clone(),
+            // default_slc_range: full_slc_range.clone(),
+            default_slc_range: aff_out_slc_range,
+            cur_slc_range: full_slc_range.clone(),
             tract_map: tract_map,
         }
     }
 
-    fn write_to_buf(&self, raw_states: &Vec<u8>) -> bool {
+    fn write_to_buf(&self, raw_states: &Vec<u8>) {
         let vec_ref = unsafe { &*(raw_states as *const Vec<u8> 
             as *const _ as *const Vec<StateVertex>) };
         self.raw_states_buf.write(&vec_ref);
-        true
     }
 
     /// Refreshes the per-instance data within our vertex buffer.
@@ -83,14 +82,16 @@ impl HexGridBuffer {
         if SMOOTH_REFRESH {
             match self.raw_states_vec.lock() {
                 Ok(ref raw_states_vec) => {
-                    self.write_to_buf(raw_states_vec)
+                    self.write_to_buf(raw_states_vec);
+                    true
                 },
                 Err(err) => panic!(err.to_string()),
             }
         } else {
             match self.raw_states_vec.try_lock() {
                 Ok(ref raw_states_vec) => {
-                    self.write_to_buf(raw_states_vec)
+                    self.write_to_buf(raw_states_vec);
+                    true
                 },
                 Err(_) => false,
             }
@@ -104,6 +105,21 @@ impl HexGridBuffer {
     pub fn set_tract_map(&mut self, tract_map: SliceTractMap) {
         self.tract_map = tract_map;
     }
+
+    // pub fn set_current_slc_range(&mut self ) {}
+
+    pub fn use_default_slc_range(&mut self) {
+        self.cur_slc_range = self.default_slc_range.clone();
+    }
+
+    pub fn use_full_slc_range(&mut self) {
+        self.cur_slc_range = self.full_slc_range.clone();
+    }
+
+    pub fn aff_out_grid_dims(&self) -> (u32, u32) {
+        self.tract_map.slc_dims(self.default_slc_range.start)
+    }
+
  
      // [FIXME]: DEPRICATE OR MOVE TO TESTS MODULE
     #[allow(dead_code)]
@@ -126,30 +142,25 @@ impl HexGridBuffer {
     }
 
     /// Returns a slice of the vertex buffer corresponding to a ganglion slice id.
-    // pub fn vertex_buf(&self, gang_slc_id: u8) -> VertexBufferSlice<StateVertex> {
     pub fn raw_states_buf(&self, slc_id: u8) -> VertexBufferSlice<StateVertex> {
         let axn_id_range: Range<usize> = self.tract_map.axn_id_range(slc_id..slc_id + 1);
-
-        // println!("\n###### HexGridBuffer::vertex_buf({}): axn_id_range: {:?}", 
-        //     slc_id, axn_id_range);
-
-        // self.vertex_buf.slice(axn_id_range).expect("HexGridBuffer::vertex_buf(): Out of range")
-        self.raw_states_buf.slice(axn_id_range).expect("HexGridBuffer::raw_states_buf(): Slice id out of range")
+        self.raw_states_buf.slice(axn_id_range)
+            .expect("HexGridBuffer::raw_states_buf(): Slice id out of range")
     }
 
     pub fn cur_slc_range(&self) -> Range<u8> {
         self.cur_slc_range.clone()
     }
 
-    pub fn cur_axn_range(&self) -> Range<usize> {
-        let cur_axn_range = self.tract_map.axn_id_range(self.cur_slc_range.clone());
-        // println!("###### HexGridBuffer::cur_axn_range(): \
-        //         self.cur_slc_range: {:?}, cur_axn_range: {:?}",
-        //     self.cur_slc_range,
-        //     cur_axn_range);
+    // pub fn cur_axn_range(&self) -> Range<usize> {
+    //     let cur_axn_range = self.tract_map.axn_id_range(self.cur_slc_range.clone());
+    //     // println!("###### HexGridBuffer::cur_axn_range(): \
+    //     //         self.cur_slc_range: {:?}, cur_axn_range: {:?}",
+    //     //     self.cur_slc_range,
+    //     //     cur_axn_range);
 
-        cur_axn_range
-    }
+    //     cur_axn_range
+    // }
 
     pub fn tract_map(&self) -> &SliceTractMap {
         &self.tract_map

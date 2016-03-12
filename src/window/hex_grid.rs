@@ -72,19 +72,21 @@ impl<'d> HexGrid<'d> {
         // let cam_x = f32::cos(f_c) * xy_scl;
         // let cam_y = f32::cos(f_c) * xy_scl;
         // let cam_z = f32::cos(f_c / 3.0) * z_scl;
-
+        let slc_count = hex_grid_buf.cur_slc_range().len();
+        let slc_count_eq_one = (slc_count == 1) as i32 as f32;
+        let slc_count_gt_one = (slc_count > 1) as i32 as f32;
+        // let slc_count_odd = (slc_count % 2) as f32;
         let ttl_axn_count = hex_grid_buf.tract_map().axn_count(hex_grid_buf.cur_slc_range()) as f32;
-        let cam_x_pos = 0.1455 * ttl_axn_count.powf(0.5);
-        let cam_y_pos = 0.054 * ttl_axn_count.powf(0.5);
+        let cam_x_pos = (0.1455 * ttl_axn_count.powf(0.5)) + 
+            (slc_count_eq_one * -(0.080 * ttl_axn_count.powf(0.5)) / 2.0);
+        let cam_y_pos = 0.054 * ttl_axn_count.powf(0.5) * slc_count_gt_one;
         let cam_z_pos = (-0.13 * ttl_axn_count.powf(0.5)) + -1.0;
 
         // Camera position:
         let cam_pos = [cam_x_pos, cam_y_pos, cam_z_pos];
 
         // View transformation matrix: { position(x,y,z), direction(x,y,z), up_dim(x,y,z)}
-        let view = view_matrix(
-            &cam_pos, &[0.0, 0.0, 0.5], &[0.0, 1.0, 0.0]
-        );  
+        let view = view_matrix(&cam_pos, &[0.0, 0.0, 0.5], &[0.0, 1.0, 0.0]);
 
         // Light position:
         let light_pos = [-1.0, 0.4, -0.9f32];
@@ -100,21 +102,22 @@ impl<'d> HexGrid<'d> {
         ];
 
         // Loop through currently visible slices:
-        for i in 0..hex_grid_buf.cur_slc_range().len() as u8 {
+        for slc_id in hex_grid_buf.cur_slc_range().clone() {
             // [FIXME]: Do something with this?
             // debug_assert!(hex_grid_buf.vertex_buf().len() == (grid_dims.0 * grid_dims.1) as usize);
 
-            let grid_dims = hex_grid_buf.tract_map().slc_dims(i);
+            let grid_dims = hex_grid_buf.tract_map().slc_dims(slc_id);
 
             let x_scl = (grid_dims.0 + grid_dims.1) as f32 * HEX_X;
             let y_scl = (grid_dims.0 + grid_dims.1) as f32 * HEX_Y;
 
             // let x_cntr = -1.0;
             // let y_cntr = -0.9;
+            let slc_idm = hex_grid_buf.cur_slc_range().end - 1;
 
             // Set up model position:
-            let x_shift = (0.60 * i as f32) * x_scl;
-            let y_shift = (0.50 * i as f32) * y_scl;
+            let x_shift = (0.12 * slc_count as f32 * (slc_idm - slc_id) as f32) * x_scl;
+            let y_shift = (0.10 * slc_count as f32 * (slc_idm - slc_id) as f32) * y_scl;
             let z_shift = 0.0;
 
             // Model transformation matrix:
@@ -140,7 +143,7 @@ impl<'d> HexGrid<'d> {
             };
 
             // Draw Grid (with per-instance vertex buffer):
-            target.draw((&self.vertices, hex_grid_buf.raw_states_buf(i).per_instance().unwrap()),
+            target.draw((&self.vertices, hex_grid_buf.raw_states_buf(slc_id).per_instance().unwrap()),
                 &self.indices, &self.program, &uniforms, &self.params).unwrap();
         }
     }

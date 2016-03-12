@@ -5,24 +5,25 @@ use std::sync::{Arc, Mutex};
 use std::str::{FromStr};
 use time::{self, Timespec, Duration};
 
+use bismit::OclEvent;
 use bismit::cortex::{self, Cortex};
 use bismit::input_source::{InputTract};
 use bismit::map::SliceTractMap;
 
 use config;
 
-const INITIAL_TEST_ITERATIONS: u32     = 1; 
-const STATUS_EVERY: u32             = 5000;
-const PRINT_DETAILS_EVERY: u32        = 10000;
-const GUI_CONTROL: bool                = true;
-const PRINT_AFF_OUT: bool            = false;
+const INITIAL_TEST_ITERATIONS: u32 = 1; 
+const STATUS_EVERY: u32 = 5000;
+const PRINT_DETAILS_EVERY: u32 = 10000;
+const GUI_CONTROL: bool = true;
+const PRINT_AFF_OUT: bool = false;
 
 
 /// Cycle control commands.
 pub enum CyCtl {
     None,
     Iterate(u32),
-    Sample(Range<usize>, Arc<Mutex<Vec<u8>>>),
+    Sample(Range<u8>, Arc<Mutex<Vec<u8>>>),
     RequestCurrentAreaInfo,
     // ViewAllSlices(bool),
     // ViewBufferDebug(bool),
@@ -200,17 +201,16 @@ impl CycleLoop {
     }
 }
 
-fn refresh_hex_grid_buf(ri: &RunInfo, _: Range<usize>, buf: Arc<Mutex<Vec<u8>>>) {
-    // println!("###### cycle::refresh_hex_grid_buf(): range: {:?}", range);
-    // match buf.lock() {
-    //     // Ok(ref mut b) => ri.cortex.area(&ri.area_name).sample_aff_out(&mut b[range]),
-    //     Ok(ref mut b) => ri.cortex.area(&ri.area_name).sample_axn_space(b),
-    //     Err(e) => panic!("Error locking tract buffer mutex: {:?}", e),
-    // }
+fn refresh_hex_grid_buf(ri: &RunInfo, slc_range: Range<u8>, buf: Arc<Mutex<Vec<u8>>>) 
+        -> Option<OclEvent> 
+{
+    let axn_range = ri.cortex.area(&ri.area_name).axn_tract_map().axn_id_range(slc_range.clone());
+    
     match buf.try_lock() {
         // Ok(ref mut b) => ri.cortex.area(&ri.area_name).sample_aff_out(&mut b[range]),
-        Ok(ref mut b) => ri.cortex.area(&ri.area_name).sample_axn_space(b),
-        Err(_) => (),
+        Ok(ref mut b) => Some(ri.cortex.area(&ri.area_name)
+            .sample_axn_slc_range(slc_range, &mut b[axn_range])),
+        Err(_) => None,
     }
 }
 
