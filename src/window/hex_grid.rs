@@ -1,7 +1,8 @@
 #![allow(dead_code, unused_variables)]
 use glium::backend::glutin_backend::{GlutinFacade};
 use glium::{self, Surface, Program, DrawParameters, VertexBuffer, IndexBuffer};
-use ui::{ElementState, MouseButton, MouseState};
+use glium::glutin::{ElementState, MouseButton};
+use enamel::MouseState;
 
 use cycle::AreaInfo;
 use window::HexGridBuffer;

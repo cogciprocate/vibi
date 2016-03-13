@@ -1,6 +1,6 @@
 // use glium::glutin::{VirtualKeyCode, ElementState};
 // use glium::glutin::VirtualKeyCode::*;
-// use ui::{KeyboardState};
+// use enamel::ui::{KeyboardState};
 
 
 /// Brighten or darken a single color component. 

@@ -6,6 +6,9 @@ authors = ["Nick Sanders <nsan1129@gmail.com>"]
 [dependencies.bismit]
 path = "/home/nick/projects/bismit"
 
+[dependencies.enamel]
+path = "/home/nick/projects/enamel"
+
 [dependencies.time]
 git = "https://github.com/rust-lang/time.git"
 
@@ -21,9 +24,8 @@ glium = "0.13"
 # glium_text = "*"
 image = "*"
 find_folder = "*"
-# elmesque = "*"
 num = "*"
-vecmath = "*"
+#vecmath = "*"
 rustc-serialize = "*"
 colorify = "*"
 

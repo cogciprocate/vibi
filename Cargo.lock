@@ -4,6 +4,7 @@ version = "0.1.0"
 dependencies = [
  "bismit 0.0.1",
  "colorify 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "enamel 0.1.0",
  "find_folder 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "glium 0.13.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "glium_text 0.8.0 (git+https://github.com/tomaka/glium_text.git)",
@@ -12,7 +13,6 @@ dependencies = [
  "rand 0.3.14 (registry+https://github.com/rust-lang/crates.io-index)",
  "rustc-serialize 0.3.18 (registry+https://github.com/rust-lang/crates.io-index)",
  "time 0.1.34 (git+https://github.com/rust-lang/time.git)",
- "vecmath 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -184,6 +184,14 @@ version = "0.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "libc 0.2.8 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
+name = "enamel"
+version = "0.1.0"
+dependencies = [
+ "glium 0.13.5 (registry+https://github.com/rust-lang/crates.io-index)",
+ "glium_text 0.8.0 (git+https://github.com/tomaka/glium_text.git)",
 ]
 
 [[package]]
@@ -522,11 +530,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "piston-float"
-version = "0.2.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-
-[[package]]
 name = "pkg-config"
 version = "0.3.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -635,14 +638,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "winapi 0.2.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "winapi-build 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
-]
-
-[[package]]
-name = "vecmath"
-version = "0.2.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-dependencies = [
- "piston-float 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
