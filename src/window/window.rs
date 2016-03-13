@@ -174,10 +174,6 @@ impl<'d> Window<'d> {
                             Err(_) => WindowCtl::None,
                         };
 
-                        println!("REMAINDER: {:?}", remainder);
-                        // EventRemainder::RequestRedraw(Some(
-                        //     EventRemainder::Custom(CustomEv)
-                        // ))
                         (UiRequest::None, remainder)
                     } )
                 )
@@ -337,13 +333,18 @@ impl<'d> Window<'d> {
 
     fn handle_event_remainder(&mut self, rdr: WindowCtl) {
         match rdr {
+            WindowCtl::MouseWheel(delta) => self.handle_mouse_wheel(delta),
             WindowCtl::Closed => self.close_pending = true,
             WindowCtl::CyCtl(ctl) => self.control_tx.send(ctl).unwrap(),
-            WindowCtl::SetCyIters(i) => {
-                self.iters_pending = i;
-                println!("Setting iters_pending to: {}", i);
-            },
+            WindowCtl::SetCyIters(i) => self.iters_pending = i,
             WindowCtl::CyIterate => self.control_tx.send(CyCtl::Iterate(self.iters_pending)).unwrap(),
+            WindowCtl::HexGrid(ctl) => {
+                match ctl {
+                    HexGridCtl::SlcRangeDefault => self.hex_grid.buffer.use_default_slc_range(),
+                    HexGridCtl::SlcRangeFull => self.hex_grid.buffer.use_full_slc_range(),
+                }
+                self.hex_grid.update_cam_pos();
+            },
             _ => (),           
         }
     }
