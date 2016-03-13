@@ -111,10 +111,12 @@ impl HexGridBuffer {
 
     // pub fn set_current_slc_range(&mut self ) {}
 
+    #[allow(dead_code)]
     pub fn use_default_slc_range(&mut self) {
         self.cur_slc_range = self.default_slc_range.clone();
     }
 
+    #[allow(dead_code)]
     pub fn use_full_slc_range(&mut self) {
         self.cur_slc_range = self.full_slc_range.clone();
     }

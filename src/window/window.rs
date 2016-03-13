@@ -3,22 +3,48 @@ use time::{self, Timespec, Duration};
 use glium::{self, DisplayBuild, Surface};
 use cycle::{CyCtl, CyRes, Status, AreaInfo};
 use window::{HexGrid, StatusText};
-use enamel::{self, Pane, EventRemainder, UiRequest, TextBox, HexButton, CustomEventRemainder,
-    ElementState, MouseButton, MouseScrollDelta, MouseState};
+use enamel::{self, Pane, EventRemainder, UiRequest, TextBox, HexButton, ElementState, 
+    MouseButton, MouseScrollDelta, MouseState};
 // use super::HexGridBuffer;
 
-#[derive(Clone)]
-pub enum HexGridControl {
+#[derive(Clone, Debug)]
+pub enum HexGridCtl {
     SlcRangeDefault,
     SlcRangeFull,
 }
 
-#[derive(Clone)]
-pub enum WindowControl {
-    HexGrid(HexGridControl),
+
+#[derive(Clone, Debug)]
+pub enum WindowCtl {
+    None,
+    Closed,
+    MouseMoved((i32, i32)),
+    MouseWheel(MouseScrollDelta),
+    HexGrid(HexGridCtl),
+    SetCyIters(u32),
+    CyIterate,
+    CyCtl(CyCtl),
 }
 
-impl CustomEventRemainder for WindowControl {}
+impl EventRemainder for WindowCtl {
+    fn closed() -> WindowCtl {
+        WindowCtl::Closed
+    }
+
+    fn mouse_moved(pos: (i32, i32)) -> Self {
+        WindowCtl::MouseMoved(pos)
+    }
+
+    fn mouse_wheel(delta: MouseScrollDelta) -> Self {
+        WindowCtl::MouseWheel(delta)
+    }
+}
+
+impl Default for WindowCtl {
+    fn default() -> WindowCtl {
+        WindowCtl::None
+    }
+}
 
 
 pub struct WindowStats {
@@ -78,29 +104,18 @@ impl WindowStats {
 pub struct Window<'d> {
     pub cycle_status: Status,
     pub area_info: AreaInfo,
-    // pub area_name: String,
-    // pub tract_map: SliceTractMap,
     pub stats: WindowStats,
     pub close_pending: bool,
     pub grid_dims: (u32, u32),
-    // pub cam_dst: f32,
     pub iters_pending: u32,
     pub control_tx: Sender<CyCtl>, 
     pub result_rx: Receiver<CyRes>,
     pub hex_grid: HexGrid<'d>,
-    // pub hex_grid_buf: HexGridBuffer,
-    // pub hex_grid.buffer.is_clear: bool,
 }
 
 impl<'d> Window<'d> {
     pub fn open(control_tx: Sender<CyCtl>, result_rx: Receiver<CyRes>) {
-        // // Get initial grid dims:
-        // let grid_dims = match result_rx.recv().expect("Initial status reception error.") {
-        //     CyRes::Status(cysts) => cysts.dims,
-        //     _ => panic!("Invalid initial cycle status."),
-        // };
-
-        // Get initial area name:
+        // Get initial area info:
         control_tx.send(CyCtl::RequestCurrentAreaInfo).expect("Error requesting current area name.");
         let area_info = match result_rx.recv().expect("Current area name reception error.") {
             CyRes::AreaInfo(box info) => info,
@@ -118,12 +133,6 @@ impl<'d> Window<'d> {
             // .with_fullscreen(glium::glutin::get_primary_monitor())
             .build_glium().unwrap();
 
-        // Total hex tile count:
-        // let grid_count = (grid_dims.0 * grid_dims.1) as usize;
-
-        // // Ganglion buffer:
-        // let hex_grid_buf = HexGridBuffer::new(info.aff_out_slc_range.clone(), info.tract_map.clone(), &display);
-
         // Hex grid:
         let hex_grid = HexGrid::new(&display, area_info.clone());
 
@@ -134,25 +143,23 @@ impl<'d> Window<'d> {
         let mut ui = Pane::new(&display)
             .element(HexButton::new([1.0, -1.0, 0.0], (-0.57, 0.45), 1.8, 
                     "View Output", enamel::ui::C_ORANGE)
-                .mouse_input_handler(Box::new(|_, _| {
+                .mouse_event_handler(Box::new(|_, _| {
                     // window.control_tx.send(CyCtl::Iterate(window.iters_pending))
                     //     .expect("View All Button button");
                     // window.hex_grid.buffer.use_default_slc_range();
                     // EventRemainder::None
-                    (UiRequest::None, EventRemainder::Custom(Box::new(WindowControl::HexGrid(
-                        HexGridControl::SlcRangeDefault))))
+                    (UiRequest::None, WindowCtl::HexGrid(HexGridCtl::SlcRangeDefault))
                 }))
             )
 
             .element(HexButton::new([1.0, -1.0, 0.0], (-0.20, 0.45), 1.8, 
                     "View All", enamel::ui::C_ORANGE)
-                .mouse_input_handler(Box::new(|_, _| {
+                .mouse_event_handler(Box::new(|_, _| {
                     // window.control_tx.send(CyCtl::Iterate(window.iters_pending))
                     //     .expect("View All Button button");
                     // window.hex_grid.buffer.use_full_slc_range();
                     // EventRemainder::None
-                    (UiRequest::None, EventRemainder::Custom(Box::new(
-                        WindowControl::HexGrid(HexGridControl::SlcRangeFull))))
+                    (UiRequest::None, WindowCtl::HexGrid(HexGridCtl::SlcRangeFull))
                 }))
             )
 
@@ -160,50 +167,49 @@ impl<'d> Window<'d> {
                     "Iters:", enamel::ui::C_ORANGE, "1", Box::new(|key_state, vk_code, kb_state, text_string| {
                         enamel::ui::key_into_string(key_state, vk_code, kb_state, text_string);
 
-                        // if let Ok(i) = text_string
-                        //         .trim()
-                        //         .replace("k","000")
-                        //         .replace("m","0000000")
-                        //         .parse()
-                        // {    
-                        //     window.iters_pending = i;
-                        // }
+                        let parsed = text_string.trim().replace("k","000").replace("m","0000000").parse();
 
+                        let remainder = match parsed {
+                            Ok(i) => WindowCtl::SetCyIters(i),
+                            Err(_) => WindowCtl::None,
+                        };
+
+                        println!("REMAINDER: {:?}", remainder);
                         // EventRemainder::RequestRedraw(Some(
                         //     EventRemainder::Custom(CustomEv)
                         // ))
-                        (UiRequest::None, EventRemainder::None)
+                        (UiRequest::None, remainder)
                     } )
                 )
-                .mouse_input_handler(Box::new(|_, _| {
-                    (UiRequest::KeyboardFocus(true), EventRemainder::None)
+                .mouse_event_handler(Box::new(|_, _| {
+                    (UiRequest::KeyboardFocus(true), WindowCtl::None)
                 } ))
 
             )
 
             .element(HexButton::new([1.0, -1.0, 0.0], (-0.57, 0.25), 1.8, 
                     "Cycle", enamel::ui::C_ORANGE)
-                .mouse_input_handler(Box::new(|_, _| {
+                .mouse_event_handler(Box::new(|_, _| {
                     // window.control_tx.send(CyCtl::Iterate(window.iters_pending))
                     //     .expect("Iterate button");
-                    (UiRequest::None, EventRemainder::None)
+                    (UiRequest::None, WindowCtl::CyIterate)
                 }))
             )
 
             .element(HexButton::new([1.0, -1.0, 0.0], (-0.20, 0.25), 1.8, 
                     "Stop", enamel::ui::C_ORANGE)
-                .mouse_input_handler(Box::new(|_, _| {                     
+                .mouse_event_handler(Box::new(|_, _| {                     
                     // window.control_tx.send(CyCtl::Stop)
                     //     .expect("Stop button");
-                    (UiRequest::None, EventRemainder::None)
+                    (UiRequest::None, WindowCtl::CyCtl(CyCtl::Stop))
                 }))
             )
 
             .element(HexButton::new([1.0, -1.0, 0.0], (-0.20, 0.07), 1.8, 
                     "Exit", enamel::ui::C_ORANGE)
-                .mouse_input_handler(Box::new(|_, _| { 
+                .mouse_event_handler(Box::new(|_, _| { 
                     // window.close_pending = true;
-                    (UiRequest::None, EventRemainder::None)
+                    (UiRequest::None, WindowCtl::Closed)
                 }))
             )            
 
@@ -307,13 +313,6 @@ impl<'d> Window<'d> {
         display.get_window().unwrap().hide();
     }
 
-    fn handle_event_remainder(&mut self, rdr: EventRemainder) {
-        match rdr {
-            EventRemainder::Closed => self.close_pending = true,
-            _ => (),           
-        }
-    }
-
     fn recv_cycle_results(&mut self) {
         loop {
             match self.result_rx.try_recv() {
@@ -336,7 +335,21 @@ impl<'d> Window<'d> {
         }
     }
 
+    fn handle_event_remainder(&mut self, rdr: WindowCtl) {
+        match rdr {
+            WindowCtl::Closed => self.close_pending = true,
+            WindowCtl::CyCtl(ctl) => self.control_tx.send(ctl).unwrap(),
+            WindowCtl::SetCyIters(i) => {
+                self.iters_pending = i;
+                println!("Setting iters_pending to: {}", i);
+            },
+            WindowCtl::CyIterate => self.control_tx.send(CyCtl::Iterate(self.iters_pending)).unwrap(),
+            _ => (),           
+        }
+    }
+
     /// Moves the camera position in our out (horizontal scrolling ignored).
+    #[allow(dead_code)]
     pub fn handle_mouse_wheel(&mut self, scroll_delta: MouseScrollDelta) {
         let (hrz, vrt) = match scroll_delta {
             MouseScrollDelta::LineDelta(h, v) => (h * 0.01, v * 0.01),
@@ -352,10 +365,12 @@ impl<'d> Window<'d> {
         // self.cam_dst += vrt_delta * new_dst_valid;
     }
 
+    #[allow(dead_code, unused_variables)]
     pub fn handle_mouse_input(&mut self, button_state: ElementState, button: MouseButton) {
 
     }
 
+    #[allow(dead_code, unused_variables)]
     pub fn handle_mouse_moved(&mut self, mouse_state: &MouseState) {
 
     }

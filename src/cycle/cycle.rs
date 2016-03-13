@@ -20,6 +20,7 @@ const PRINT_AFF_OUT: bool = false;
 
 
 /// Cycle control commands.
+#[derive(Clone, Debug)]
 pub enum CyCtl {
     None,
     Iterate(u32),
@@ -38,7 +39,7 @@ pub enum CyCtl {
 /// Information about the cycling of the things and the stuff (and some of the
 /// non-stuff too... but not that much of it really... well... a fair
 /// amount... but not like a ton).
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub enum CyRes {
     // None,
     CurrentIter(u32),
@@ -48,7 +49,7 @@ pub enum CyRes {
 }
 
 
-#[derive(Clone)] 
+#[derive(Clone, Debug)] 
 pub struct AreaInfo {
     pub name: String, 
     pub aff_out_slc_range: Range<u8>, 
@@ -57,7 +58,7 @@ pub struct AreaInfo {
 
 
 /// Cycle status.
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct Status {
     // pub dims: (u32, u32),
     pub cur_cycle: u32,
