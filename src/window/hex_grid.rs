@@ -23,6 +23,7 @@ pub struct HexGrid<'d> {
     pub cam_pos_raw: [f32; 3],
     pub buffer: HexGridBuffer,
     being_dragged: bool,
+    surface_dims: (u32, u32),
 }
 
 impl<'d> HexGrid<'d> {
@@ -57,12 +58,13 @@ impl<'d> HexGrid<'d> {
             cam_pos_raw: [0.0, 0.0, -1.0],
             buffer: buffer,
             being_dragged: false,
+            surface_dims: display.get_framebuffer_dimensions(),
         };
         hg.update_cam_pos();
         hg
     }
 
-    pub fn draw<S: Surface>(&self, target: &mut S, elapsed_ms: f64, hex_grid_buf: &HexGridBuffer) {
+    pub fn draw<S: Surface>(&mut self, target: &mut S, elapsed_ms: f64) {
         // [FIXME]: TEMPORARY:
         
 
@@ -70,10 +72,11 @@ impl<'d> HexGrid<'d> {
         let f_c = (elapsed_ms * 0.00025) as f32;
 
         // Get frame dimensions:
-        let (width, height) = target.get_dimensions();   
+        // let (width, height) = target.get_dimensions();
+        self.surface_dims = target.get_dimensions();
 
         // Perspective transformation matrix:
-        let persp = persp_matrix(width, height, 3.0);
+        let persp = persp_matrix(self.surface_dims.0, self.surface_dims.1, 3.0);
 
         // [TEMP]
         // self.update_cam_pos(, hex_grid_buf.cur_slc_range().len(), 
@@ -95,21 +98,21 @@ impl<'d> HexGrid<'d> {
             0.3f32,
         ];
 
-        let slc_count = hex_grid_buf.cur_slc_range().len();
+        let slc_count = self.buffer.cur_slc_range().len();
 
         // Loop through currently visible slices:
-        for slc_id in hex_grid_buf.cur_slc_range().clone() {
+        for slc_id in self.buffer.cur_slc_range().clone() {
             // [FIXME]: Do something with this?
-            // debug_assert!(hex_grid_buf.vertex_buf().len() == (grid_dims.0 * grid_dims.1) as usize);
+            // debug_assert!(self.buffer.vertex_buf().len() == (grid_dims.0 * grid_dims.1) as usize);
 
-            let grid_dims = hex_grid_buf.tract_map().slc_dims(slc_id);
+            let grid_dims = self.buffer.tract_map().slc_dims(slc_id);
 
             let x_scl = (grid_dims.0 + grid_dims.1) as f32 * HEX_X;
             let y_scl = (grid_dims.0 + grid_dims.1) as f32 * HEX_Y;
 
             // let x_cntr = -1.0;
             // let y_cntr = -0.9;
-            let slc_idm = hex_grid_buf.cur_slc_range().end - 1;
+            let slc_idm = self.buffer.cur_slc_range().end - 1;
 
             // Set up model position:
             let x_shift = (0.12 * slc_count as f32 * (slc_idm - slc_id) as f32) * x_scl;
@@ -139,11 +142,12 @@ impl<'d> HexGrid<'d> {
             };
 
             // Draw Grid (with per-instance vertex buffer):
-            target.draw((&self.vertices, hex_grid_buf.raw_states_buf(slc_id).per_instance().unwrap()),
+            target.draw((&self.vertices, self.buffer.raw_states_buf(slc_id).per_instance().unwrap()),
                 &self.indices, &self.program, &uniforms, &self.params).unwrap();
         }
     }
 
+    // [TODO]: Simplify this mess and try to get it more accurate.
     pub fn update_cam_pos(&mut self) {
         // // Camera position:
         // let cam_x = f32::cos(f_c) * xy_scl;
@@ -157,22 +161,45 @@ impl<'d> HexGrid<'d> {
         let slc_count_gt_one = (slc_count > 1) as i32 as f32;
         // let slc_count_odd = (slc_count % 2) as f32;
         // let ttl_axn_count = hex_count as f32;
-        let cam_x_pos = slc_count_eq_one.mul_add((-0.080 * hex_count.sqrt() * 0.5), 
-            (0.1455 * hex_count.sqrt()));
-        let cam_y_pos = slc_count_gt_one * (0.054 * hex_count.sqrt());
+        let hex_sqrt = hex_count.sqrt();
+        // let cam_x_pos = slc_count_eq_one.mul_add((-0.080 * hex_sqrt * 0.5), (0.1455 * hex_sqrt)) - self.cam_pos_norm[0];
+        let x_ofs = (-0.080 * hex_sqrt * 0.5).mul_add(slc_count_eq_one, (hex_sqrt * 0.1455));
+        let cam_x_pos = x_ofs + (self.cam_pos_norm[0] * hex_sqrt * -0.08 * 
+            (self.cam_pos_norm[2] * 3.0 + 0.5));
+
+        let y_ofs = 0.054 * hex_sqrt * slc_count_gt_one;
+        let cam_y_pos = y_ofs + (self.cam_pos_norm[1] * hex_sqrt * 0.05 * 
+            (self.cam_pos_norm[2] * 3.0 + 0.5));
+
         let cam_z_pos = (-0.13 * hex_count.sqrt()).mul_add(self.cam_pos_norm[2], -1.0);
 
         // Camera position:
         self.cam_pos_raw = [cam_x_pos, cam_y_pos, cam_z_pos];
+
+        println!("CAMERA POSITION: norm: {:?}, raw: {:?}", self.cam_pos_norm, self.cam_pos_raw);
     }
 
     /// Moves the camera by a three dimensional vector each component having
     /// bounds [-1.0, 1.0] (closed).
     pub fn move_camera(&mut self, delta: [f32; 3]) {
-        let delta_z = -delta[2];
-        let new_cam_dst = self.cam_pos_norm[2] + delta_z;
-        let new_dst_valid = (new_cam_dst >= 0.00 && new_cam_dst <= 2.99) as i32 as f32;
-        self.cam_pos_norm[2] = new_dst_valid.mul_add(delta_z, self.cam_pos_norm[2]);
+        let delta_x = delta[0] / self.surface_dims.0 as f32;
+        let new_cam_x = self.cam_pos_norm[0] + delta_x;
+        let new_x_valid = (new_cam_x >= -2.0 && new_cam_x <= 2.0) as i32 as f32;
+
+        let delta_y = delta[1] / self.surface_dims.1 as f32;
+        let new_cam_y = self.cam_pos_norm[1] + delta_y;
+        let new_y_valid = (new_cam_y >= -2.0 && new_cam_y <= 2.0) as i32 as f32;
+
+        let delta_z = delta[2] * -0.001;
+        let new_cam_z = self.cam_pos_norm[2] + delta_z;
+        let new_z_valid = (new_cam_z >= 0.00 && new_cam_z <= 3.00) as i32 as f32;
+
+        self.cam_pos_norm = [
+            new_x_valid.mul_add(delta_x, self.cam_pos_norm[0]),
+            new_y_valid.mul_add(delta_y, self.cam_pos_norm[1]),
+            new_z_valid.mul_add(delta_z, self.cam_pos_norm[2]),
+        ];
+
         self.update_cam_pos();
     }
 
@@ -340,13 +367,13 @@ implement_vertex!(Vertex, position, color, normal);
 
 
 
-fn persp_matrix(width: u32, height: u32, zoom: f32) -> [[f32; 4]; 4] {
+fn persp_matrix(width: u32, height: u32, fov_zoom: f32) -> [[f32; 4]; 4] {
     let zfar = 1024.0;
     let znear = 0.1;
 
     // let (width, height) = target.get_dimensions();
     let aspect_ratio = height as f32 / width as f32;
-    let fov: f32 = 3.141592 / zoom;    
+    let fov: f32 = 3.141592 / fov_zoom;    
     let f = 1.0 / (fov / 2.0).tan();
 
     [

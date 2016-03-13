@@ -4,7 +4,7 @@ use glium::{self, DisplayBuild, Surface};
 use cycle::{CyCtl, CyRes, Status, AreaInfo};
 use window::{HexGrid, StatusText};
 use enamel::{self, Pane, EventRemainder, UiRequest, TextBox, HexButton, ElementState, 
-    MouseButton, MouseScrollDelta, MouseState};
+    MouseButton, MouseScrollDelta, SetFocus};
 // use super::HexGridBuffer;
 
 #[derive(Clone, Debug)]
@@ -20,6 +20,8 @@ pub enum WindowCtl {
     Closed,
     MouseMoved((i32, i32)),
     MouseWheel(MouseScrollDelta),
+    MouseInput(ElementState, MouseButton),
+    SetMouseFocus(bool),
     HexGrid(HexGridCtl),
     SetCyIters(u32),
     CyIterate,
@@ -38,6 +40,14 @@ impl EventRemainder for WindowCtl {
     fn mouse_wheel(delta: MouseScrollDelta) -> Self {
         WindowCtl::MouseWheel(delta)
     }
+
+    fn mouse_input(state: ElementState, button: MouseButton) -> Self {
+        WindowCtl::MouseInput(state, button)
+    }
+        
+    fn set_mouse_focus(focus: bool) -> Self {
+        WindowCtl::SetMouseFocus(focus)
+    }
 }
 
 impl Default for WindowCtl {
@@ -45,7 +55,6 @@ impl Default for WindowCtl {
         WindowCtl::None
     }
 }
-
 
 pub struct WindowStats {
     pub frame_count: usize,
@@ -111,6 +120,9 @@ pub struct Window<'d> {
     pub control_tx: Sender<CyCtl>, 
     pub result_rx: Receiver<CyRes>,
     pub hex_grid: HexGrid<'d>,
+    pub has_mouse_focus: bool,
+    pub mouse_pos: (i32, i32),
+    pub dragging: Option<(i32, i32)>,
 }
 
 impl<'d> Window<'d> {
@@ -217,18 +229,16 @@ impl<'d> Window<'d> {
         let mut window = Window {
             cycle_status: Status::new(),
             area_info: area_info.clone(),
-            // area_name: info.name,
-            // tract_map: tract_map,
             stats: WindowStats::new(),
             close_pending: false,
             grid_dims: grid_dims,
-            // cam_dst: 1.0,
             iters_pending: 1,
             control_tx: control_tx,
             result_rx: result_rx,
             hex_grid: hex_grid,
-            // hex_grid_buf: hex_grid_buf,
-            // hex_grid.buffer.is_clear: false,
+            mouse_pos: (0, 0),
+            has_mouse_focus: true,
+            dragging: None,
         };
 
         // // Print some stuff:
@@ -275,14 +285,15 @@ impl<'d> Window<'d> {
             }
 
             // Draw hex grid:
-            window.hex_grid.draw(&mut target, window.stats.elapsed_ms(), &window.hex_grid.buffer);
+            let elapsed_ms = window.stats.elapsed_ms();
+            window.hex_grid.draw(&mut target, elapsed_ms);
 
             // Draw status text:
             status_text.draw(&mut target, &window.cycle_status, &window.stats, window.grid_dims,
                 &window.area_info.name, window.hex_grid.camera_pos()[2]);
 
             // Draw UI:
-            ui.draw(&mut target);
+            ui.draw(&mut target, Some(&mut window));
 
             // Swap buffers:
             target.finish().unwrap();
@@ -333,7 +344,10 @@ impl<'d> Window<'d> {
 
     fn handle_event_remainder(&mut self, rdr: WindowCtl) {
         match rdr {
+            WindowCtl::None => (),
             WindowCtl::MouseWheel(delta) => self.handle_mouse_wheel(delta),
+            WindowCtl::MouseInput(state, button) => self.handle_mouse_input(state, button),
+            WindowCtl::MouseMoved(pos) => self.handle_mouse_moved(pos),
             WindowCtl::Closed => self.close_pending = true,
             WindowCtl::CyCtl(ctl) => self.control_tx.send(ctl).unwrap(),
             WindowCtl::SetCyIters(i) => self.iters_pending = i,
@@ -351,28 +365,52 @@ impl<'d> Window<'d> {
 
     /// Moves the camera position in our out (horizontal scrolling ignored).
     #[allow(dead_code)]
-    pub fn handle_mouse_wheel(&mut self, scroll_delta: MouseScrollDelta) {
+    fn handle_mouse_wheel(&mut self, scroll_delta: MouseScrollDelta) {
         let (hrz, vrt) = match scroll_delta {
-            MouseScrollDelta::LineDelta(h, v) => (h * 0.01, v * 0.01),
-            MouseScrollDelta::PixelDelta(x, y) => (x * 0.001, y * 0.001),
+            MouseScrollDelta::LineDelta(h, v) => (h * 10.0, v * 10.0),
+            MouseScrollDelta::PixelDelta(x, y) => (x, y),
         };
-
-        self.hex_grid.move_camera([0.0, 0.0, vrt]);
         let _ = hrz;
 
-        // let vrt_delta = vrt * -0.01;
-        // let new_cam_dst = self.cam_dst + vrt_delta;
-        // let new_dst_valid = (new_cam_dst >= 0.00 && new_cam_dst <= 2.99) as i32 as f32;
-        // self.cam_dst += vrt_delta * new_dst_valid;
+        self.hex_grid.move_camera([0.0, 0.0, vrt]);
+    }
+
+    fn handle_mouse_moved(&mut self, pos: (i32, i32)) {
+        self.mouse_pos = pos;
+
+        if let Some(ref mut start_pos) = self.dragging {
+            if self.has_mouse_focus {
+                let delta = [
+                    (pos.0 - start_pos.0) as f32,
+                    (pos.1 - start_pos.1) as f32,
+                    0.0,
+                ];
+                self.hex_grid.move_camera(delta);
+                *start_pos = pos;
+            }
+        }
     }
 
     #[allow(dead_code, unused_variables)]
-    pub fn handle_mouse_input(&mut self, button_state: ElementState, button: MouseButton) {
+    fn handle_mouse_input(&mut self, button_state: ElementState, button: MouseButton) {
+        match button {
+            MouseButton::Left => {
+                match button_state {
+                    ElementState::Pressed => self.dragging = Some(self.mouse_pos),
+                    ElementState::Released => self.dragging = None,
+                }
+            },
+            _ => (),
+        }
 
+        println!("WINDOW::HANDLE_MOUSE_INPUT(): focus: {}, dragging: {:?}", self.has_mouse_focus, self.dragging);
     }
+}
 
-    #[allow(dead_code, unused_variables)]
-    pub fn handle_mouse_moved(&mut self, mouse_state: &MouseState) {
-
+impl<'d> SetFocus for Window<'d> {
+    fn set_mouse_focus(&mut self, focus: bool) {
+        self.has_mouse_focus = focus;
+        if !focus { self.dragging = None; }
+        println!("WINDOW::SET_MOUSE_FOCUS(): Setting focus to: {}, dragging: {:?}", focus, self.dragging);
     }
 }
