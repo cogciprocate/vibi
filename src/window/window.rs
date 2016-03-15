@@ -1,7 +1,7 @@
 use std::sync::mpsc::{Receiver, Sender};
 use time::{self, Timespec, Duration};
 use glium::{self, DisplayBuild, Surface};
-use cycle::{CyCtl, CyRes, Status, AreaInfo};
+use cycle::{CyCtl, CyRes, Status as CyStatus, AreaInfo};
 use window::{HexGrid, StatusText};
 use enamel::{ui, Pane, EventRemainder, UiRequest, TextBox, HexButton, ElementState, 
     MouseButton, MouseScrollDelta, SetMouseFocus, Event};
@@ -92,7 +92,7 @@ impl WindowStats {
 
 // [FIXME]: Needs a rename. Anything containing 'Window' is misleading (Pane is the window).
 pub struct Window<'d> {
-    pub cycle_status: Status,
+    pub cycle_status: CyStatus,
     pub area_info: AreaInfo,
     pub stats: WindowStats,
     pub close_pending: bool,
@@ -195,7 +195,7 @@ impl<'d> Window<'d> {
 
         // Main window data struct:
         let mut window = Window {
-            cycle_status: Status::new(),
+            cycle_status: CyStatus::new(),
             area_info: area_info.clone(),
             stats: WindowStats::new(),
             close_pending: false,
@@ -274,13 +274,6 @@ impl<'d> Window<'d> {
                 window.control_tx.send(CyCtl::Exit).expect("Exit button control tx");
                 break;
             }
-
-            ///////////////////////////////////////////////////////////
-            ////////////////////////// DEBUG //////////////////////////
-            ///////////////////////////////////////////////////////////            
-                // if !ui.input_is_stale() {
-                //     println!("##### Mouse position: {:?}", ui.mouse_state().position());
-                // }
         }
 
         // Hide window when exiting.

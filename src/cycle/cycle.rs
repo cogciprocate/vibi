@@ -62,10 +62,10 @@ pub struct AreaInfo {
 pub struct Status {
     // pub dims: (u32, u32),
     pub cur_cycle: u32,
-    pub ttl_cycles: u32,
-    pub cur_elapsed: Duration,
-    pub ttl_elapsed: Duration,
-    pub cur_start_time: Timespec,
+    pub prev_cycles: u32,
+    // pub cur_elapsed: Duration,
+    pub prev_elapsed: Duration,
+    pub cur_start_time: Option<Timespec>,
 }
 
 impl Status {
@@ -73,19 +73,50 @@ impl Status {
         Status {
             // dims: dims,
             cur_cycle: 0,
-            ttl_cycles: 0,
-            cur_elapsed: Duration::seconds(0),
-            ttl_elapsed: Duration::seconds(0),
-            cur_start_time: time::get_time(),
+            prev_cycles: 0,
+            // cur_elapsed: Duration::seconds(0),
+            prev_elapsed: Duration::seconds(0),
+            cur_start_time: Some(time::get_time()),
         }
     }
 
-    pub fn ttl_cps(&self) -> f32 {
-        cps(self.ttl_cycles, self.ttl_elapsed)
+    pub fn cur_cycle(&self) -> u32 {
+        self.cur_cycle
+    }
+
+    pub fn cur_elapsed(&self) -> Duration {
+        match self.cur_start_time {
+            Some(start) => time::get_time() - start,
+            None => Duration::zero(),
+        }
     }
 
     pub fn cur_cps(&self) -> f32 {
-        cps(self.cur_cycle, self.cur_elapsed)
+        match self.cur_start_time {
+            Some(_) => Status::cps(self.cur_cycle, self.cur_elapsed()),
+            None => 0.0,
+        }
+    }
+
+
+    pub fn ttl_cycles(&self) -> u32 {
+        self.cur_cycle + self.prev_cycles
+    }
+
+    pub fn ttl_elapsed(&self) -> Duration {
+        self.prev_elapsed + self.cur_elapsed()
+    }
+
+    pub fn ttl_cps(&self) -> f32 {
+        Status::cps(self.ttl_cycles(), self.ttl_elapsed())
+    }
+
+    fn cps(cycle: u32, elapsed: Duration) -> f32 {
+        if elapsed.num_milliseconds() > 0 {
+            (cycle as f32 / elapsed.num_milliseconds() as f32) * 1000.0
+        } else {
+            0.0
+        }
     }
 }
 
@@ -178,9 +209,12 @@ impl CycleLoop {
             }        
 
             // ri.loop_start_time = time::get_time();
-            ri.status.cur_start_time = time::get_time();
+            ri.status.cur_start_time = Some(time::get_time());
             ri.status.cur_cycle = 0;
-            ri.status.cur_elapsed = Duration::seconds(0);
+            // ri.status.cur_elapsed = Duration::seconds(0);
+
+            // Send a Status with updated time:
+            result_tx.send(CyRes::Status(Box::new(ri.status.clone()))).ok();
 
             if ri.cycle_iters > 1 {
                 print!("Running {} iterations... \n", ri.cycle_iters);
@@ -197,10 +231,12 @@ impl CycleLoop {
                 LoopAction::None => (),
             }
 
-            ri.status.ttl_cycles += ri.status.cur_cycle;
-            ri.status.ttl_elapsed = ri.status.ttl_elapsed + ri.status.cur_elapsed;
+            ri.status.prev_cycles += ri.status.cur_cycle;
+            ri.status.prev_elapsed = ri.status.prev_elapsed + ri.status.cur_elapsed();
             ri.status.cur_cycle = 0;
-            ri.status.cur_elapsed = Duration::seconds(0);
+            ri.status.cur_start_time = None;
+            // ri.status.cur_elapsed = Duration::seconds(0);
+            // Send status with updated totals:
             result_tx.send(CyRes::Status(Box::new(ri.status.clone()))).ok();
         }
 
@@ -225,15 +261,6 @@ fn refresh_hex_grid_buf(ri: &RunInfo, slc_range: Range<u8>, buf: Arc<Mutex<Vec<u
 }
 
 
-fn cps(cycle: u32, elapsed: Duration) -> f32 {
-    if elapsed.num_milliseconds() > 0 {
-        (cycle as f32 / elapsed.num_milliseconds() as f32) * 1000.0
-    } else {
-        0.0
-    }
-}
-
-
 fn loop_cycles(ri: &mut RunInfo, control_rx: &Receiver<CyCtl>, result_tx: &mut Sender<CyRes>)
         -> CyCtl
 {
@@ -242,7 +269,7 @@ fn loop_cycles(ri: &mut RunInfo, control_rx: &Receiver<CyCtl>, result_tx: &mut S
     loop {
         if ri.status.cur_cycle >= (ri.cycle_iters - 1) { break; }        
 
-        let elapsed = time::get_time() - ri.status.cur_start_time;
+        let elapsed = ri.status.cur_elapsed();
 
         if ri.status.cur_cycle % STATUS_EVERY == 0 || ri.status.cur_cycle == (ri.cycle_iters - 2) {            
             if ri.status.cur_cycle > 0 || (ri.cycle_iters > 1 && ri.status.cur_cycle == 0) {
@@ -262,7 +289,10 @@ fn loop_cycles(ri: &mut RunInfo, control_rx: &Receiver<CyCtl>, result_tx: &mut S
             ri.cortex.cycle();
         }
 
-        // Check if any controls requests have been sent:
+        // Update current cycle:
+        ri.status.cur_cycle += 1;
+
+        // Respond to any requests:
         if let Ok(c) = control_rx.try_recv() {
             match c {
                 CyCtl::RequestCurrentIter => result_tx.send(
@@ -282,9 +312,7 @@ fn loop_cycles(ri: &mut RunInfo, control_rx: &Receiver<CyCtl>, result_tx: &mut S
             }
         }
 
-        // Update and send status:
-        ri.status.cur_cycle += 1;
-        ri.status.cur_elapsed = elapsed;
+        // ri.status.cur_elapsed = elapsed;
         // result_tx.send(CyRes::Status(Box::new(ri.status.clone()))).ok();
     }
 
@@ -329,7 +357,7 @@ fn cycle_print(ri: &mut RunInfo) -> LoopAction {
     if ri.status.cur_cycle > 1 {
         printlnc!(yellow: "-> {} cycles @ [> {:02.2} c/s <]", 
             ri.status.cur_cycle, (ri.status.cur_cycle as f32 
-                / ri.status.cur_elapsed.num_milliseconds() as f32) * 1000.0);
+                / ri.status.cur_elapsed().num_milliseconds() as f32) * 1000.0);
     }    
 
     if ri.cycle_iters > 1000 {
@@ -365,7 +393,7 @@ fn prompt(ri: &mut RunInfo) -> LoopAction {
                 view_state, axn_state, ri.area_name, 
                 iters = ri.cycle_iters,
                 loop_i = 0, //input_czar.counter(), 
-                ttl_i = ri.status.ttl_cycles,
+                ttl_i = ri.status.prev_cycles,
             ))
         };
 

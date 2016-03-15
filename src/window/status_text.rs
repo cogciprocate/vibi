@@ -67,14 +67,15 @@ impl StatusText {
     {
         let (width, height) = target.get_dimensions();
         self.draw_line(&format!("Window: {} X {}", width, height), 6, 26, target);
-        self.draw_line(&format!("Grid: {} X {}", grid_dims.0, grid_dims.1), 6, 56, target);
+        self.draw_line(&format!("View Distance: {:.0}%", cam_dst * 100.0), 6, 56, target);
         self.draw_line(&format!("FPS: {:.1}", window_stats.fps()), 6, 86, target);
-        self.draw_line(&format!("Current Cycle: {:.1}", cycle_status.cur_cycle), 6, 116, target);
+        self.draw_line(&format!("Current Cycle: {:.1}", cycle_status.cur_cycle()), 6, 116, target);
         self.draw_line(&format!("Current CPS: {:.1}", cycle_status.cur_cps()), 6, 146, target);
-        self.draw_line(&format!("Total Cycles: {:.1}", cycle_status.ttl_cycles), 6, 176, target);
+        self.draw_line(&format!("Total Cycles: {:.1}", cycle_status.ttl_cycles()), 6, 176, target);
         self.draw_line(&format!("Total CPS: {:.1}", cycle_status.ttl_cps()), 6, 206, target);
-        self.draw_line(&format!("Area: \"{}\"", area_name), 6, 236, target);
-        self.draw_line(&format!("Distance: {:.0}%", cam_dst * 100.0), 6, 266, target);
+        self.draw_line(&format!("Area Name: \"{}\"", area_name), 6, 236, target);
+        self.draw_line(&format!("Area Size: {} X {}", grid_dims.0, grid_dims.1), 6, 266, target);
+        
     }    
 }
 
