@@ -65,22 +65,14 @@ impl<'d> HexGrid<'d> {
     }
 
     pub fn draw<S: Surface>(&mut self, target: &mut S, elapsed_ms: f64) {
-        // [FIXME]: TEMPORARY:
-        
-
         // Set up our frame-countery-thing:
         let f_c = (elapsed_ms * 0.00025) as f32;
 
         // Get frame dimensions:
-        // let (width, height) = target.get_dimensions();
         self.surface_dims = target.get_dimensions();
 
         // Perspective transformation matrix:
         let persp = persp_matrix(self.surface_dims.0, self.surface_dims.1, 3.0);
-
-        // [TEMP]
-        // self.update_cam_pos(, hex_grid_buf.cur_slc_range().len(), 
-        //     hex_grid_buf.tract_map().axn_count(hex_grid_buf.cur_slc_range()));
 
         // View transformation matrix: { position(x,y,z), direction(x,y,z), up_dim(x,y,z)}
         let view = view_matrix(&self.cam_pos_raw, &[0.0, 0.0, 0.5], &[0.0, 1.0, 0.0]);
@@ -92,9 +84,6 @@ impl<'d> HexGrid<'d> {
         let global_color = [
             0.0, 
             0.0, 
-            // // 0% - 30% blue just for effect:
-            // (f32::abs(f32::cos(f_c) * 0.30)),
-            // 30% blue static:
             0.3f32,
         ];
 
@@ -102,16 +91,11 @@ impl<'d> HexGrid<'d> {
 
         // Loop through currently visible slices:
         for slc_id in self.buffer.cur_slc_range().clone() {
-            // [FIXME]: Do something with this?
-            // debug_assert!(self.buffer.vertex_buf().len() == (grid_dims.0 * grid_dims.1) as usize);
-
             let grid_dims = self.buffer.tract_map().slc_dims(slc_id);
 
             let x_scl = (grid_dims.0 + grid_dims.1) as f32 * HEX_X;
             let y_scl = (grid_dims.0 + grid_dims.1) as f32 * HEX_Y;
 
-            // let x_cntr = -1.0;
-            // let y_cntr = -0.9;
             let slc_idm = self.buffer.cur_slc_range().end - 1;
 
             // Set up model position:
@@ -137,8 +121,6 @@ impl<'d> HexGrid<'d> {
                 u_global_color: global_color,
                 grid_v_size: grid_dims.0,
                 grid_u_size: grid_dims.1,
-                // diffuse_tex: &diffuse_texture,
-                // normal_tex: &normal_map,
             };
 
             // Draw Grid (with per-instance vertex buffer):
@@ -149,20 +131,13 @@ impl<'d> HexGrid<'d> {
 
     // [TODO]: Simplify this mess and try to get it more accurate.
     pub fn update_cam_pos(&mut self) {
-        // // Camera position:
-        // let cam_x = f32::cos(f_c) * xy_scl;
-        // let cam_y = f32::cos(f_c) * xy_scl;
-        // let cam_z = f32::cos(f_c / 3.0) * z_scl;
-        // let slc_count = hex_grid_buf.cur_slc_range().len();
         let slc_count = self.buffer.cur_slc_range().len();
         let hex_count = self.buffer.tract_map().axn_count(self.buffer.cur_slc_range()) as f32;
 
         let slc_count_eq_one = (slc_count == 1) as i32 as f32;
         let slc_count_gt_one = (slc_count > 1) as i32 as f32;
-        // let slc_count_odd = (slc_count % 2) as f32;
-        // let ttl_axn_count = hex_count as f32;
         let hex_sqrt = hex_count.sqrt();
-        // let cam_x_pos = slc_count_eq_one.mul_add((-0.080 * hex_sqrt * 0.5), (0.1455 * hex_sqrt)) - self.cam_pos_norm[0];
+        
         let x_ofs = (-0.080 * hex_sqrt * 0.5).mul_add(slc_count_eq_one, (hex_sqrt * 0.1455));
         let cam_x_pos = x_ofs + (self.cam_pos_norm[0] * hex_sqrt * -0.08 * 
             (self.cam_pos_norm[2] * 3.0 + 0.5));
@@ -173,10 +148,9 @@ impl<'d> HexGrid<'d> {
 
         let cam_z_pos = (-0.13 * hex_count.sqrt()).mul_add(self.cam_pos_norm[2], -1.0);
 
-        // Camera position:
         self.cam_pos_raw = [cam_x_pos, cam_y_pos, cam_z_pos];
 
-        println!("CAMERA POSITION: norm: {:?}, raw: {:?}", self.cam_pos_norm, self.cam_pos_raw);
+        // println!("CAMERA POSITION: norm: {:?}, raw: {:?}", self.cam_pos_norm, self.cam_pos_raw);
     }
 
     /// Moves the camera by a three dimensional vector each component having

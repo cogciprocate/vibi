@@ -3,9 +3,9 @@ use time::{self, Timespec, Duration};
 use glium::{self, DisplayBuild, Surface};
 use cycle::{CyCtl, CyRes, Status, AreaInfo};
 use window::{HexGrid, StatusText};
-use enamel::{self, Pane, EventRemainder, UiRequest, TextBox, HexButton, ElementState, 
-    MouseButton, MouseScrollDelta, SetFocus};
-// use super::HexGridBuffer;
+use enamel::{ui, Pane, EventRemainder, UiRequest, TextBox, HexButton, ElementState, 
+    MouseButton, MouseScrollDelta, SetMouseFocus, Event};
+
 
 #[derive(Clone, Debug)]
 pub enum HexGridCtl {
@@ -17,11 +17,7 @@ pub enum HexGridCtl {
 #[derive(Clone, Debug)]
 pub enum WindowCtl {
     None,
-    Closed,
-    MouseMoved((i32, i32)),
-    MouseWheel(MouseScrollDelta),
-    MouseInput(ElementState, MouseButton),
-    SetMouseFocus(bool),
+    Event(Event),
     HexGrid(HexGridCtl),
     SetCyIters(u32),
     CyIterate,
@@ -29,24 +25,8 @@ pub enum WindowCtl {
 }
 
 impl EventRemainder for WindowCtl {
-    fn closed() -> WindowCtl {
-        WindowCtl::Closed
-    }
-
-    fn mouse_moved(pos: (i32, i32)) -> Self {
-        WindowCtl::MouseMoved(pos)
-    }
-
-    fn mouse_wheel(delta: MouseScrollDelta) -> Self {
-        WindowCtl::MouseWheel(delta)
-    }
-
-    fn mouse_input(state: ElementState, button: MouseButton) -> Self {
-        WindowCtl::MouseInput(state, button)
-    }
-        
-    fn set_mouse_focus(focus: bool) -> Self {
-        WindowCtl::SetMouseFocus(focus)
+    fn event(event: Event) -> Self {
+        WindowCtl::Event(event)
     }
 }
 
@@ -55,6 +35,7 @@ impl Default for WindowCtl {
         WindowCtl::None
     }
 }
+
 
 pub struct WindowStats {
     pub frame_count: usize,
@@ -153,31 +134,23 @@ impl<'d> Window<'d> {
 
         // Primary user interface elements:
         let mut ui = Pane::new(&display)
-            .element(HexButton::new([1.0, -1.0, 0.0], (-0.57, 0.45), 1.8, 
-                    "View Output", enamel::ui::C_ORANGE)
+            .element(HexButton::new(ui::BOTTOM_RIGHT, (-0.57, 0.45), 1.8, 
+                    "View Output", ui::C_ORANGE)
                 .mouse_event_handler(Box::new(|_, _| {
-                    // window.control_tx.send(CyCtl::Iterate(window.iters_pending))
-                    //     .expect("View All Button button");
-                    // window.hex_grid.buffer.use_default_slc_range();
-                    // EventRemainder::None
                     (UiRequest::None, WindowCtl::HexGrid(HexGridCtl::SlcRangeDefault))
                 }))
             )
 
-            .element(HexButton::new([1.0, -1.0, 0.0], (-0.20, 0.45), 1.8, 
-                    "View All", enamel::ui::C_ORANGE)
+            .element(HexButton::new(ui::BOTTOM_RIGHT, (-0.20, 0.45), 1.8, 
+                    "View All", ui::C_ORANGE)
                 .mouse_event_handler(Box::new(|_, _| {
-                    // window.control_tx.send(CyCtl::Iterate(window.iters_pending))
-                    //     .expect("View All Button button");
-                    // window.hex_grid.buffer.use_full_slc_range();
-                    // EventRemainder::None
                     (UiRequest::None, WindowCtl::HexGrid(HexGridCtl::SlcRangeFull))
                 }))
             )
 
-            .element(TextBox::new([1.0, -1.0, 0.0], (-0.385, 0.35), 4.45, 
-                    "Iters:", enamel::ui::C_ORANGE, "1", Box::new(|key_state, vk_code, kb_state, text_string| {
-                        enamel::ui::key_into_string(key_state, vk_code, kb_state, text_string);
+            .element(TextBox::new(ui::BOTTOM_RIGHT, (-0.385, 0.35), 4.45, 
+                    "Iters:", ui::C_ORANGE, "1", Box::new(|key_state, vk_code, kb_state, text_string| {
+                        ui::key_into_string(key_state, vk_code, kb_state, text_string);
 
                         let parsed = text_string.trim().replace("k","000").replace("m","0000000").parse();
 
@@ -191,33 +164,28 @@ impl<'d> Window<'d> {
                 )
                 .mouse_event_handler(Box::new(|_, _| {
                     (UiRequest::KeyboardFocus(true), WindowCtl::None)
-                } ))
+                }))
 
             )
 
-            .element(HexButton::new([1.0, -1.0, 0.0], (-0.57, 0.25), 1.8, 
-                    "Cycle", enamel::ui::C_ORANGE)
+            .element(HexButton::new(ui::BOTTOM_RIGHT, (-0.57, 0.25), 1.8, 
+                    "Cycle", ui::C_ORANGE)
                 .mouse_event_handler(Box::new(|_, _| {
-                    // window.control_tx.send(CyCtl::Iterate(window.iters_pending))
-                    //     .expect("Iterate button");
                     (UiRequest::None, WindowCtl::CyIterate)
                 }))
             )
 
-            .element(HexButton::new([1.0, -1.0, 0.0], (-0.20, 0.25), 1.8, 
-                    "Stop", enamel::ui::C_ORANGE)
+            .element(HexButton::new(ui::BOTTOM_RIGHT, (-0.20, 0.25), 1.8, 
+                    "Stop", ui::C_ORANGE)
                 .mouse_event_handler(Box::new(|_, _| {                     
-                    // window.control_tx.send(CyCtl::Stop)
-                    //     .expect("Stop button");
                     (UiRequest::None, WindowCtl::CyCtl(CyCtl::Stop))
                 }))
             )
 
-            .element(HexButton::new([1.0, -1.0, 0.0], (-0.20, 0.07), 1.8, 
-                    "Exit", enamel::ui::C_ORANGE)
+            .element(HexButton::new(ui::BOTTOM_RIGHT, (-0.20, 0.07), 1.8, 
+                    "Exit", ui::C_ORANGE)
                 .mouse_event_handler(Box::new(|_, _| { 
-                    // window.close_pending = true;
-                    (UiRequest::None, WindowCtl::Closed)
+                    (UiRequest::None, WindowCtl::Event(Event::Closed))
                 }))
             )            
 
@@ -293,7 +261,7 @@ impl<'d> Window<'d> {
                 &window.area_info.name, window.hex_grid.camera_pos()[2]);
 
             // Draw UI:
-            ui.draw(&mut target, Some(&mut window));
+            ui.draw(&mut target);
 
             // Swap buffers:
             target.finish().unwrap();
@@ -328,9 +296,7 @@ impl<'d> Window<'d> {
                         CyRes::CurrentIter(iter) => self.cycle_status.cur_cycle = iter,
                         CyRes::Status(cysts) => self.cycle_status = *cysts,
                         CyRes::AreaInfo(box info) => {
-                            // let AreaInfo { area, aff_out_slc_range, tract_map } = info.clone();
                             self.area_info = info.clone();
-                            // self.area_name = name;
                             self.hex_grid.buffer.set_default_slc_range(info.aff_out_slc_range.clone());
                             self.hex_grid.buffer.set_tract_map(info.tract_map);
                         },
@@ -345,10 +311,16 @@ impl<'d> Window<'d> {
     fn handle_event_remainder(&mut self, rdr: WindowCtl) {
         match rdr {
             WindowCtl::None => (),
-            WindowCtl::MouseWheel(delta) => self.handle_mouse_wheel(delta),
-            WindowCtl::MouseInput(state, button) => self.handle_mouse_input(state, button),
-            WindowCtl::MouseMoved(pos) => self.handle_mouse_moved(pos),
-            WindowCtl::Closed => self.close_pending = true,
+            WindowCtl::Event(event) => { match event {
+                Event::KeyboardInput(state, _, v_code) => 
+                    println!("Key: {:?} has been {:?}", ui::map_vkc(v_code), state),
+                Event::MouseMoved(pos) => self.handle_mouse_moved(pos),
+                Event::MouseWheel(delta) => self.handle_mouse_wheel(delta),
+                Event::MouseInput(state, btn) => self.handle_mouse_input(state, btn),
+                Event::Touch(touch) => println!("Touch recieved: {:?}", touch),
+                Event::Closed => self.close_pending = true,
+                _ => (),
+            } }
             WindowCtl::CyCtl(ctl) => self.control_tx.send(ctl).unwrap(),
             WindowCtl::SetCyIters(i) => self.iters_pending = i,
             WindowCtl::CyIterate => self.control_tx.send(CyCtl::Iterate(self.iters_pending)).unwrap(),
@@ -359,7 +331,7 @@ impl<'d> Window<'d> {
                 }
                 self.hex_grid.update_cam_pos();
             },
-            _ => (),           
+            // _ => (),           
         }
     }
 
@@ -379,15 +351,13 @@ impl<'d> Window<'d> {
         self.mouse_pos = pos;
 
         if let Some(ref mut start_pos) = self.dragging {
-            if self.has_mouse_focus {
-                let delta = [
-                    (pos.0 - start_pos.0) as f32,
-                    (pos.1 - start_pos.1) as f32,
-                    0.0,
-                ];
-                self.hex_grid.move_camera(delta);
-                *start_pos = pos;
-            }
+            let delta = [
+                (pos.0 - start_pos.0) as f32,
+                (pos.1 - start_pos.1) as f32,
+                0.0,
+            ];
+            self.hex_grid.move_camera(delta);
+            *start_pos = pos;
         }
     }
 
@@ -403,14 +373,13 @@ impl<'d> Window<'d> {
             _ => (),
         }
 
-        println!("WINDOW::HANDLE_MOUSE_INPUT(): focus: {}, dragging: {:?}", self.has_mouse_focus, self.dragging);
+        // println!("WINDOW::HANDLE_MOUSE_INPUT(): focus: {}, dragging: {:?}", self.has_mouse_focus, self.dragging);
     }
 }
 
-impl<'d> SetFocus for Window<'d> {
+impl<'d> SetMouseFocus for Window<'d> {
     fn set_mouse_focus(&mut self, focus: bool) {
         self.has_mouse_focus = focus;
-        if !focus { self.dragging = None; }
-        println!("WINDOW::SET_MOUSE_FOCUS(): Setting focus to: {}, dragging: {:?}", focus, self.dragging);
+        // println!("WINDOW::SET_MOUSE_FOCUS(): Setting focus to: {}, dragging: {:?}", focus, self.dragging);
     }
 }
