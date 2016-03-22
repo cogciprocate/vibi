@@ -33,7 +33,7 @@ impl StatusText {
         // Font:
         let font_size = 12;
         let font_texture = FontTexture::new(display, &include_bytes!(
-                "/home/nick/projects/vibi/assets/fonts/NotoSans/NotoSans-Regular.ttf"
+                "assets/fonts/NotoSans/NotoSans-Regular.ttf"
             )[..], font_size).unwrap();
 
         StatusText {

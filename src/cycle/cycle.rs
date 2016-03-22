@@ -151,7 +151,7 @@ impl CycleLoop {
         let mut cortex = cortex::Cortex::new(config::define_plmaps(), config::define_pamaps());
         config::disable_stuff(&mut cortex);
 
-        let area_name = "v1".to_string();
+        let area_name = "v1".to_owned();
         
         // let area_dims = { 
         //     let dims = cortex.area(&area_name).dims();
