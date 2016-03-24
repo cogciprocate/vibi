@@ -45,7 +45,7 @@ dependencies = [
 [[package]]
 name = "bismit"
 version = "0.0.1"
-source = "git+https://github.com/cogciprocate/bismit.git#de83b8bd2cd5791950b65824ac7ed986c63096a9"
+source = "git+https://github.com/cogciprocate/bismit.git#8b84e317cc6c3386d44fb2290955de5552729f66"
 dependencies = [
  "bitflags 0.5.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "enum_primitive 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -515,7 +515,7 @@ dependencies = [
 [[package]]
 name = "ocl"
 version = "0.8.0"
-source = "git+https://github.com/cogciprocate/ocl.git#47ec0e310c49d970d9444f44afe009d6a302031a"
+source = "git+https://github.com/cogciprocate/ocl.git#6ae01a752bb5d9f0575715b49b03c1a2b0807f57"
 dependencies = [
  "bitflags 0.5.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "enum_primitive 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
