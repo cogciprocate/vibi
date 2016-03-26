@@ -305,8 +305,8 @@ impl<'d> Window<'d> {
         match rdr {
             WindowCtl::None => (),
             WindowCtl::Event(event) => { match event {
-                Event::KeyboardInput(state, _, v_code) => 
-                    println!("Key: {:?} has been {:?}", ui::map_vkc(v_code), state),
+                // Event::KeyboardInput(state, _, v_code) => ()
+                //     println!("Key: {:?} has been {:?}", ui::map_vkc(v_code), state),
                 Event::MouseMoved(pos) => self.handle_mouse_moved(pos),
                 Event::MouseWheel(delta) => self.handle_mouse_wheel(delta),
                 Event::MouseInput(state, btn) => self.handle_mouse_input(state, btn),
