@@ -45,13 +45,12 @@ dependencies = [
 [[package]]
 name = "bismit"
 version = "0.0.1"
-source = "git+https://github.com/cogciprocate/bismit.git#e1e98ab8710796ddae4ceaed56313dc8c35532d3"
+source = "git+https://github.com/cogciprocate/bismit.git#6735abc888045df682f046b945b2ebde01751534"
 dependencies = [
  "bitflags 0.5.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "enum_primitive 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "find_folder 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "libc 0.2.8 (registry+https://github.com/rust-lang/crates.io-index)",
- "microcosm 0.0.1 (git+https://github.com/cogciprocate/microcosm.git)",
  "num 0.1.31 (registry+https://github.com/rust-lang/crates.io-index)",
  "ocl 0.8.0 (git+https://github.com/cogciprocate/ocl.git)",
  "rand 0.3.14 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -469,15 +468,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "microcosm"
-version = "0.0.1"
-source = "git+https://github.com/cogciprocate/microcosm.git#c4dc03786c1826053869c4683f4b4210c1cca4a6"
-dependencies = [
- "num 0.1.31 (registry+https://github.com/rust-lang/crates.io-index)",
- "rand 0.3.14 (registry+https://github.com/rust-lang/crates.io-index)",
-]
-
-[[package]]
 name = "miniz-sys"
 version = "0.1.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -515,7 +505,7 @@ dependencies = [
 [[package]]
 name = "ocl"
 version = "0.8.0"
-source = "git+https://github.com/cogciprocate/ocl.git#53ad2f960a36138bb7e043b90edd4448193cf95a"
+source = "git+https://github.com/cogciprocate/ocl.git#fce75c3419bad5e22cc09a8a0aad49b7ee9a40bc"
 dependencies = [
  "bitflags 0.5.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "enum_primitive 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
