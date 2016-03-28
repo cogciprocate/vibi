@@ -189,7 +189,7 @@ dependencies = [
 [[package]]
 name = "enamel"
 version = "0.3.0"
-source = "git+https://github.com/cogciprocate/enamel.git#12ea6947e9ada9f316f88ddc5961c890e056821d"
+source = "git+https://github.com/cogciprocate/enamel.git#a4708626e5711f52b2e8cecc086fee3ce0cdce57"
 dependencies = [
  "find_folder 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "glium 0.13.5 (registry+https://github.com/rust-lang/crates.io-index)",

@@ -216,21 +216,19 @@ impl<'d> Window<'d> {
         //     {mt}'Escape' or 'q' to quit.",
         //     mt = "    ");
 
+        // Send initial request:
+        window.control_tx.send(CyCtl::RequestCurrentIter).unwrap();
 
         //////////////////////////////////////////////////////////////////////////
         ///////////////////// Primary Event & Rendering Loop /////////////////////
         //////////////////////////////////////////////////////////////////////////
         loop {
-            // Get read for new input:
-            ui.set_input_stale();
-
             // Create draw target and clear color and depth:
             let mut target = display.draw();
             target.clear_color_and_depth((0.030, 0.050, 0.080, 1.0), 1.0);
 
-            // Check cycle status:
-            window.recv_cycle_results();
-            window.control_tx.send(CyCtl::RequestCurrentIter).unwrap();
+            // Get read for new input:
+            ui.set_input_stale();
 
             // Check input events:
             for ev in display.poll_events() {
@@ -238,19 +236,26 @@ impl<'d> Window<'d> {
             }
 
             // If the hex grid buffer is not clear, e.g. the last sample
-            // request is still unwritten, clear it, if possible, by
-            // attempting to write to the device vertex buffer.
+            // request is still unwritten, clear it by attempting to write to
+            // the device vertex buffer if it is ready.
             if !window.hex_grid.buffer.is_clear() {
                 let is_clear = window.hex_grid.buffer.refresh_vertex_buf();
                 window.hex_grid.buffer.set_clear(is_clear);
             }
 
-            // If the hex grid buffer is now clear, send a new sample request
-            // for the next frame.
-            if window.hex_grid.buffer.is_clear() {
-                window.control_tx.send(CyCtl::Sample(window.hex_grid.buffer.cur_slc_range(),
-                    window.hex_grid.buffer.raw_states_vec())) .expect("Sample raw states");
-                window.hex_grid.buffer.set_clear(false);
+            // Check the results channel and determine if the cycle process
+            // has caught up to this window before sending new requests.
+            if window.recv_cycle_results() {
+                // If the hex grid buffer is now clear, send a new sample request
+                // for the next frame.
+                if window.hex_grid.buffer.is_clear() {
+                    window.control_tx.send(CyCtl::Sample(window.hex_grid.buffer.cur_slc_range(),
+                        window.hex_grid.buffer.raw_states_vec())) .expect("Sample raw states");
+                    window.hex_grid.buffer.set_clear(false);
+                }
+
+                // Check cycle status for next frame:
+                window.control_tx.send(CyCtl::RequestCurrentIter).unwrap();
             }
 
             // Draw hex grid:
@@ -259,7 +264,7 @@ impl<'d> Window<'d> {
 
             // Draw status text:
             status_text.draw(&mut target, &window.cycle_status, &window.stats, window.grid_dims,
-                &window.area_info.name, window.hex_grid.camera_pos()[2]);
+            &window.area_info.name, window.hex_grid.camera_pos()[2]);
 
             // Draw UI:
             ui.draw(&mut target);
@@ -282,7 +287,9 @@ impl<'d> Window<'d> {
         display.get_window().unwrap().hide();
     }
 
-    fn recv_cycle_results(&mut self) {
+    fn recv_cycle_results(&mut self) -> bool {
+        let mut any_recvd = false;
+
         loop {
             match self.result_rx.try_recv() {
                 Ok(cr) => {
@@ -297,10 +304,12 @@ impl<'d> Window<'d> {
                         },
                         // _ => (),
                     }
+                    any_recvd = true;
                 },
                 Err(_) => break,
-            };
+            }
         }
+        any_recvd
     }
 
     fn handle_event_remainder(&mut self, rdr: WindowCtl) {
