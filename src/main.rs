@@ -1,4 +1,4 @@
-#![feature(box_patterns)]
+// #![feature(box_patterns)]
 
 #[macro_use] extern crate glium;
 extern crate glium_text;

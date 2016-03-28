@@ -111,7 +111,7 @@ impl<'d> Window<'d> {
         // Get initial area info:
         control_tx.send(CyCtl::RequestCurrentAreaInfo).expect("Error requesting current area name.");
         let area_info = match result_rx.recv().expect("Current area name reception error.") {
-            CyRes::AreaInfo(box info) => info,
+            CyRes::AreaInfo(info) => *info,
             _ => panic!("Invalid area name response."),
         };        
 
@@ -289,7 +289,8 @@ impl<'d> Window<'d> {
                     match cr {
                         CyRes::CurrentIter(iter) => self.cycle_status.cur_cycle = iter,
                         CyRes::Status(cysts) => self.cycle_status = *cysts,
-                        CyRes::AreaInfo(box info) => {
+                        CyRes::AreaInfo(info) => {
+                            let info = *info;
                             self.area_info = info.clone();
                             self.hex_grid.buffer.set_default_slc_range(info.aff_out_slc_range.clone());
                             self.hex_grid.buffer.set_tract_map(info.tract_map);
