@@ -149,10 +149,11 @@ impl<'d> Window<'d> {
             )
 
             .element(TextBox::new(ui::BOTTOM_RIGHT, (-0.385, 0.35), 4.45, 
-                    "Iters:", ui::C_ORANGE, "1", Box::new(|key_state, vk_code, kb_state, text_string| {
+                    "Iters:", ui::C_ORANGE, "1m")
+                .keyboard_event_handler(Box::new(|key_state, vk_code, kb_state, text_string| {
                         ui::key_into_string(key_state, vk_code, kb_state, text_string);
 
-                        let parsed = text_string.trim().replace("k","000").replace("m","0000000").parse();
+                        let parsed = text_string.trim().replace("k","000").replace("m","000000").parse();
 
                         let remainder = match parsed {
                             Ok(i) => WindowCtl::SetCyIters(i),
@@ -164,9 +165,9 @@ impl<'d> Window<'d> {
                 )
                 .mouse_event_handler(Box::new(|_, _| {
                     (UiRequest::KeyboardFocus(true), WindowCtl::None)
-                }))
+                })
 
-            )
+            ))
 
             .element(HexButton::new(ui::BOTTOM_RIGHT, (-0.57, 0.25), 1.8, 
                     "Cycle", ui::C_ORANGE)
@@ -200,7 +201,7 @@ impl<'d> Window<'d> {
             stats: WindowStats::new(),
             close_pending: false,
             grid_dims: grid_dims,
-            iters_pending: 1,
+            iters_pending: 1000000,
             control_tx: control_tx,
             result_rx: result_rx,
             hex_grid: hex_grid,
