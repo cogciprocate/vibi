@@ -75,7 +75,8 @@ impl<'d> HexGrid<'d> {
         let persp = persp_matrix(self.surface_dims.0, self.surface_dims.1, 3.0);
 
         // View transformation matrix: { position(x,y,z), direction(x,y,z), up_dim(x,y,z)}
-        let view = view_matrix(&self.cam_pos_raw, &[0.0, 0.0, 0.5], &[0.0, 1.0, 0.0]);
+        let view = view_matrix(&self.cam_pos_raw, &[0.0, 0.0, 0.5 - self.cam_pos_raw[2]], &[0.0, 1.0, 0.0]);
+        
 
         // Light position:
         let light_pos = [-1.0, 0.4, -0.9f32];
@@ -139,12 +140,12 @@ impl<'d> HexGrid<'d> {
         let hex_sqrt = hex_count.sqrt();
         
         let x_ofs = (-0.080 * hex_sqrt * 0.5).mul_add(slc_count_eq_one, (hex_sqrt * 0.1455));
-        let cam_x_pos = x_ofs + (self.cam_pos_norm[0] * hex_sqrt * -0.08 * 
-            (self.cam_pos_norm[2] * 3.0 + 0.5));
+        let cam_x_pos = x_ofs + (self.cam_pos_norm[0] * hex_sqrt * -0.08
+            /* * (self.cam_pos_norm[2] * 3.0 + 0.5)*/);
 
         let y_ofs = 0.054 * hex_sqrt * slc_count_gt_one;
-        let cam_y_pos = y_ofs + (self.cam_pos_norm[1] * hex_sqrt * 0.05 * 
-            (self.cam_pos_norm[2] * 3.0 + 0.5));
+        let cam_y_pos = y_ofs + (self.cam_pos_norm[1] * hex_sqrt * 0.05
+            /* * (self.cam_pos_norm[2] * 3.0 + 0.5)*/);
 
         let cam_z_pos = (-0.13 * hex_count.sqrt()).mul_add(self.cam_pos_norm[2], -1.0);
 
