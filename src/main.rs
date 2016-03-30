@@ -7,7 +7,7 @@ extern crate time;
 extern crate bismit;
 extern crate find_folder;
 extern crate num;
-// extern crate vecmath;
+extern crate vecmath;
 // extern crate rustc_serialize;
 extern crate rand;
 #[macro_use] extern crate colorify;

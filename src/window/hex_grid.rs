@@ -2,6 +2,7 @@
 use glium::backend::glutin_backend::{GlutinFacade};
 use glium::{self, Surface, Program, DrawParameters, VertexBuffer, IndexBuffer};
 use glium::glutin::{ElementState, MouseButton};
+// use vecmath;
 use enamel::MouseState;
 
 use cycle::AreaInfo;
@@ -21,9 +22,14 @@ pub struct HexGrid<'d> {
     params: DrawParameters<'d>,
     pub cam_pos_norm: [f32; 3],
     pub cam_pos_raw: [f32; 3],
+    model_plane_size: [f32; 2],
+    viewable_plane_size: [f32; 2],
     pub buffer: HexGridBuffer,
     being_dragged: bool,
     surface_dims: (u32, u32),
+    light_pos: [f32; 3],
+    global_color: [f32; 3],
+    pub top_right_scene: [f32; 4],
 }
 
 impl<'d> HexGrid<'d> {
@@ -48,17 +54,23 @@ impl<'d> HexGrid<'d> {
         };
 
         let buffer = HexGridBuffer::new(area_info, &display);
+        let default_cam_dst = 1.5f32;
 
         let mut hg = HexGrid {
             vertices: vertices,
             indices: indices,
             program: program,
             params: params,
-            cam_pos_norm: [0.0, 0.0, 1.0],
+            cam_pos_norm: [0.0, 0.0, default_cam_dst],
             cam_pos_raw: [0.0, 0.0, -1.0],
+            model_plane_size: [0.0, 0.0],
+            viewable_plane_size: [0.0, 0.0],
             buffer: buffer,
             being_dragged: false,
             surface_dims: display.get_framebuffer_dimensions(),
+            light_pos: [-1.0, 0.4, -0.9f32],
+            global_color: [0.0, 0.0, 0.3f32],
+            top_right_scene: [0.0; 4],
         };
         hg.update_cam_pos();
         hg
@@ -75,51 +87,42 @@ impl<'d> HexGrid<'d> {
         let persp = persp_matrix(self.surface_dims.0, self.surface_dims.1, 3.0);
 
         // View transformation matrix: { position(x,y,z), direction(x,y,z), up_dim(x,y,z)}
-        let view = view_matrix(&self.cam_pos_raw, &[0.0, 0.0, 0.5 - self.cam_pos_raw[2]], &[0.0, 1.0, 0.0]);
-        
-
-        // Light position:
-        let light_pos = [-1.0, 0.4, -0.9f32];
-
-        // Model color (only blue fluctuates):
-        let global_color = [
-            0.0, 
-            0.0, 
-            0.3f32,
-        ];
+        let view = view_matrix(&self.cam_pos_raw, &[0.0, 0.0, 1.0], &[0.0, 1.0, 0.0]);
 
         let slc_count = self.buffer.cur_slc_range().len();
+        // self.model_plane_size = [0.0, 0.0];
 
         // Loop through currently visible slices:
         for slc_id in self.buffer.cur_slc_range().clone() {
             let grid_dims = self.buffer.tract_map().slc_dims(slc_id);
 
-            let x_scl = (grid_dims.0 + grid_dims.1) as f32 * HEX_X;
-            let y_scl = (grid_dims.0 + grid_dims.1) as f32 * HEX_Y;
+            // let x_size = (grid_dims.0 + grid_dims.1) as f32 * HEX_X;
+            let y_size = (grid_dims.0 + grid_dims.1) as f32 * HEX_Y;
+
+            let scl = 100.0 / y_size;
 
             let slc_idm = self.buffer.cur_slc_range().end - 1;
 
-            // Set up model position:
-            let x_shift = (0.12 * slc_count as f32 * (slc_idm - slc_id) as f32) * x_scl;
-            let y_shift = (0.10 * slc_count as f32 * (slc_idm - slc_id) as f32) * y_scl;
-            let z_shift = 0.0;
+            // // Set up model position:
+            let x_shift = 18.0 * slc_count as f32 * (slc_idm - slc_id) as f32;
+            let y_shift = 10.0 * slc_count as f32 * (slc_idm - slc_id) as f32;
+            let z_shift = 1.0;
 
             // Model transformation matrix:
             let model = [
-                [1.0, 0.0, 0.0, 0.0],
-                [0.0, 1.0, 0.0, 0.0],
+                [scl, 0.0, 0.0, 0.0],
+                [0.0, scl, 0.0, 0.0],
                 [0.0, 0.0, 1.0, 0.0],
                 [x_shift, y_shift, z_shift, 1.0f32]
-            ];  
-
+            ];
 
             // Uniforms:
             let uniforms = uniform! {        
                 model: model,
                 view: view,
                 persp: persp,
-                u_light_pos: light_pos,
-                u_global_color: global_color,
+                u_light_pos: self.light_pos,
+                u_global_color: self.global_color,
                 grid_v_size: grid_dims.0,
                 grid_u_size: grid_dims.1,
             };
@@ -132,48 +135,41 @@ impl<'d> HexGrid<'d> {
 
     // [TODO]: Simplify this mess and try to get it more accurate.
     pub fn update_cam_pos(&mut self) {
+        let aspect_ratio = self.surface_dims.1 as f32 / self.surface_dims.0 as f32;
         let slc_count = self.buffer.cur_slc_range().len();
-        let hex_count = self.buffer.tract_map().axn_count(self.buffer.cur_slc_range()) as f32;
 
-        let slc_count_eq_one = (slc_count == 1) as i32 as f32;
-        let slc_count_gt_one = (slc_count > 1) as i32 as f32;
-        let hex_sqrt = hex_count.sqrt();
-        
-        let x_ofs = (-0.080 * hex_sqrt * 0.5).mul_add(slc_count_eq_one, (hex_sqrt * 0.1455));
-        let cam_x_pos = x_ofs + (self.cam_pos_norm[0] * hex_sqrt * -0.08
-            /* * (self.cam_pos_norm[2] * 3.0 + 0.5)*/);
+        let x_ofs = 75.0;
+        let cam_x_pos = self.cam_pos_norm[0].mul_add(-1000.0, x_ofs);
 
-        let y_ofs = 0.054 * hex_sqrt * slc_count_gt_one;
-        let cam_y_pos = y_ofs + (self.cam_pos_norm[1] * hex_sqrt * 0.05
-            /* * (self.cam_pos_norm[2] * 3.0 + 0.5)*/);
+        let y_ofs = -0.0;
+        let cam_y_pos = self.cam_pos_norm[1].mul_add(1000.0, y_ofs);
 
-        let cam_z_pos = (-0.13 * hex_count.sqrt()).mul_add(self.cam_pos_norm[2], -1.0);
+        let z_ofs = -0.01;
+        let cam_z_pos = self.cam_pos_norm[2].mul_add(-53.0, z_ofs);
 
         self.cam_pos_raw = [cam_x_pos, cam_y_pos, cam_z_pos];
-
         // println!("CAMERA POSITION: norm: {:?}, raw: {:?}", self.cam_pos_norm, self.cam_pos_raw);
     }
 
-    /// Moves the camera by a three dimensional vector each component having
-    /// bounds [-1.0, 1.0] (closed).
-    pub fn move_camera(&mut self, delta: [f32; 3]) {
-        let delta_x = delta[0] / self.surface_dims.0 as f32;
+    pub fn move_camera(&mut self, delta: (i32, i32)) {
+        let delta_x = delta.0 as f32 / self.surface_dims.0 as f32;
         let new_cam_x = self.cam_pos_norm[0] + delta_x;
-        let new_x_valid = (new_cam_x >= -2.0 && new_cam_x <= 2.0) as i32 as f32;
+        let new_x_valid = (new_cam_x >= -1.0 && new_cam_x <= 1.0) as i32 as f32;
+        self.cam_pos_norm[0] = new_x_valid.mul_add(delta_x, self.cam_pos_norm[0]);
 
-        let delta_y = delta[1] / self.surface_dims.1 as f32;
+        let delta_y = delta.1 as f32 / self.surface_dims.1 as f32;
         let new_cam_y = self.cam_pos_norm[1] + delta_y;
-        let new_y_valid = (new_cam_y >= -2.0 && new_cam_y <= 2.0) as i32 as f32;
+        let new_y_valid = (new_cam_y >= -1.0 && new_cam_y <= 1.0) as i32 as f32;
+        self.cam_pos_norm[1] = new_y_valid.mul_add(delta_y, self.cam_pos_norm[1]);
 
-        let delta_z = delta[2] * -0.001;
+        self.update_cam_pos();
+    }
+
+    pub fn zoom_camera(&mut self, delta: f32) {
+        let delta_z = delta * -0.001;
         let new_cam_z = self.cam_pos_norm[2] + delta_z;
-        let new_z_valid = (new_cam_z >= 0.00 && new_cam_z <= 3.00) as i32 as f32;
-
-        self.cam_pos_norm = [
-            new_x_valid.mul_add(delta_x, self.cam_pos_norm[0]),
-            new_y_valid.mul_add(delta_y, self.cam_pos_norm[1]),
-            new_z_valid.mul_add(delta_z, self.cam_pos_norm[2]),
-        ];
+        let new_z_valid = (new_cam_z >= 0.00 && new_cam_z <= 10.00) as i32 as f32;
+        self.cam_pos_norm[2] = new_z_valid.mul_add(delta_z, self.cam_pos_norm[2]);
 
         self.update_cam_pos();
     }
@@ -188,6 +184,10 @@ impl<'d> HexGrid<'d> {
 
     pub fn camera_pos(&self) -> [f32; 3] {
         self.cam_pos_norm
+    }
+
+    pub fn cam_pos_raw(&self) -> [f32; 3] {
+        self.cam_pos_raw
     }
 }
 
@@ -341,7 +341,7 @@ impl Vertex {
 implement_vertex!(Vertex, position, color, normal);
 
 
-
+/// Returns a column-major perspective matrix.
 fn persp_matrix(width: u32, height: u32, fov_zoom: f32) -> [[f32; 4]; 4] {
     let zfar = 1024.0;
     let znear = 0.1;
@@ -359,8 +359,7 @@ fn persp_matrix(width: u32, height: u32, fov_zoom: f32) -> [[f32; 4]; 4] {
     ]
 }
 
-
-
+/// Returns a column-major view matrix.
 fn view_matrix(position: &[f32; 3], direction: &[f32; 3], up: &[f32; 3]) -> [[f32; 4]; 4] {
     let f = {
         let f = direction;

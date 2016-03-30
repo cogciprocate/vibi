@@ -235,22 +235,22 @@ impl<'d> Window<'d> {
                 window.handle_event_remainder(ui.handle_event(ev));
             }
 
-            // If the hex grid buffer is not clear, e.g. the last sample
-            // request is still unwritten, clear it by attempting to write to
-            // the device vertex buffer if it is ready.
-            if !window.hex_grid.buffer.is_clear() {
-                let is_clear = window.hex_grid.buffer.refresh_vertex_buf();
-                window.hex_grid.buffer.set_clear(is_clear);
-            }
-
             // Check the results channel and determine if the cycle process
             // has caught up to this window before sending new requests.
             if window.recv_cycle_results() {
+                // If the hex grid buffer is not clear, e.g. the last sample
+                // request is still unwritten, clear it by attempting to write to
+                // the device vertex buffer if it is ready.
+                if !window.hex_grid.buffer.is_clear() {
+                    let is_clear = window.hex_grid.buffer.refresh_vertex_buf();
+                    window.hex_grid.buffer.set_clear(is_clear);
+                }
+
                 // If the hex grid buffer is now clear, send a new sample request
                 // for the next frame.
                 if window.hex_grid.buffer.is_clear() {
                     window.control_tx.send(CyCtl::Sample(window.hex_grid.buffer.cur_slc_range(),
-                        window.hex_grid.buffer.raw_states_vec())) .expect("Sample raw states");
+                        window.hex_grid.buffer.raw_states_vec())).expect("Sample raw states");
                     window.hex_grid.buffer.set_clear(false);
                 }
 
@@ -264,7 +264,8 @@ impl<'d> Window<'d> {
 
             // Draw status text:
             status_text.draw(&mut target, &window.cycle_status, &window.stats, window.grid_dims,
-            &window.area_info.name, window.hex_grid.camera_pos()[2]);
+            &window.area_info.name, window.hex_grid.camera_pos()[2], window.hex_grid.top_right_scene, 
+            window.hex_grid.cam_pos_raw());
 
             // Draw UI:
             ui.draw(&mut target);
@@ -348,18 +349,14 @@ impl<'d> Window<'d> {
         };
         let _ = hrz;
 
-        self.hex_grid.move_camera([0.0, 0.0, vrt]);
+        self.hex_grid.zoom_camera(vrt);
     }
 
     fn handle_mouse_moved(&mut self, pos: (i32, i32)) {
         self.mouse_pos = pos;
 
         if let Some(ref mut start_pos) = self.dragging {
-            let delta = [
-                (pos.0 - start_pos.0) as f32,
-                (pos.1 - start_pos.1) as f32,
-                0.0,
-            ];
+            let delta = (pos.0 - start_pos.0, pos.1 - start_pos.1);
             self.hex_grid.move_camera(delta);
             *start_pos = pos;
         }

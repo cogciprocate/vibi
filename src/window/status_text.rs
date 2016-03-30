@@ -24,9 +24,7 @@ pub struct StatusText {
 }
 
 impl StatusText {
-    pub fn new<F>(display: &F) -> StatusText 
-            where F: Facade 
-    {
+    pub fn new<F: Facade>(display: &F) -> StatusText {
         // Text system (experimental):
         let text_system = TextSystem::new(display);
 
@@ -61,9 +59,9 @@ impl StatusText {
         glium_text::draw(&text_display, &self.text_system, target, text_xform, self.color);
     }
 
-    pub fn draw<S>(&self, target: &mut S, cycle_status: &Status, window_stats: &WindowStats, 
-                grid_dims: (u32, u32), area_name: &str, cam_dst: f32)
-            where S: glium::Surface
+    pub fn draw<S: glium::Surface>(&self, target: &mut S, cycle_status: &Status, 
+                window_stats: &WindowStats, grid_dims: (u32, u32), area_name: &str, cam_dst: f32, 
+                top_right: [f32; 4], cam_pos_raw: [f32; 3])
     {
         let (width, height) = target.get_dimensions();
         self.draw_line(&format!("Window: {} X {}", width, height), 6, 26, target);
@@ -75,6 +73,10 @@ impl StatusText {
         self.draw_line(&format!("Total CPS: {:.1}", cycle_status.ttl_cps()), 6, 206, target);
         self.draw_line(&format!("Area Name: \"{}\"", area_name), 6, 236, target);
         self.draw_line(&format!("Area Size: {} X {}", grid_dims.0, grid_dims.1), 6, 266, target);
+        self.draw_line(&format!("Top Right Corner: ({}, {})", 
+            top_right[0], top_right[1]), 6, 296, target);
+        self.draw_line(&format!("Camera Pos: ({}, {}, {})", cam_pos_raw[0], 
+            cam_pos_raw[1], cam_pos_raw[2]), 6, 326, target);
         
     }    
 }

@@ -4,12 +4,12 @@ version = "0.1.0"
 authors = ["Nick Sanders <nsan1129@gmail.com>"]
 
 [dependencies.bismit]
-# path = "/home/nick/projects/bismit"
-git = "https://github.com/cogciprocate/bismit.git"
+path = "/home/nick/projects/bismit"
+# git = "https://github.com/cogciprocate/bismit.git"
 
 [dependencies.enamel]
-# path = "/home/nick/projects/enamel"
-git = "https://github.com/cogciprocate/enamel.git"
+path = "/home/nick/projects/enamel"
+# git = "https://github.com/cogciprocate/enamel.git"
 
 [dependencies.time]
 git = "https://github.com/rust-lang/time.git"
@@ -27,7 +27,7 @@ glium_text = "0.8"
 image = "*"
 find_folder = "*"
 num = "*"
-#vecmath = "*"
+vecmath = "*"
 rustc-serialize = "*"
 colorify = "*"
 

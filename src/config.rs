@@ -40,7 +40,7 @@ pub fn define_plmaps() -> ProtolayerMaps {
 
 
 pub fn define_pamaps() -> ProtoareaMaps {
-    const AREA_SIDE: u32 = 1024;
+    const AREA_SIDE: u32 = 128;
     // const CYCLES_PER_FRAME: usize = 1;
 
     // let file_name = Search::ParentsThenKids(3, 3).for_folder("data").unwrap().join("kernel_file.cl");
