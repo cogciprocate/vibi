@@ -1,19 +1,19 @@
 // use find_folder::Search;
-use bismit::cortex::{Cortex};
+use bismit::Cortex;
 use bismit::map::{self, LayerTags};
 use bismit::proto::{ProtolayerMap, ProtolayerMaps, ProtoareaMaps, Axonal, Spatial, Horizontal, 
-    Sensory, Thalamic, Protocell, Protofilter, Protoinput};
+    Cortical, Thalamic, Protocell, Protofilter, Protoinput};
 
 /* Eventually move defines to a config file or some such */
 pub fn define_plmaps() -> ProtolayerMaps {
-    // const MOTOR_UID: u32 = 543;
-    const OLFAC_UID: u32 = 654;
+    const MOTOR_UID: u32 = 543;
+    // const OLFAC_UID: u32 = 654;
 
     ProtolayerMaps::new()
-        .lmap(ProtolayerMap::new("visual", Sensory)
+        .lmap(ProtolayerMap::new("visual", Cortical)
             //.layer("test_noise", 1, map::DEFAULT, Axonal(Spatial))
-            // .axn_layer("motor_in", map::NS_IN | LayerTags::with_uid(MOTOR), Horizontal)
-            .axn_layer("olfac", map::NS_IN | LayerTags::with_uid(OLFAC_UID), Horizontal)
+            .axn_layer("motor_ctx", map::NS_IN | LayerTags::with_uid(MOTOR_UID), Horizontal)
+            // .axn_layer("olfac", map::NS_IN | LayerTags::with_uid(OLFAC_UID), Horizontal)
             .axn_layer("eff_in", map::FB_IN, Spatial)
             .axn_layer("aff_in", map::FF_IN, Spatial)
             // .axn_layer("out", map::FF_FB_OUT, Spatial)
@@ -33,19 +33,53 @@ pub fn define_plmaps() -> ProtolayerMaps {
             .layer("ganglion", 1, map::FF_OUT, Axonal(Spatial))
         )
 
-        .lmap(ProtolayerMap::new("o0_lm", Thalamic)
-            .layer("ganglion", 1, map::NS_OUT | LayerTags::with_uid(OLFAC_UID), Axonal(Horizontal))
+        .lmap(ProtolayerMap::new("m0_lm", Thalamic)
+            .layer("ganglion", 1, map::NS_OUT | LayerTags::with_uid(MOTOR_UID), Axonal(Horizontal))
         )
 }
 
 
 pub fn define_pamaps() -> ProtoareaMaps {
-    const AREA_SIDE: u32 = 128;
     // const CYCLES_PER_FRAME: usize = 1;
-
-    // let file_name = Search::ParentsThenKids(3, 3).for_folder("data").unwrap().join("kernel_file.cl");
+    const HZS: u32 = 16;
+    const ENCODE_SIZE: u32 = 48;
+    const AREA_SIDE: u32 = 64;
 
     ProtoareaMaps::new()        
+        .area_ext("v0", "v0_lm", ENCODE_SIZE,
+            Protoinput::GlyphSequences { seq_lens: (5, 5), seq_count: 10, scale: 1.4, hrz_dims: (HZS, HZS) },
+            None, 
+            None,
+        )
+
+        .area("v1", "visual", AREA_SIDE, 
+            Some(vec![Protofilter::new("retina", None)]),            
+            Some(vec!["v0"/*, "o0"*/]),
+        )
+
+        // .area("b1", "visual", AREA_SIDE,
+        //      None,             
+        //      Some(vec!["v1"]),
+        // )
+
+
+        // .area("a1", "visual", AREA_SIDE, None, Some(vec!["b1"]))
+        // .area("a2", "visual", AREA_SIDE, None, Some(vec!["a1"]))
+        // .area("a3", "visual", AREA_SIDE, None, Some(vec!["a2"]))
+        // .area("a4", "visual", AREA_SIDE, None, Some(vec!["a3"]))
+        // .area("a5", "visual", AREA_SIDE, None, Some(vec!["a4"]))
+        // .area("a6", "visual", AREA_SIDE, None, Some(vec!["a5"]))
+        // .area("a7", "visual", AREA_SIDE, None, Some(vec!["a6"]))
+        // .area("a8", "visual", AREA_SIDE, None, Some(vec!["a7"]))
+        // .area("a9", "visual", AREA_SIDE, None, Some(vec!["a8"]))
+        // .area("aA", "visual", AREA_SIDE, None, Some(vec!["a9"]))
+        // .area("aB", "visual", AREA_SIDE, None, Some(vec!["aA"]))
+        // .area("aC", "visual", AREA_SIDE, None, Some(vec!["aB"]))
+        // .area("aD", "visual", AREA_SIDE, None, Some(vec!["aC"]))
+        // .area("aE", "visual", AREA_SIDE, None, Some(vec!["aD"]))
+        // .area("aF", "visual", AREA_SIDE, None, Some(vec!["aE"]))
+
+
         //let mut ir_labels = IdxStreamer::new(CorticalDims::new(1, 1, 1, 0, None), "data/train-labels-idx1-ubyte", 1);
         // .area_ext("u0", "external", AREA_SIDE, AREA_SIDE, 
         //     Protoinput::IdxStreamer { 
@@ -79,45 +113,6 @@ pub fn define_pamaps() -> ProtoareaMaps {
         //     None,
         //     Some(vec!["o0sp", "o0nsp"]),
         // )
-
-        .area_ext("v0", "v0_lm", AREA_SIDE,
-            // Protoinput::IdxStreamerLoop { 
-            //     file_name: "data/train-images-idx3-ubyte".to_string(), 
-            //     cyc_per: CYCLES_PER_FRAME, 
-            //     scale: 1.4,
-            //     loop_frames: 80,
-            // },
-            Protoinput::GlyphSequences { seq_lens: (5, 5), seq_count: 10, scale: 1.4 },
-            None, 
-            None,
-        )
-
-        .area("v1", "visual", AREA_SIDE, 
-            Some(vec![Protofilter::new("retina", None)]),            
-            Some(vec!["v0"/*, "o0"*/]),
-        )
-
-        // .area("b1", "visual", AREA_SIDE,
-        //      None,             
-        //      Some(vec!["v1"]),
-        // )
-
-
-        // .area("a1", "visual", AREA_SIDE, None, Some(vec!["b1"]))
-        // .area("a2", "visual", AREA_SIDE, None, Some(vec!["a1"]))
-        // .area("a3", "visual", AREA_SIDE, None, Some(vec!["a2"]))
-        // .area("a4", "visual", AREA_SIDE, None, Some(vec!["a3"]))
-        // .area("a5", "visual", AREA_SIDE, None, Some(vec!["a4"]))
-        // .area("a6", "visual", AREA_SIDE, None, Some(vec!["a5"]))
-        // .area("a7", "visual", AREA_SIDE, None, Some(vec!["a6"]))
-        // .area("a8", "visual", AREA_SIDE, None, Some(vec!["a7"]))
-        // .area("a9", "visual", AREA_SIDE, None, Some(vec!["a8"]))
-        // .area("aA", "visual", AREA_SIDE, None, Some(vec!["a9"]))
-        // .area("aB", "visual", AREA_SIDE, None, Some(vec!["aA"]))
-        // .area("aC", "visual", AREA_SIDE, None, Some(vec!["aB"]))
-        // .area("aD", "visual", AREA_SIDE, None, Some(vec!["aC"]))
-        // .area("aE", "visual", AREA_SIDE, None, Some(vec!["aD"]))
-        // .area("aF", "visual", AREA_SIDE, None, Some(vec!["aE"]))
 
 }
 

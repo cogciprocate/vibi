@@ -16,6 +16,7 @@ extern crate enamel;
 #[macro_use] mod cycle;
 mod config;
 mod window;
+mod sequences;
 // mod util;
 // mod ui;
 

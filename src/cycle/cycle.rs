@@ -5,11 +5,7 @@ use std::sync::{Arc, Mutex};
 use std::str::{FromStr};
 use time::{self, Timespec, Duration};
 
-use bismit::OclEvent;
-use bismit::cortex::{self, Cortex};
-use bismit::input_source::{InputTract};
-use bismit::map::SliceTractMap;
-
+use bismit::{Cortex, OclEvent, SliceTractMap};
 use config;
 
 const INITIAL_TEST_ITERATIONS: u32 = 1; 
@@ -148,7 +144,7 @@ impl CycleLoop {
     pub fn run(autorun_iters: u32, control_rx: Receiver<CyCtl>, mut result_tx: Sender<CyRes>)
                 -> bool 
     {
-        let mut cortex = cortex::Cortex::new(config::define_plmaps(), config::define_pamaps());
+        let mut cortex = Cortex::new(config::define_plmaps(), config::define_pamaps());
         config::disable_stuff(&mut cortex);
 
         let area_name = "v1".to_owned();
