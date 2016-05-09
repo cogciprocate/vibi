@@ -5,7 +5,8 @@ use std::sync::{Arc, Mutex};
 use std::str::{FromStr};
 use time::{self, Timespec, Duration};
 
-use bismit::{Cortex, OclEvent, SliceTractMap};
+use bismit::{Cortex, OclEvent};
+use bismit::map::SliceTractMap;
 use config;
 
 const INITIAL_TEST_ITERATIONS: u32 = 1; 

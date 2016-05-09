@@ -3,6 +3,7 @@ name = "vibi"
 version = "0.1.0"
 authors = ["Nick Sanders <nsan1129@gmail.com>"]
 
+
 [dependencies.bismit]
 path = "/home/nick/projects/bismit"
 # git = "https://github.com/cogciprocate/bismit.git"
@@ -13,12 +14,6 @@ path = "/home/nick/projects/enamel"
 
 [dependencies.time]
 git = "https://github.com/rust-lang/time.git"
-
-# [dependencies.glium_text]
-# git = "https://github.com/tomaka/glium_text.git"
-
-# [dependencies.glium]
-# git = "https://github.com/tomaka/glium.git"
 
 [dependencies]
 rand = "*"
@@ -31,6 +26,7 @@ vecmath = "*"
 rustc-serialize = "*"
 colorify = "*"
 
+
 # piston_window = "*"
 # piston2d-opengl_graphics = "*"
 # conrod = "0.23"
@@ -41,3 +37,8 @@ colorify = "*"
 # gfx = "0.8.1"
 # cgmath = "*"
 
+# [dependencies.glium_text]
+# git = "https://github.com/tomaka/glium_text.git"
+
+# [dependencies.glium]
+# git = "https://github.com/tomaka/glium.git"

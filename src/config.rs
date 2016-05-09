@@ -1,60 +1,57 @@
 // use find_folder::Search;
 use bismit::Cortex;
-use bismit::map::{self, LayerTags};
-use bismit::proto::{ProtolayerMap, ProtolayerMaps, ProtoareaMaps, Axonal, Spatial, Horizontal, 
-    Cortical, Thalamic, Protocell, Protofilter, Protoinput};
+use bismit::map::{self, LayerTags, LayerMapKind, LayerMapScheme, LayerMapSchemeList, 
+    AreaSchemeList, CellScheme, FilterScheme, InputScheme, AxonKind, LayerKind};
+// use bismit::proto::{ProtolayerMap, ProtolayerMaps, ProtoareaMaps, Axonal, Spatial, Horizontal, 
+//     Cortical, Thalamic, Protocell, Protofilter, Protoinput};
 
 /* Eventually move defines to a config file or some such */
-pub fn define_plmaps() -> ProtolayerMaps {
+pub fn define_plmaps() -> LayerMapSchemeList {
     const MOTOR_UID: u32 = 543;
     // const OLFAC_UID: u32 = 654;
 
-    ProtolayerMaps::new()
-        .lmap(ProtolayerMap::new("visual", Cortical)
-            //.layer("test_noise", 1, map::DEFAULT, Axonal(Spatial))
-            .axn_layer("motor_ctx", map::NS_IN | LayerTags::with_uid(MOTOR_UID), Horizontal)
+    LayerMapSchemeList::new()
+        .lmap(LayerMapScheme::new("visual", LayerMapKind::Cortical)
+            //.layer("test_noise", 1, map::DEFAULT, LayerKind::Axonal(Spatial))
+            .axn_layer("motor_ctx", map::NS_IN | LayerTags::uid(MOTOR_UID), AxonKind::Horizontal)
             // .axn_layer("olfac", map::NS_IN | LayerTags::with_uid(OLFAC_UID), Horizontal)
-            .axn_layer("eff_in", map::FB_IN, Spatial)
-            .axn_layer("aff_in", map::FF_IN, Spatial)
+            .axn_layer("eff_in", map::FB_IN, AxonKind::Spatial)
+            .axn_layer("aff_in", map::FF_IN, AxonKind::Spatial)
             // .axn_layer("out", map::FF_FB_OUT, Spatial)
-            .axn_layer("unused", map::UNUSED_TESTING, Spatial)
-            .layer("mcols", 1, map::FF_FB_OUT, Protocell::minicolumn("iv", "iii"))
-            .layer("iv_inhib", 0, map::DEFAULT, Protocell::inhibitory(4, "iv"))
+            .axn_layer("unused", map::UNUSED_TESTING, AxonKind::Spatial)
+            .layer("mcols", 1, map::FF_FB_OUT, CellScheme::minicolumn("iv", "iii"))
+            .layer("iv_inhib", 0, map::DEFAULT, CellScheme::inhibitory(4, "iv"))
 
             .layer("iv", 1, map::PSAL, 
-                Protocell::spiny_stellate(4, vec!["aff_in"], 400, 8))
+                CellScheme::spiny_stellate(4, vec!["aff_in"], 400, 8))
 
             .layer("iii", 2, map::PTAL, 
-                Protocell::pyramidal(1, 4, vec!["iii"], 800, 10)
+                CellScheme::pyramidal(1, 4, vec!["iii"], 800, 10)
                     .apical(vec!["eff_in"/*, "olfac"*/], 12))
         )
-
-        .lmap(ProtolayerMap::new("v0_lm", Thalamic)
-            .layer("ganglion", 1, map::FF_OUT, Axonal(Spatial))
-        )
-
-        .lmap(ProtolayerMap::new("m0_lm", Thalamic)
-            .layer("ganglion", 1, map::NS_OUT | LayerTags::with_uid(MOTOR_UID), Axonal(Horizontal))
+        .lmap(LayerMapScheme::new("v0_lm", LayerMapKind::Thalamic)
+            .layer("spatial", 1, map::FF_OUT, LayerKind::Axonal(AxonKind::Spatial))
+            .layer("horiz_ns", 1, map::NS_OUT | LayerTags::uid(MOTOR_UID), 
+                LayerKind::Axonal(AxonKind::Horizontal))
         )
 }
 
 
-pub fn define_pamaps() -> ProtoareaMaps {
+pub fn define_pamaps() -> AreaSchemeList {
     // const CYCLES_PER_FRAME: usize = 1;
     const HZS: u32 = 16;
     const ENCODE_SIZE: u32 = 48;
     const AREA_SIDE: u32 = 64;
 
-    ProtoareaMaps::new()        
+    AreaSchemeList::new()        
         .area_ext("v0", "v0_lm", ENCODE_SIZE,
-            Protoinput::GlyphSequences { seq_lens: (5, 5), seq_count: 10, scale: 1.4, hrz_dims: (HZS, HZS) },
+            InputScheme::GlyphSequences { seq_lens: (5, 5), seq_count: 10, scale: 1.4, hrz_dims: (HZS, HZS) },
             None, 
             None,
         )
-
         .area("v1", "visual", AREA_SIDE, 
-            Some(vec![Protofilter::new("retina", None)]),            
-            Some(vec!["v0"/*, "o0"*/]),
+            Some(vec![FilterScheme::new("retina", None)]),            
+            Some(vec!["v0"]),
         )
 
         // .area("b1", "visual", AREA_SIDE,
@@ -80,9 +77,9 @@ pub fn define_pamaps() -> ProtoareaMaps {
         // .area("aF", "visual", AREA_SIDE, None, Some(vec!["aE"]))
 
 
-        //let mut ir_labels = IdxStreamer::new(CorticalDims::new(1, 1, 1, 0, None), "data/train-labels-idx1-ubyte", 1);
+        //let mut ir_labels = IdxStreamer::new(LayerMapKind::CorticalDims::new(1, 1, 1, 0, None), "data/train-labels-idx1-ubyte", 1);
         // .area_ext("u0", "external", AREA_SIDE, AREA_SIDE, 
-        //     Protoinput::IdxStreamer { 
+        //     InputScheme::IdxStreamer { 
         //         file_name: "data/train-labels-idx1-ubyte", 
         //         cyc_per: CYCLES_PER_FRAME,
         //     },
@@ -97,7 +94,7 @@ pub fn define_pamaps() -> ProtoareaMaps {
         // )
 
         // .area_ext("o0sp", "v0_layer_map", AREA_SIDE,
-        //     Protoinput::IdxStreamerLoop { 
+        //     InputScheme::IdxStreamerLoop { 
         //         file_name: "data/train-images-idx3-ubyte", 
         //         cyc_per: CYCLES_PER_FRAME, 
         //         scale: 1.3,
@@ -107,7 +104,7 @@ pub fn define_pamaps() -> ProtoareaMaps {
         //     None,
         // )
 
-        // .area_ext("o0", "o0_lm", 24, Protoinput::Zeros, None, None)
+        // .area_ext("o0", "o0_lm", 24, InputScheme::Zeros, None, None)
 
         // .area("o1", "visual", AREA_SIDE, 
         //     None,
