@@ -119,7 +119,7 @@ impl<'d> Window<'d> {
             .with_depth_buffer(24)
             .with_dimensions(1400, 800)
             .with_title("Vibi".to_string())
-            .with_multisampling(8)
+            // .with_multisampling(8)
             // Disabled for development ->> .with_gl_robustness(glium::glutin::Robustness::NoError)
             .with_vsync()
             // .with_transparency(true)
@@ -319,8 +319,8 @@ impl<'d> Window<'d> {
             WindowCtl::Event(event) => { match event {
                 // Event::KeyboardInput(state, _, v_code) => ()
                 //     println!("Key: {:?} has been {:?}", ui::map_vkc(v_code), state),
-                Event::MouseMoved(pos) => self.handle_mouse_moved(pos),
-                Event::MouseWheel(delta) => self.handle_mouse_wheel(delta),
+                Event::MouseMoved(p_x, p_y) => self.handle_mouse_moved((p_x, p_y)),
+                Event::MouseWheel(delta, _) => self.handle_mouse_wheel(delta),
                 Event::MouseInput(state, btn) => self.handle_mouse_input(state, btn),
                 Event::Touch(touch) => println!("Touch recieved: {:?}", touch),
                 Event::Closed => self.close_pending = true,

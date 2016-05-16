@@ -17,8 +17,8 @@ git = "https://github.com/rust-lang/time.git"
 
 [dependencies]
 rand = "*"
-glium = "0.13"
-glium_text = "0.8"
+glium = "0.14"
+glium_text = "0.9"
 image = "*"
 find_folder = "*"
 num = "*"
