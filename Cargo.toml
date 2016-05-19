@@ -19,11 +19,11 @@ git = "https://github.com/rust-lang/time.git"
 rand = "*"
 glium = "0.14"
 glium_text = "0.9"
-image = "*"
+# image = "*"
 find_folder = "*"
 num = "*"
 vecmath = "*"
-rustc-serialize = "*"
+# rustc-serialize = "*"
 colorify = "*"
 
 
