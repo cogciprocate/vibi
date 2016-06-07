@@ -9,7 +9,7 @@ use bismit::{Cortex, OclEvent};
 use bismit::map::SliceTractMap;
 use config;
 
-const INITIAL_TEST_ITERATIONS: u32 = 1; 
+const INITIAL_TEST_ITERATIONS: u32 = 1;
 const STATUS_EVERY: u32 = 5000;
 const PRINT_DETAILS_EVERY: u32 = 10000;
 const GUI_CONTROL: bool = true;
@@ -31,7 +31,7 @@ pub enum CyCtl {
 }
 
 
-/// Cycle result responses. 
+/// Cycle result responses.
 ///
 /// Information about the cycling of the things and the stuff (and some of the
 /// non-stuff too... but not that much of it really... well... a fair
@@ -46,10 +46,10 @@ pub enum CyRes {
 }
 
 
-#[derive(Clone, Debug)] 
+#[derive(Clone, Debug)]
 pub struct AreaInfo {
-    pub name: String, 
-    pub aff_out_slc_range: Range<u8>, 
+    pub name: String,
+    pub aff_out_slc_range: Range<u8>,
     pub tract_map: SliceTractMap,
 }
 
@@ -120,14 +120,14 @@ impl Status {
 
 struct RunInfo {
     cortex: Cortex,
-    cycle_iters: u32, 
-    bypass_act: bool, 
-    autorun_iters: u32, 
-    first_run: bool, 
-    view_all_axons: bool, 
+    cycle_iters: u32,
+    bypass_act: bool,
+    autorun_iters: u32,
+    first_run: bool,
+    view_all_axons: bool,
     view_sdr_only: bool,
     area_name: String,
-    status: Status,    
+    status: Status,
     // loop_start_time: Timespec,
 }
 
@@ -143,29 +143,29 @@ pub struct CycleLoop;
 
 impl CycleLoop {
     pub fn run(autorun_iters: u32, control_rx: Receiver<CyCtl>, mut result_tx: Sender<CyRes>)
-                -> bool 
+                -> bool
     {
         let mut cortex = Cortex::new(config::define_plmaps(), config::define_pamaps());
         config::disable_stuff(&mut cortex);
 
         let area_name = "v1".to_owned();
-        
-        // let area_dims = { 
+
+        // let area_dims = {
         //     let dims = cortex.area(&area_name).dims();
         //     (dims.v_size(), dims.u_size())
         // };
-        
+
         let mut ri = RunInfo {
             cortex: cortex,
             cycle_iters: if autorun_iters > 0 {
                     autorun_iters
                 } else {
                     INITIAL_TEST_ITERATIONS
-                }, 
-            bypass_act: false, 
-            autorun_iters: autorun_iters, 
-            first_run: true, 
-            view_all_axons: false, 
+                },
+            bypass_act: false,
+            autorun_iters: autorun_iters,
+            first_run: true,
+            view_all_axons: false,
             view_sdr_only: true,
             area_name: area_name,
             status: Status::new(),
@@ -203,7 +203,7 @@ impl CycleLoop {
                     LoopAction::Break => break,
                     LoopAction::None => (),
                 }
-            }        
+            }
 
             // ri.loop_start_time = time::get_time();
             ri.status.cur_start_time = Some(time::get_time());
@@ -244,11 +244,11 @@ impl CycleLoop {
 }
 
 
-fn refresh_hex_grid_buf(ri: &RunInfo, slc_range: Range<u8>, buf: Arc<Mutex<Vec<u8>>>) 
-        -> Option<OclEvent> 
+fn refresh_hex_grid_buf(ri: &RunInfo, slc_range: Range<u8>, buf: Arc<Mutex<Vec<u8>>>)
+        -> Option<OclEvent>
 {
     let axn_range = ri.cortex.area(&ri.area_name).axn_tract_map().axn_id_range(slc_range.clone());
-    
+
     match buf.try_lock() {
         // Ok(ref mut b) => ri.cortex.area(&ri.area_name).sample_aff_out(&mut b[range]),
         Ok(ref mut b) => Some(ri.cortex.area(&ri.area_name)
@@ -262,13 +262,13 @@ fn loop_cycles(ri: &mut RunInfo, control_rx: &Receiver<CyCtl>, result_tx: &mut S
         -> CyCtl
 {
     if !ri.view_sdr_only { print!("\nRunning {} sense only loop(s) ... \n", ri.cycle_iters - 1); }
-    
+
     loop {
-        if ri.status.cur_cycle >= (ri.cycle_iters - 1) { break; }        
+        if ri.status.cur_cycle >= (ri.cycle_iters - 1) { break; }
 
         let elapsed = ri.status.cur_elapsed();
 
-        if ri.status.cur_cycle % STATUS_EVERY == 0 || ri.status.cur_cycle == (ri.cycle_iters - 2) {            
+        if ri.status.cur_cycle % STATUS_EVERY == 0 || ri.status.cur_cycle == (ri.cycle_iters - 2) {
             if ri.status.cur_cycle > 0 || (ri.cycle_iters > 1 && ri.status.cur_cycle == 0) {
                 print!("[{}: {:01}ms]", ri.status.cur_cycle, elapsed.num_milliseconds());
             }
@@ -276,13 +276,60 @@ fn loop_cycles(ri: &mut RunInfo, control_rx: &Receiver<CyCtl>, result_tx: &mut S
         }
 
         if ri.status.cur_cycle % PRINT_DETAILS_EVERY == 0 {
-            if !ri.view_sdr_only { 
-                // output_czar::print_sense_only(&mut ri.cortex, &ri.area_name); 
+            if !ri.view_sdr_only {
+                // output_czar::print_sense_only(&mut ri.cortex, &ri.area_name);
                 panic!("Currently disabled. Needs update.");
             }
         }
-                    
+
         if !ri.bypass_act {
+             // TESTING `InputTract` SHIT:
+            // match ri.cortex.external_tract_mut("v0".to_owned()) {
+            //     Ok(ref mut input_tract) => {
+            //         for i in 0..input_tract.frame().len() {
+            //             let lo_h = ((i < input_tract.frame().len() / 2)
+            //                     & (ri.status.cur_cycle % 2 == 0)) as u8
+            //                 * 255;
+
+            //             let hi_h = ((i >= input_tract.frame().len() / 2)
+            //                     & !(ri.status.cur_cycle % 2 == 0)) as u8
+            //                 * 255;
+
+            //             input_tract[i] = lo_h + hi_h;
+
+            //             if i < input_tract.frame().len() / 2 {
+            //                 // input_tract[i] = 255;
+            //                 // input_tract[i] = (ri.status.cur_cycle % 2 == 0) as u8 * 255;
+            //                 if ri.status.cur_cycle % 2 == 0 {
+            //                     assert!(input_tract[i] == 255);
+            //                 } else {
+            //                     // input_tract[i] = 0;
+            //                     assert!(input_tract[i] == 0);
+            //                 }
+            //             } else {
+            //                 // input_tract[i] = !(ri.status.cur_cycle % 2 == 0) as u8 * 255;
+            //                 if ri.status.cur_cycle % 2 == 0 {
+            //                     // input_tract[i] = 0;
+            //                     assert!(input_tract[i] == 0);
+            //                 } else {
+            //                     // input_tract[i] = 255;
+            //                     assert!(input_tract[i] == 255);
+            //                 }
+            //             }
+            //         }
+            //     },
+            //     Err(_) => (),
+            // }
+
+            match ri.cortex.external_tract_mut("v0b".to_owned()) {
+                Ok(ref mut input_tract) => {
+                    for tc in input_tract.iter_mut() {
+                        *tc = (ri.status.cur_cycle % 255) as u8;
+                    }
+                },
+                Err(_) => (),
+            }
+
             ri.cortex.cycle();
         }
 
@@ -290,6 +337,7 @@ fn loop_cycles(ri: &mut RunInfo, control_rx: &Receiver<CyCtl>, result_tx: &mut S
         ri.status.cur_cycle += 1;
 
         // Respond to any requests:
+        // Not sure why we're incrementing `cur_cycle` a second time.
         if let Ok(c) = control_rx.try_recv() {
             match c {
                 CyCtl::RequestCurrentIter => result_tx.send(
@@ -346,16 +394,16 @@ fn cycle_print(ri: &mut RunInfo) -> LoopAction {
 
     if ri.view_all_axons {
         print!("\n\nAXON SPACE:\n");
-        
+
         // ri.cortex.area_mut(&ri.area_name).render_axn_space();
         panic!("Currently disabled. Needs update.");;
-    }    
+    }
 
     if ri.status.cur_cycle > 1 {
-        printlnc!(yellow: "-> {} cycles @ [> {:02.2} c/s <]", 
-            ri.status.cur_cycle, (ri.status.cur_cycle as f32 
+        printlnc!(yellow: "-> {} cycles @ [> {:02.2} c/s <]",
+            ri.status.cur_cycle, (ri.status.cur_cycle as f32
                 / ri.status.cur_elapsed().num_milliseconds() as f32) * 1000.0);
-    }    
+    }
 
     if ri.cycle_iters > 1000 {
         ri.cycle_iters = 1;
@@ -372,7 +420,7 @@ fn cycle_print(ri: &mut RunInfo) -> LoopAction {
 fn prompt(ri: &mut RunInfo) -> LoopAction {
     if ri.cycle_iters == 0 {
         ri.cycle_iters = 1;
-        ri.bypass_act = true; 
+        ri.bypass_act = true;
     } else {
         ri.bypass_act = false;
     }
@@ -386,10 +434,10 @@ fn prompt(ri: &mut RunInfo) -> LoopAction {
             let view_state = if ri.view_sdr_only { "sdr" } else { "all" };
 
             rin(format!("bismit: [{ttl_i}/({loop_i})]: [v]iew:[{}] [a]xons:[{}] \
-                [m]otor:[X] a[r]ea:[{}] [t]ests [q]uit [i]ters:[{iters}]", 
-                view_state, axn_state, ri.area_name, 
+                [m]otor:[X] a[r]ea:[{}] [t]ests [q]uit [i]ters:[{iters}]",
+                view_state, axn_state, ri.area_name,
                 iters = ri.cycle_iters,
-                loop_i = 0, //input_czar.counter(), 
+                loop_i = 0, //input_czar.counter(),
                 ttl_i = ri.status.prev_cycles,
             ))
         };
@@ -420,7 +468,7 @@ fn prompt(ri: &mut RunInfo) -> LoopAction {
             let in_str = rin(format!("area name"));
             let in_s1 = in_str.trim();
             let new_area_name = in_s1.to_string();
-            
+
             if ri.cortex.valid_area(&new_area_name) {
                 ri.area_name = new_area_name;
             } else {

@@ -3,7 +3,7 @@ use time::{self, Timespec, Duration};
 use glium::{self, DisplayBuild, Surface};
 use cycle::{CyCtl, CyRes, Status as CyStatus, AreaInfo};
 use window::{HexGrid, StatusText};
-use enamel::{ui, Pane, EventRemainder, UiRequest, TextBox, HexButton, ElementState, 
+use enamel::{ui, Pane, EventRemainder, UiRequest, TextBox, HexButton, ElementState,
     MouseButton, MouseScrollDelta, SetMouseFocus, Event};
 
 
@@ -98,7 +98,7 @@ pub struct Window<'d> {
     pub close_pending: bool,
     pub grid_dims: (u32, u32),
     pub iters_pending: u32,
-    pub control_tx: Sender<CyCtl>, 
+    pub control_tx: Sender<CyCtl>,
     pub result_rx: Receiver<CyRes>,
     pub hex_grid: HexGrid<'d>,
     pub has_mouse_focus: bool,
@@ -113,13 +113,13 @@ impl<'d> Window<'d> {
         let area_info = match result_rx.recv().expect("Current area name reception error.") {
             CyRes::AreaInfo(info) => *info,
             _ => panic!("Invalid area name response."),
-        };        
+        };
 
         let display: glium::backend::glutin_backend::GlutinFacade = glium::glutin::WindowBuilder::new()
             .with_depth_buffer(24)
             .with_dimensions(1400, 800)
             .with_title("Vibi".to_string())
-            // .with_multisampling(8)
+            .with_multisampling(8)
             // Disabled for development ->> .with_gl_robustness(glium::glutin::Robustness::NoError)
             .with_vsync()
             // .with_transparency(true)
@@ -134,21 +134,21 @@ impl<'d> Window<'d> {
 
         // Primary user interface elements:
         let mut ui = Pane::new(&display)
-            .element(HexButton::new(ui::BOTTOM_RIGHT, (-0.57, 0.45), 1.8, 
+            .element(HexButton::new(ui::BOTTOM_RIGHT, (-0.57, 0.45), 1.8,
                     "View Output", ui::C_ORANGE)
                 .mouse_event_handler(Box::new(|_, _| {
                     (UiRequest::None, WindowCtl::HexGrid(HexGridCtl::SlcRangeDefault))
                 }))
             )
 
-            .element(HexButton::new(ui::BOTTOM_RIGHT, (-0.20, 0.45), 1.8, 
+            .element(HexButton::new(ui::BOTTOM_RIGHT, (-0.20, 0.45), 1.8,
                     "View All", ui::C_ORANGE)
                 .mouse_event_handler(Box::new(|_, _| {
                     (UiRequest::None, WindowCtl::HexGrid(HexGridCtl::SlcRangeFull))
                 }))
             )
 
-            .element(TextBox::new(ui::BOTTOM_RIGHT, (-0.385, 0.35), 4.45, 
+            .element(TextBox::new(ui::BOTTOM_RIGHT, (-0.385, 0.35), 4.45,
                     "Iters:", ui::C_ORANGE, "1m")
                 .keyboard_event_handler(Box::new(|key_state, vk_code, kb_state, text_string| {
                         ui::key_into_string(key_state, vk_code, kb_state, text_string);
@@ -169,26 +169,26 @@ impl<'d> Window<'d> {
 
             ))
 
-            .element(HexButton::new(ui::BOTTOM_RIGHT, (-0.57, 0.25), 1.8, 
+            .element(HexButton::new(ui::BOTTOM_RIGHT, (-0.57, 0.25), 1.8,
                     "Cycle", ui::C_ORANGE)
                 .mouse_event_handler(Box::new(|_, _| {
                     (UiRequest::None, WindowCtl::CyIterate)
                 }))
             )
 
-            .element(HexButton::new(ui::BOTTOM_RIGHT, (-0.20, 0.25), 1.8, 
+            .element(HexButton::new(ui::BOTTOM_RIGHT, (-0.20, 0.25), 1.8,
                     "Stop", ui::C_ORANGE)
-                .mouse_event_handler(Box::new(|_, _| {                     
+                .mouse_event_handler(Box::new(|_, _| {
                     (UiRequest::None, WindowCtl::CyCtl(CyCtl::Stop))
                 }))
             )
 
-            .element(HexButton::new(ui::BOTTOM_RIGHT, (-0.20, 0.07), 1.8, 
+            .element(HexButton::new(ui::BOTTOM_RIGHT, (-0.20, 0.07), 1.8,
                     "Exit", ui::C_ORANGE)
-                .mouse_event_handler(Box::new(|_, _| { 
+                .mouse_event_handler(Box::new(|_, _| {
                     (UiRequest::None, WindowCtl::Event(Event::Closed))
                 }))
-            )            
+            )
 
             .init();
 
@@ -264,7 +264,7 @@ impl<'d> Window<'d> {
 
             // Draw status text:
             status_text.draw(&mut target, &window.cycle_status, &window.stats, window.grid_dims,
-            &window.area_info.name, window.hex_grid.camera_pos()[2], window.hex_grid.top_right_scene, 
+            &window.area_info.name, window.hex_grid.camera_pos()[2], window.hex_grid.top_right_scene,
             window.hex_grid.cam_pos_raw());
 
             // Draw UI:
@@ -336,7 +336,7 @@ impl<'d> Window<'d> {
                 }
                 self.hex_grid.update_cam_pos();
             },
-            // _ => (),           
+            // _ => (),
         }
     }
 

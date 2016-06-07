@@ -103,7 +103,7 @@ impl<'d> HexGrid<'d> {
 
             let slc_idm = self.buffer.cur_slc_range().end - 1;
 
-            // // Set up model position:
+            // Set up model position:
             let x_shift = 18.0 * slc_count as f32 * (slc_idm - slc_id) as f32;
             let y_shift = 10.0 * slc_count as f32 * (slc_idm - slc_id) as f32;
             let z_shift = 1.0;

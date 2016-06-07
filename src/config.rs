@@ -1,8 +1,8 @@
 // use find_folder::Search;
 use bismit::Cortex;
-use bismit::map::{self, LayerTags, LayerMapKind, LayerMapScheme, LayerMapSchemeList, 
+use bismit::map::{self, LayerTags, LayerMapKind, LayerMapScheme, LayerMapSchemeList,
     AreaSchemeList, CellScheme, FilterScheme, InputScheme, AxonKind, LayerKind};
-// use bismit::proto::{ProtolayerMap, ProtolayerMaps, ProtoareaMaps, Axonal, Spatial, Horizontal, 
+// use bismit::proto::{ProtolayerMap, ProtolayerMaps, ProtoareaMaps, Axonal, Spatial, Horizontal,
 //     Cortical, Thalamic, Protocell, Protofilter, Protoinput};
 
 /* Eventually move defines to a config file or some such */
@@ -22,40 +22,52 @@ pub fn define_plmaps() -> LayerMapSchemeList {
             .layer("mcols", 1, map::FF_FB_OUT, CellScheme::minicolumn("iv", "iii"))
             .layer("iv_inhib", 0, map::DEFAULT, CellScheme::inhibitory(4, "iv"))
 
-            .layer("iv", 1, map::PSAL, 
+            .layer("iv", 1, map::PSAL,
                 CellScheme::spiny_stellate(4, vec!["aff_in"], 400, 8))
 
-            .layer("iii", 2, map::PTAL, 
+            .layer("iii", 2, map::PTAL,
                 CellScheme::pyramidal(1, 4, vec!["iii"], 800, 10)
                     .apical(vec!["eff_in"/*, "olfac"*/], 12))
         )
-        .lmap(LayerMapScheme::new("v0_lm", LayerMapKind::Thalamic)
+        // .lmap(LayerMapScheme::new("v0_lm", LayerMapKind::Thalamic)
+        //     .layer("spatial", 1, map::FF_OUT, LayerKind::Axonal(AxonKind::Spatial))
+        //     .layer("horiz_ns", 1, map::NS_OUT | LayerTags::uid(MOTOR_UID),
+        //         LayerKind::Axonal(AxonKind::Horizontal))
+        // )
+        .lmap(LayerMapScheme::new("v0b_lm", LayerMapKind::Thalamic)
             .layer("spatial", 1, map::FF_OUT, LayerKind::Axonal(AxonKind::Spatial))
-            .layer("horiz_ns", 1, map::NS_OUT | LayerTags::uid(MOTOR_UID), 
-                LayerKind::Axonal(AxonKind::Horizontal))
+            // .layer("horiz_ns", 1, map::NS_OUT | LayerTags::uid(MOTOR_UID),
+            //     LayerKind::Axonal(AxonKind::Horizontal))
         )
 }
 
 
 pub fn define_pamaps() -> AreaSchemeList {
     // const CYCLES_PER_FRAME: usize = 1;
-    const HZS: u32 = 16;
-    const ENCODE_SIZE: u32 = 48;
+    // const HZS: u32 = 16;
+    const ENCODE_SIZE: u32 = 48; // had been used for GlyphSequences
+    // const ENCODE_SIZE: u32 = 24; // for SensoryTract
     const AREA_SIDE: u32 = 64;
 
-    AreaSchemeList::new()        
-        .area_ext("v0", "v0_lm", ENCODE_SIZE,
-            InputScheme::GlyphSequences { seq_lens: (5, 5), seq_count: 10, scale: 1.4, hrz_dims: (HZS, HZS) },
-            None, 
+    AreaSchemeList::new()
+        // .area_ext("v0", "v0_lm", ENCODE_SIZE,
+        //     InputScheme::GlyphSequences { seq_lens: (5, 5), seq_count: 10, scale: 1.4, hrz_dims: (16, 16) },
+        //     None,
+        //     None,
+        // )
+        .area_ext("v0b", "v0b_lm", ENCODE_SIZE,
+            InputScheme::SensoryTract,
+            None,
             None,
         )
-        .area("v1", "visual", AREA_SIDE, 
-            Some(vec![FilterScheme::new("retina", None)]),            
-            Some(vec!["v0"]),
+        .area("v1", "visual", AREA_SIDE,
+            Some(vec![FilterScheme::new("retina", None)]),
+            // Some(vec!["v0"]),
+            Some(vec!["v0b"]),
         )
 
         // .area("b1", "visual", AREA_SIDE,
-        //      None,             
+        //      None,
         //      Some(vec!["v1"]),
         // )
 
@@ -78,13 +90,13 @@ pub fn define_pamaps() -> AreaSchemeList {
 
 
         //let mut ir_labels = IdxStreamer::new(LayerMapKind::CorticalDims::new(1, 1, 1, 0, None), "data/train-labels-idx1-ubyte", 1);
-        // .area_ext("u0", "external", AREA_SIDE, AREA_SIDE, 
-        //     InputScheme::IdxStreamer { 
-        //         file_name: "data/train-labels-idx1-ubyte", 
+        // .area_ext("u0", "external", AREA_SIDE, AREA_SIDE,
+        //     InputScheme::IdxStreamer {
+        //         file_name: "data/train-labels-idx1-ubyte",
         //         cyc_per: CYCLES_PER_FRAME,
         //     },
 
-        //     None, 
+        //     None,
         //     Some(vec!["u1"]),
         // )
 
@@ -94,19 +106,19 @@ pub fn define_pamaps() -> AreaSchemeList {
         // )
 
         // .area_ext("o0sp", "v0_layer_map", AREA_SIDE,
-        //     InputScheme::IdxStreamerLoop { 
-        //         file_name: "data/train-images-idx3-ubyte", 
-        //         cyc_per: CYCLES_PER_FRAME, 
+        //     InputScheme::IdxStreamerLoop {
+        //         file_name: "data/train-images-idx3-ubyte",
+        //         cyc_per: CYCLES_PER_FRAME,
         //         scale: 1.3,
         //         loop_frames: 31,
         //     },
-        //     None, 
+        //     None,
         //     None,
         // )
 
         // .area_ext("o0", "o0_lm", 24, InputScheme::Zeros, None, None)
 
-        // .area("o1", "visual", AREA_SIDE, 
+        // .area("o1", "visual", AREA_SIDE,
         //     None,
         //     Some(vec!["o0sp", "o0nsp"]),
         // )
@@ -117,12 +129,12 @@ pub fn define_pamaps() -> AreaSchemeList {
 pub fn disable_stuff(cortex: &mut Cortex) {
 
     /* ######################### */
-    /* ##### DISABLE STUFF ##### */    
+    /* ##### DISABLE STUFF ##### */
     /* ######################### */
     for (_, area) in &mut cortex.areas {
         // area.psal_mut().dens_mut().syns_mut().set_offs_to_zero_temp();
-        // area.bypass_inhib = true;
-        // area.bypass_filters = true;
+        area.bypass_inhib = true;
+        area.bypass_filters = true;
         // area.disable_pyrs = true;
 
         // area.disable_ssts = true;
