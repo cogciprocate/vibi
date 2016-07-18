@@ -9,7 +9,21 @@ use glium::vertex::{VertexBuffer, VertexBufferSlice};
 use cycle::AreaInfo;
 use bismit::map::SliceTractMap;
 
-const SMOOTH_REFRESH: bool = false;
+// const SMOOTH_REFRESH: bool = false;
+const SMOOTH_REFRESH: bool = true;
+
+
+#[derive(Copy, Clone, Debug)]
+// impl Vertex {
+//     fn new(position: [f32; 3], color: [f32; 3], normal: [f32; 3]) -> Vertex {
+//         Vertex { position: position, color: color, normal: normal }
+//     }
+// }
+pub struct StateVertex {
+    state: u8,
+}
+implement_vertex!(StateVertex, state);
+
 
 /// Handles raw state data from a cortical ganglion and feeds it to a [vertex] buffer for rendering.
 // TODO: Rename these buffers to something more clear.
@@ -27,13 +41,13 @@ pub struct HexGridBuffer {
 }
 
 impl HexGridBuffer {
-    pub fn new(area_info: AreaInfo, display: &GlutinFacade) 
-            -> HexGridBuffer 
+    pub fn new(area_info: AreaInfo, display: &GlutinFacade)
+            -> HexGridBuffer
     {
         let full_slc_range = area_info.tract_map.slc_id_range();
         let grid_count = area_info.tract_map.axn_count(full_slc_range.clone());
 
-        // println!("\n###### HexGridBuffer::new(): d_slc_range: {:?}, grid_count: {}, tract_map: {:?}", 
+        // println!("\n###### HexGridBuffer::new(): d_slc_range: {:?}, grid_count: {}, tract_map: {:?}",
         //     default_slc_range, grid_count, tract_map);
 
         let raw_states_vec: Vec<u8> = iter::repeat(0u8).cycle().take(grid_count).collect();
@@ -42,7 +56,7 @@ impl HexGridBuffer {
         // let vertex_buf = VertexBuffer::dynamic(display, &state_vertices).unwrap();
         // let raw_states_buf: Buffer<[u8]> = Buffer::empty_unsized(display, BufferType::ArrayBuffer, grid_count,
         //     BufferMode::Persistent).unwrap();
-        let vec_ref = unsafe { &*(&raw_states_vec as *const Vec<u8> 
+        let vec_ref = unsafe { &*(&raw_states_vec as *const Vec<u8>
             as *const _ as *const Vec<StateVertex>) };
 
         // [NOTE]: `persistent` gives performance improvement:
@@ -50,7 +64,7 @@ impl HexGridBuffer {
         let raw_states_buf = VertexBuffer::persistent(display, vec_ref).unwrap();
 
 
-        HexGridBuffer {            
+        HexGridBuffer {
             raw_states_vec: Arc::new(Mutex::new(raw_states_vec)),
             // state_vertices: state_vertices,
             // vertex_buf: vertex_buf,
@@ -66,7 +80,7 @@ impl HexGridBuffer {
     }
 
     fn write_to_buf(&self, raw_states: &Vec<u8>) {
-        let vec_ref = unsafe { &*(raw_states as *const Vec<u8> 
+        let vec_ref = unsafe { &*(raw_states as *const Vec<u8>
             as *const _ as *const Vec<StateVertex>) };
         self.raw_states_buf.write(&vec_ref);
     }
@@ -126,7 +140,7 @@ impl HexGridBuffer {
         self.tract_map.slc_dims(self.default_slc_range.start)
     }
 
- 
+
      // [FIXME]: DEPRICATE OR MOVE TO TESTS MODULE
     #[allow(dead_code)]
     pub fn fill_rand(&mut self) {
@@ -180,16 +194,3 @@ impl HexGridBuffer {
         self.is_clear = is_clear;
     }
 }
-
-
-#[derive(Copy, Clone, Debug)]
-pub struct StateVertex {
-    state: u8,
-}
-
-// impl Vertex {
-//     fn new(position: [f32; 3], color: [f32; 3], normal: [f32; 3]) -> Vertex {
-//         Vertex { position: position, color: color, normal: normal }
-//     }
-// }
-implement_vertex!(StateVertex, state);

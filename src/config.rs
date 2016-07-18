@@ -29,16 +29,16 @@ pub fn define_plmaps() -> LayerMapSchemeList {
                 CellScheme::pyramidal(1, 4, vec!["iii"], 800, 10)
                     .apical(vec!["eff_in"/*, "olfac"*/], 12))
         )
-        // .lmap(LayerMapScheme::new("v0_lm", LayerMapKind::Thalamic)
-        //     .layer("spatial", 1, map::FF_OUT, LayerKind::Axonal(AxonKind::Spatial))
-        //     .layer("horiz_ns", 1, map::NS_OUT | LayerTags::uid(MOTOR_UID),
-        //         LayerKind::Axonal(AxonKind::Horizontal))
-        // )
-        .lmap(LayerMapScheme::new("v0b_lm", LayerMapKind::Thalamic)
+        .lmap(LayerMapScheme::new("v0_lm", LayerMapKind::Thalamic)
             .layer("spatial", 1, map::FF_OUT, LayerKind::Axonal(AxonKind::Spatial))
-            // .layer("horiz_ns", 1, map::NS_OUT | LayerTags::uid(MOTOR_UID),
-            //     LayerKind::Axonal(AxonKind::Horizontal))
+            .layer("horiz_ns", 1, map::NS_OUT | LayerTags::uid(MOTOR_UID),
+                LayerKind::Axonal(AxonKind::Horizontal))
         )
+        // .lmap(LayerMapScheme::new("v0b_lm", LayerMapKind::Thalamic)
+        //     .layer("spatial", 1, map::FF_OUT, LayerKind::Axonal(AxonKind::Spatial))
+        //     // .layer("horiz_ns", 1, map::NS_OUT | LayerTags::uid(MOTOR_UID),
+        //     //     LayerKind::Axonal(AxonKind::Horizontal))
+        // )
 }
 
 
@@ -50,20 +50,20 @@ pub fn define_pamaps() -> AreaSchemeList {
     const AREA_SIDE: u32 = 64;
 
     AreaSchemeList::new()
-        // .area_ext("v0", "v0_lm", ENCODE_SIZE,
-        //     InputScheme::GlyphSequences { seq_lens: (5, 5), seq_count: 10, scale: 1.4, hrz_dims: (16, 16) },
-        //     None,
-        //     None,
-        // )
-        .area_ext("v0b", "v0b_lm", ENCODE_SIZE,
-            InputScheme::SensoryTract,
+        .area_ext("v0", "v0_lm", ENCODE_SIZE,
+            InputScheme::GlyphSequences { seq_lens: (5, 5), seq_count: 10, scale: 1.4, hrz_dims: (16, 16) },
             None,
             None,
         )
+        // .area_ext("v0b", "v0b_lm", ENCODE_SIZE,
+        //     InputScheme::SensoryTract,
+        //     None,
+        //     None,
+        // )
         .area("v1", "visual", AREA_SIDE,
             Some(vec![FilterScheme::new("retina", None)]),
-            // Some(vec!["v0"]),
-            Some(vec!["v0b"]),
+            Some(vec!["v0"]),
+            // Some(vec!["v0b"]),
         )
 
         // .area("b1", "visual", AREA_SIDE,
@@ -133,8 +133,8 @@ pub fn disable_stuff(cortex: &mut Cortex) {
     /* ######################### */
     for (_, area) in &mut cortex.areas {
         // area.psal_mut().dens_mut().syns_mut().set_offs_to_zero_temp();
-        area.bypass_inhib = true;
-        area.bypass_filters = true;
+        // area.bypass_inhib = true;
+        // area.bypass_filters = true;
         // area.disable_pyrs = true;
 
         // area.disable_ssts = true;
