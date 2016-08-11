@@ -1,32 +1,36 @@
 // #![feature(box_patterns)]
 
-#[macro_use] extern crate glium;
-extern crate glium_text;
-// extern crate image;
+// #[macro_use] extern crate glium;
+// extern crate glium_text;
+// // extern crate image;
 extern crate time;
-extern crate bismit;
-extern crate find_folder;
-extern crate num;
-extern crate vecmath;
-// extern crate rustc_serialize;
-extern crate rand;
-#[macro_use] extern crate colorify;
-extern crate enamel;
+// extern crate bismit;
+// extern crate find_folder;
+// extern crate num;
+// extern crate nalgebra;
+// // extern crate vecmath;
+// // extern crate rustc_serialize;
+// extern crate rand;
+// #[macro_use] extern crate colorify;
+// extern crate enamel;
+extern crate vibi;
 
-#[macro_use] mod cycle;
-mod config;
-mod window;
-mod sequences;
+// #[macro_use] mod cycle;
+// mod config;
+// mod window;
+// mod sequences;
 // mod util;
 // mod ui;
+
+use vibi::{cycle, window};
 
 
 fn main() {
     use std::thread;
     use std::sync::mpsc;
-    
+
     println!("================= Bismit: vibi::main() running... ==================");
-    let time_start = time::get_time();    
+    let time_start = time::get_time();
     // tomfoolery(&time_start);
 
     let (result_tx, result_rx) = mpsc::channel();

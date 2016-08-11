@@ -15,6 +15,10 @@ path = "/home/nick/projects/enamel"
 [dependencies.time]
 git = "https://github.com/rust-lang/time.git"
 
+[replace]
+"cl-sys:0.1.0" = { git = 'https://github.com/cogciprocate/cl-sys' }
+"ocl-core:0.1.0" = { git = "https://github.com/cogciprocate/ocl-core" }
+
 [dependencies]
 rand = "*"
 glium = "0.14"
@@ -25,8 +29,9 @@ num = "*"
 vecmath = "*"
 # rustc-serialize = "*"
 colorify = "*"
+nalgebra = "*"
 
-
+# cgmath = "*"
 # piston_window = "*"
 # piston2d-opengl_graphics = "*"
 # conrod = "0.23"
@@ -35,7 +40,6 @@ colorify = "*"
 # piston-viewport = "0.2.0"
 # piston2d-gfx_graphics = "0.13.0"
 # gfx = "0.8.1"
-# cgmath = "*"
 
 # [dependencies.glium_text]
 # git = "https://github.com/tomaka/glium_text.git"
