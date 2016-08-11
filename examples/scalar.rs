@@ -1,10 +1,12 @@
 //! Encode a sequence of scalar values and display their representation.
 
+#![allow(unused_imports)]
+
 extern crate vibi;
 
 use vibi::{window, cycle};
-use bismit::Cortex;
-use bismit::map::{self, LayerTags, LayerMapKind, LayerMapScheme, LayerMapSchemeList,
+use vibi::bismit::{Cortex, CorticalAreaSettings};
+use vibi::bismit::map::{self, LayerTags, LayerMapKind, LayerMapScheme, LayerMapSchemeList,
     AreaSchemeList, CellScheme, FilterScheme, InputScheme, AxonKind, LayerKind};
 
 fn main() {
@@ -19,14 +21,15 @@ fn main() {
     }).expect("Error creating 'win' thread");
 
     let th_vis = thread::Builder::new().name("vis".to_string()).spawn(move || {
-        cycle::CycleLoop::run(0, control_rx, result_tx);
+        cycle::CycleLoop::run(0, control_rx, result_tx, define_lm_schemes(), define_a_schemes(),
+            Some(ca_settings()));
     }).expect("Error creating 'vis' thread");
 
     if let Err(e) = th_win.join() { println!("th_win.join(): Error: '{:?}'", e); }
     if let Err(e) = th_vis.join() { println!("th_vin.join(): Error: '{:?}'", e); }
 }
 
-pub fn define_plmaps() -> LayerMapSchemeList {
+fn define_lm_schemes() -> LayerMapSchemeList {
     const MOTOR_UID: u32 = 543;
     // const OLFAC_UID: u32 = 654;
 
@@ -51,8 +54,8 @@ pub fn define_plmaps() -> LayerMapSchemeList {
         )
         .lmap(LayerMapScheme::new("v0_lm", LayerMapKind::Thalamic)
             .layer("spatial", 1, map::FF_OUT, LayerKind::Axonal(AxonKind::Spatial))
-            .layer("horiz_ns", 1, map::NS_OUT | LayerTags::uid(MOTOR_UID),
-                LayerKind::Axonal(AxonKind::Horizontal))
+            // .layer("horiz_ns", 1, map::NS_OUT | LayerTags::uid(MOTOR_UID),
+            //     LayerKind::Axonal(AxonKind::Horizontal))
         )
         // .lmap(LayerMapScheme::new("v0b_lm", LayerMapKind::Thalamic)
         //     .layer("spatial", 1, map::FF_OUT, LayerKind::Axonal(AxonKind::Spatial))
@@ -62,16 +65,17 @@ pub fn define_plmaps() -> LayerMapSchemeList {
 }
 
 
-pub fn define_pamaps() -> AreaSchemeList {
+fn define_a_schemes() -> AreaSchemeList {
     // const CYCLES_PER_FRAME: usize = 1;
     // const HZS: u32 = 16;
-    const ENCODE_SIZE: u32 = 48; // had been used for GlyphSequences
+    const ENCODE_SIZE: u32 = 128; // had been used for GlyphSequences
     // const ENCODE_SIZE: u32 = 24; // for SensoryTract
     const AREA_SIDE: u32 = 64;
 
     AreaSchemeList::new()
         .area_ext("v0", "v0_lm", ENCODE_SIZE,
-            InputScheme::GlyphSequences { seq_lens: (5, 5), seq_count: 10, scale: 1.4, hrz_dims: (16, 16) },
+            // InputScheme::GlyphSequences { seq_lens: (5, 5), seq_count: 10, scale: 1.4, hrz_dims: (16, 16) },
+            InputScheme::ScalarSequence,
             None,
             None,
         )
@@ -81,28 +85,26 @@ pub fn define_pamaps() -> AreaSchemeList {
         //     None,
         // )
         .area("v1", "visual", AREA_SIDE,
-            Some(vec![FilterScheme::new("retina", None)]),
+            // Some(vec![FilterScheme::new("retina", None)]),
+            None,
             Some(vec!["v0"]),
             // Some(vec!["v0b"]),
         )
 }
 
-#[allow(unused_variables)]
-pub fn disable_stuff(cortex: &mut Cortex) {
+// #########################
+// ##### DISABLE STUFF #####
+// #########################
+pub fn ca_settings() -> CorticalAreaSettings {
+    let mut settings = CorticalAreaSettings::new();
 
-    /* ######################### */
-    /* ##### DISABLE STUFF ##### */
-    /* ######################### */
-    for (_, area) in &mut cortex.areas {
-        // area.psal_mut().dens_mut().syns_mut().set_offs_to_zero_temp();
-        // area.bypass_inhib = true;
-        // area.bypass_filters = true;
-        // area.disable_pyrs = true;
+    settings.bypass_inhib = true;
+    settings.bypass_filters = true;
+    settings.disable_pyrs = true;
+    // settings.disable_ssts = true;
+    // settings.disable_mcols = true;
+    settings.disable_regrowth = true;
+    settings.disable_learning = true;
 
-        // area.disable_ssts = true;
-        // area.disable_mcols = true;
-
-        // area.disable_learning = true;
-        // area.disable_regrowth = true;
-    }
+    settings
 }

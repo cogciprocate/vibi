@@ -1,10 +1,12 @@
-// #![feature(box_patterns)]
+//! Visualization for bismit.
+//!
+//!
+
 
 #[macro_use] extern crate glium;
 extern crate glium_text;
 // extern crate image;
 extern crate time;
-extern crate bismit;
 extern crate find_folder;
 extern crate num;
 extern crate nalgebra;
@@ -13,9 +15,9 @@ extern crate nalgebra;
 extern crate rand;
 #[macro_use] extern crate colorify;
 extern crate enamel;
+pub extern crate bismit;
 
-mod config;
-mod sequences;
+pub mod config;
 pub mod window;
 #[macro_use] pub mod cycle;
 // mod util;

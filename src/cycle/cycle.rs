@@ -5,9 +5,9 @@ use std::sync::{Arc, Mutex};
 use std::str::{FromStr};
 use time::{self, Timespec, Duration};
 
-use bismit::{Cortex, OclEvent};
+use bismit::{Cortex, OclEvent, LayerMapSchemeList, AreaSchemeList, CorticalAreaSettings};
 use bismit::map::SliceTractMap;
-use config;
+// use config;
 
 const INITIAL_TEST_ITERATIONS: u32 = 1;
 const STATUS_EVERY: u32 = 5000;
@@ -142,11 +142,11 @@ pub enum LoopAction {
 pub struct CycleLoop;
 
 impl CycleLoop {
-    pub fn run(autorun_iters: u32, control_rx: Receiver<CyCtl>, mut result_tx: Sender<CyRes>)
-                -> bool
-    {
-        let mut cortex = Cortex::new(config::define_plmaps(), config::define_pamaps());
-        config::disable_stuff(&mut cortex);
+    pub fn run(autorun_iters: u32, control_rx: Receiver<CyCtl>, mut result_tx: Sender<CyRes>,
+                lm_schemes: LayerMapSchemeList, a_schemes: AreaSchemeList,
+                ca_settings: Option<CorticalAreaSettings>) -> bool {
+        let cortex = Cortex::new(lm_schemes, a_schemes, ca_settings);
+        // config::disable_stuff(&mut cortex);
 
         let area_name = "v1".to_owned();
 

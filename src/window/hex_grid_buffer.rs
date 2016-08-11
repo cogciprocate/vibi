@@ -9,8 +9,9 @@ use glium::vertex::{VertexBuffer, VertexBufferSlice};
 use cycle::AreaInfo;
 use bismit::map::SliceTractMap;
 
-// const SMOOTH_REFRESH: bool = false;
-const SMOOTH_REFRESH: bool = true;
+// [NOTE]: This is only one setting dictating how quickly vibi 'appears' to refresh.
+const SMOOTH_REFRESH: bool = false;
+// const SMOOTH_REFRESH: bool = true;
 
 
 #[derive(Copy, Clone, Debug)]

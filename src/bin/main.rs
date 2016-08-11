@@ -1,28 +1,9 @@
-// #![feature(box_patterns)]
+//! Vibi with the config from config.rs in interactive mode.
 
-// #[macro_use] extern crate glium;
-// extern crate glium_text;
-// // extern crate image;
 extern crate time;
-// extern crate bismit;
-// extern crate find_folder;
-// extern crate num;
-// extern crate nalgebra;
-// // extern crate vecmath;
-// // extern crate rustc_serialize;
-// extern crate rand;
-// #[macro_use] extern crate colorify;
-// extern crate enamel;
 extern crate vibi;
 
-// #[macro_use] mod cycle;
-// mod config;
-// mod window;
-// mod sequences;
-// mod util;
-// mod ui;
-
-use vibi::{cycle, window};
+use vibi::{cycle, window, config};
 
 
 fn main() {
@@ -42,7 +23,8 @@ fn main() {
     }).expect("Error creating 'win' thread");
 
     let th_vis = thread::Builder::new().name("vis".to_string()).spawn(move || {
-        cycle::CycleLoop::run(0, control_rx, result_tx);
+        cycle::CycleLoop::run(0, control_rx, result_tx, config::define_lm_schemes(),
+            config::define_a_schemes(), None);
     }).expect("Error creating 'vis' thread");
 
     if let Err(e) = th_win.join() { println!("th_win.join(): Error: '{:?}'", e); }
