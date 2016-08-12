@@ -30,8 +30,8 @@ fn main() {
 }
 
 fn define_lm_schemes() -> LayerMapSchemeList {
-    const MOTOR_UID: u32 = 543;
-    // const OLFAC_UID: u32 = 654;
+    const MOTOR_UID: u32 = 101;
+    // const OLFAC_UID: u32 = 102;
 
     LayerMapSchemeList::new()
         .lmap(LayerMapScheme::new("visual", LayerMapKind::Cortical)
@@ -46,11 +46,11 @@ fn define_lm_schemes() -> LayerMapSchemeList {
             .layer("iv_inhib", 0, map::DEFAULT, CellScheme::inhibitory(4, "iv"))
 
             .layer("iv", 1, map::PSAL,
-                CellScheme::spiny_stellate(4, vec!["aff_in"], 400, 8))
+                CellScheme::spiny_stellate(6, vec!["aff_in"], 400, 16))
 
             .layer("iii", 2, map::PTAL,
-                CellScheme::pyramidal(1, 4, vec!["iii"], 800, 10)
-                    .apical(vec!["eff_in"/*, "olfac"*/], 12))
+                CellScheme::pyramidal(1, 5, vec!["iii"], 600, 16)
+                    .apical(vec!["eff_in"/*, "olfac"*/], 16))
         )
         .lmap(LayerMapScheme::new("v0_lm", LayerMapKind::Thalamic)
             .layer("spatial", 1, map::FF_OUT, LayerKind::Axonal(AxonKind::Spatial))
@@ -68,14 +68,14 @@ fn define_lm_schemes() -> LayerMapSchemeList {
 fn define_a_schemes() -> AreaSchemeList {
     // const CYCLES_PER_FRAME: usize = 1;
     // const HZS: u32 = 16;
-    const ENCODE_SIZE: u32 = 256; // had been used for GlyphSequences
+    const ENCODE_SIZE: u32 = 64; // had been used for GlyphSequences
     // const ENCODE_SIZE: u32 = 24; // for SensoryTract
-    const AREA_SIDE: u32 = 96;
+    const AREA_SIDE: u32 = 32;
 
     AreaSchemeList::new()
         .area_ext("v0", "v0_lm", ENCODE_SIZE,
             // InputScheme::GlyphSequences { seq_lens: (5, 5), seq_count: 10, scale: 1.4, hrz_dims: (16, 16) },
-            InputScheme::ScalarSequence { range: (0.0, 5000.0), incr: 1.0 },
+            InputScheme::ScalarSequence { range: (0.0, 500.0), incr: 1.0 },
             None,
             None,
         )
@@ -99,7 +99,7 @@ fn define_a_schemes() -> AreaSchemeList {
 pub fn ca_settings() -> CorticalAreaSettings {
     let mut settings = CorticalAreaSettings::new();
 
-    settings.bypass_inhib = true;
+    // settings.bypass_inhib = true;
     // settings.bypass_filters = true;
     // settings.disable_pyrs = true;
     // settings.disable_ssts = true;
