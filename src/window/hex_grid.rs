@@ -5,7 +5,7 @@ use glium::glutin::{ElementState, MouseButton};
 // use vecmath;
 use enamel::MouseState;
 
-use cycle::AreaInfo;
+use bismit::flywheel::AreaInfo;
 use window::HexGridBuffer;
 
 const HEX_X: f32 = 0.086602540378 + 0.01;

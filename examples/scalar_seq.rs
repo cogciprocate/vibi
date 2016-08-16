@@ -4,29 +4,33 @@
 
 extern crate vibi;
 
-use vibi::{window, cycle};
+use vibi::window;
 use vibi::bismit::{Cortex, CorticalAreaSettings};
 use vibi::bismit::map::{self, LayerTags, LayerMapKind, LayerMapScheme, LayerMapSchemeList,
     AreaSchemeList, CellScheme, FilterScheme, InputScheme, AxonKind, LayerKind};
+use vibi::bismit::flywheel::Flywheel;
 
 fn main() {
     use std::thread;
     use std::sync::mpsc;
 
-    let (result_tx, result_rx) = mpsc::channel();
-    let (control_tx, control_rx) = mpsc::channel();
+    let (command_tx, command_rx) = mpsc::channel();
+    let (request_tx, request_rx) = mpsc::channel();
+    let (response_tx, response_rx) = mpsc::channel();
+
+    let th_flywheel = thread::Builder::new().name("flywheel".to_string()).spawn(move || {
+        let mut flywheel = Flywheel::from_blueprint(command_rx, define_lm_schemes(),
+            define_a_schemes(), None);
+        flywheel.add_req_res_pair(request_rx, response_tx);
+        flywheel.spin();
+    }).expect("Error creating 'flywheel' thread");
 
     let th_win = thread::Builder::new().name("win".to_string()).spawn(move || {
-        window::Window::open(control_tx, result_rx);
+        window::Window::open(command_tx, request_tx, response_rx);
     }).expect("Error creating 'win' thread");
 
-    let th_vis = thread::Builder::new().name("cyc".to_string()).spawn(move || {
-        cycle::CycleLoop::run(0, control_rx, result_tx, define_lm_schemes(), define_a_schemes(),
-            Some(ca_settings()));
-    }).expect("Error creating 'cyc' thread");
-
     if let Err(e) = th_win.join() { println!("th_win.join(): Error: '{:?}'", e); }
-    if let Err(e) = th_vis.join() { println!("th_vin.join(): Error: '{:?}'", e); }
+    if let Err(e) = th_flywheel.join() { println!("th_flywheel.join(): Error: '{:?}'", e); }
 }
 
 fn define_lm_schemes() -> LayerMapSchemeList {

@@ -1,7 +1,8 @@
-use std::sync::mpsc::{Receiver, Sender};
+use std::sync::mpsc::{Receiver, Sender, TryRecvError};
 use time::{self, Timespec, Duration};
 use glium::{self, DisplayBuild, Surface};
-use cycle::{CyCtl, CyRes, Status as CyStatus, AreaInfo};
+// use cycle::{CyCmd, CyRes, Status as CyStatus, AreaInfo};
+use bismit::flywheel::{Command, Request, Response, Status, AreaInfo};
 use window::{HexGrid, StatusText};
 use enamel::{ui, Pane, EventRemainder, UiRequest, TextBox, HexButton, ElementState,
     MouseButton, MouseScrollDelta, SetMouseFocus, Event};
@@ -21,7 +22,7 @@ pub enum WindowCtl {
     HexGrid(HexGridCtl),
     SetCyIters(u32),
     CyIterate,
-    CyCtl(CyCtl),
+    CyCmd(Command),
 }
 
 impl EventRemainder for WindowCtl {
@@ -92,14 +93,15 @@ impl WindowStats {
 
 // [FIXME]: Needs a rename. Anything containing 'Window' is misleading (Pane is the window).
 pub struct Window<'d> {
-    pub cycle_status: CyStatus,
+    pub cycle_status: Status,
     pub area_info: AreaInfo,
     pub stats: WindowStats,
     pub close_pending: bool,
     pub grid_dims: (u32, u32),
     pub iters_pending: u32,
-    pub control_tx: Sender<CyCtl>,
-    pub result_rx: Receiver<CyRes>,
+    pub command_tx: Sender<Command>,
+    pub request_tx: Sender<Request>,
+    pub response_rx: Receiver<Response>,
     pub hex_grid: HexGrid<'d>,
     pub has_mouse_focus: bool,
     pub mouse_pos: (i32, i32),
@@ -107,11 +109,12 @@ pub struct Window<'d> {
 }
 
 impl<'d> Window<'d> {
-    pub fn open(control_tx: Sender<CyCtl>, result_rx: Receiver<CyRes>) {
+    pub fn open(command_tx: Sender<Command>, request_tx: Sender<Request>,
+                response_rx: Receiver<Response>) {
         // Get initial area info:
-        control_tx.send(CyCtl::RequestCurrentAreaInfo).expect("Error requesting current area name.");
-        let area_info = match result_rx.recv().expect("Current area name reception error.") {
-            CyRes::AreaInfo(info) => *info,
+        request_tx.send(Request::AreaInfo).expect("Error requesting current area name");
+        let area_info = match response_rx.recv().expect("Current area name reception error") {
+            Response::AreaInfo(info) => *info,
             _ => panic!("Invalid area name response."),
         };
 
@@ -179,7 +182,7 @@ impl<'d> Window<'d> {
             .element(HexButton::new(ui::BOTTOM_RIGHT, (-0.20, 0.25), 1.8,
                     "Stop", ui::C_ORANGE)
                 .mouse_event_handler(Box::new(|_, _| {
-                    (UiRequest::None, WindowCtl::CyCtl(CyCtl::Stop))
+                    (UiRequest::None, WindowCtl::CyCmd(Command::Stop))
                 }))
             )
 
@@ -196,14 +199,15 @@ impl<'d> Window<'d> {
 
         // Main window data struct:
         let mut window = Window {
-            cycle_status: CyStatus::new(),
+            cycle_status: Status::new(),
             area_info: area_info.clone(),
             stats: WindowStats::new(),
             close_pending: false,
             grid_dims: grid_dims,
             iters_pending: 1000000,
-            control_tx: control_tx,
-            result_rx: result_rx,
+            command_tx: command_tx,
+            request_tx: request_tx,
+            response_rx: response_rx,
             hex_grid: hex_grid,
             mouse_pos: (0, 0),
             has_mouse_focus: true,
@@ -217,7 +221,9 @@ impl<'d> Window<'d> {
         //     mt = "    ");
 
         // Send initial request:
-        window.control_tx.send(CyCtl::RequestCurrentIter).unwrap();
+        window.request_tx.send(Request::CurrentIter).unwrap();
+        window.command_tx.send(Command::None).unwrap();
+        window.recv_cycle_results(true);
 
         //////////////////////////////////////////////////////////////////////////
         ///////////////////// Primary Event & Rendering Loop /////////////////////
@@ -235,9 +241,15 @@ impl<'d> Window<'d> {
                 window.handle_event_remainder(ui.handle_event(ev));
             }
 
+            // window.request_tx.send(Request::CurrentIter).unwrap();
+            // window.command_tx.send(Command::None).unwrap();
+            // window.recv_cycle_results(true);
+
+            // Check that the request chain is seeded...
+
             // Check the results channel and determine if the cycle process
             // has caught up to this window before sending new requests.
-            if window.recv_cycle_results() {
+            if window.recv_cycle_results(false) {
                 // If the hex grid buffer is not clear, e.g. the last sample
                 // request is still unwritten, clear it by attempting to write to
                 // the device vertex buffer if it is ready.
@@ -249,17 +261,26 @@ impl<'d> Window<'d> {
                 // If the hex grid buffer is now clear, send a new sample request
                 // for the next frame.
                 if window.hex_grid.buffer.is_clear() {
-                    window.control_tx.send(CyCtl::Sample(window.hex_grid.buffer.cur_slc_range(),
+                    // // DEBUG:
+                    // println!("Requesting buffer sample...");
+
+                    window.request_tx.send(Request::Sample(window.hex_grid.buffer.cur_slc_range(),
                         window.hex_grid.buffer.raw_states_vec())).expect("Sample raw states");
                     window.hex_grid.buffer.set_clear(false);
                 }
-
-                // Check cycle status for next frame:
-                window.control_tx.send(CyCtl::RequestCurrentIter).unwrap();
             }
 
-            // Draw hex grid:
+            // Check current iterator for next frame:
+            window.request_tx.send(Request::CurrentIter).unwrap();
+
+            // Send a no-op to flush request buffer if necessary:
+            window.command_tx.send(Command::None).unwrap();
+
+            // Increment our counters:
             let elapsed_ms = window.stats.elapsed_ms();
+            window.stats.incr();
+
+            // Draw hex grid:
             window.hex_grid.draw(&mut target, elapsed_ms);
 
             // Draw status text:
@@ -273,12 +294,9 @@ impl<'d> Window<'d> {
             // Swap buffers:
             target.finish().unwrap();
 
-            // Increment our counters:
-            window.stats.incr();
-
             // Clean up and exit if necessary:
             if window.close_pending {
-                window.control_tx.send(CyCtl::Exit).expect("Exit button control tx");
+                window.command_tx.send(Command::Exit).expect("Exit button control tx");
                 break;
             }
         }
@@ -288,35 +306,54 @@ impl<'d> Window<'d> {
         display.get_window().unwrap().hide();
     }
 
-    fn recv_cycle_results(&mut self) -> bool {
+    fn handle_response(&mut self, response: Response) {
+        match response {
+            Response::CurrentIter(iter) => self.cycle_status.cur_cycle = iter,
+            Response::Status(cysts) => self.cycle_status = *cysts,
+            Response::AreaInfo(info) => {
+                let info = *info;
+                self.area_info = info.clone();
+                self.hex_grid.buffer.set_default_slc_range(info.aff_out_slc_range.clone());
+                self.hex_grid.buffer.set_tract_map(info.tract_map);
+            },
+            _ => (),
+        }
+    }
+
+    fn recv_cycle_results(&mut self, block: bool) -> bool {
         let mut any_recvd = false;
 
         loop {
-            match self.result_rx.try_recv() {
-                Ok(cr) => {
-                    match cr {
-                        CyRes::CurrentIter(iter) => self.cycle_status.cur_cycle = iter,
-                        CyRes::Status(cysts) => self.cycle_status = *cysts,
-                        CyRes::AreaInfo(info) => {
-                            let info = *info;
-                            self.area_info = info.clone();
-                            self.hex_grid.buffer.set_default_slc_range(info.aff_out_slc_range.clone());
-                            self.hex_grid.buffer.set_tract_map(info.tract_map);
-                        },
-                        // _ => (),
-                    }
-                    any_recvd = true;
-                },
-                Err(_) => break,
+            if block {
+                let response = self.response_rx.recv().unwrap();
+                self.handle_response(response);
+                any_recvd = true;
+                break;
+            } else {
+                match self.response_rx.try_recv() {
+                    Ok(response) => {
+                        self.handle_response(response);
+                        any_recvd = true;
+                    },
+                    Err(e) => match e {
+                        TryRecvError::Empty => break,
+                        TryRecvError::Disconnected => panic!("Window::recv_cycle_results(): \
+                            Sender disconnected."),
+                    },
+                }
             }
         }
+
+        // // DEBUG:
+        // println!("recv_cycle_results(): any_recvd: {}", any_recvd);
+
         any_recvd
     }
 
     fn handle_event_remainder(&mut self, rdr: WindowCtl) {
         match rdr {
             WindowCtl::None => (),
-            WindowCtl::Event(event) => { match event {
+            WindowCtl::Event(event) => match event {
                 // Event::KeyboardInput(state, _, v_code) => ()
                 //     println!("Key: {:?} has been {:?}", ui::map_vkc(v_code), state),
                 Event::MouseMoved(p_x, p_y) => self.handle_mouse_moved((p_x, p_y)),
@@ -325,12 +362,12 @@ impl<'d> Window<'d> {
                 Event::Touch(touch) => println!("Touch recieved: {:?}", touch),
                 Event::Closed => self.close_pending = true,
                 _ => (),
-            } }
-            WindowCtl::CyCtl(ctl) => self.control_tx.send(ctl).unwrap(),
+            },
+            WindowCtl::CyCmd(cmd) => self.command_tx.send(cmd).unwrap(),
             WindowCtl::SetCyIters(i) => self.iters_pending = i,
-            WindowCtl::CyIterate => self.control_tx.send(CyCtl::Iterate(self.iters_pending)).unwrap(),
-            WindowCtl::HexGrid(ctl) => {
-                match ctl {
+            WindowCtl::CyIterate => self.command_tx.send(Command::Iterate(self.iters_pending)).unwrap(),
+            WindowCtl::HexGrid(cmd) => {
+                match cmd {
                     HexGridCtl::SlcRangeDefault => self.hex_grid.buffer.use_default_slc_range(),
                     HexGridCtl::SlcRangeFull => self.hex_grid.buffer.use_full_slc_range(),
                 }

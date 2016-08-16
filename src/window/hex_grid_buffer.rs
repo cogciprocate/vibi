@@ -6,7 +6,7 @@ use rand::distributions::{IndependentSample, Range as RandRange};
 use glium::backend::glutin_backend::{GlutinFacade};
 // use glium::buffer::{Buffer, BufferSlice, BufferMode, BufferType};
 use glium::vertex::{VertexBuffer, VertexBufferSlice};
-use cycle::AreaInfo;
+use bismit::flywheel::AreaInfo;
 use bismit::map::SliceTractMap;
 
 // [NOTE]: This is only one setting dictating how quickly vibi 'appears' to refresh.

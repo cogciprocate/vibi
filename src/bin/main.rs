@@ -3,7 +3,8 @@
 extern crate time;
 extern crate vibi;
 
-use vibi::{cycle, window, config};
+use vibi::{window, config};
+use vibi::bismit::flywheel::Flywheel;
 
 
 fn main() {
@@ -14,21 +15,23 @@ fn main() {
     let time_start = time::get_time();
     // tomfoolery(&time_start);
 
-    let (result_tx, result_rx) = mpsc::channel();
-    let (control_tx, control_rx) = mpsc::channel();
+    let (command_tx, command_rx) = mpsc::channel();
+    let (request_tx, request_rx) = mpsc::channel();
+    let (response_tx, response_rx) = mpsc::channel();
+
+    let th_flywheel = thread::Builder::new().name("flywheel".to_string()).spawn(move || {
+        let mut flywheel = Flywheel::from_blueprint(command_rx, config::define_lm_schemes(),
+            config::define_a_schemes(), None);
+        flywheel.add_req_res_pair(request_rx, response_tx);
+        flywheel.spin();
+    }).expect("Error creating 'flywheel' thread");
 
     let th_win = thread::Builder::new().name("win".to_string()).spawn(move || {
-        window::Window::open(control_tx, result_rx);
-        // window::conrod::window_conrod::open(control_tx, result_rx);
+        window::Window::open(command_tx, request_tx, response_rx);
     }).expect("Error creating 'win' thread");
 
-    let th_vis = thread::Builder::new().name("vis".to_string()).spawn(move || {
-        cycle::CycleLoop::run(0, control_rx, result_tx, config::define_lm_schemes(),
-            config::define_a_schemes(), None);
-    }).expect("Error creating 'vis' thread");
-
     if let Err(e) = th_win.join() { println!("th_win.join(): Error: '{:?}'", e); }
-    if let Err(e) = th_vis.join() { println!("th_vin.join(): Error: '{:?}'", e); }
+    if let Err(e) = th_flywheel.join() { println!("th_vin.join(): Error: '{:?}'", e); }
 
 
     // <<<<< MOVE THIS ELSEWHERE >>>>>

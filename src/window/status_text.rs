@@ -10,7 +10,7 @@ use glium::backend::Facade;
 // use glium::backend::glutin_backend::{ GlutinFacade };
 
 use window::WindowStats;
-use cycle::Status;
+use bismit::flywheel::Status;
 
 const TEXT_SCALE: f32 = 0.018;
 const TEXT_COLOR: (f32, f32, f32, f32) = (0.99, 0.99, 0.99, 1.0);
@@ -59,8 +59,8 @@ impl StatusText {
         glium_text::draw(&text_display, &self.text_system, target, text_xform, self.color);
     }
 
-    pub fn draw<S: glium::Surface>(&self, target: &mut S, cycle_status: &Status, 
-                window_stats: &WindowStats, grid_dims: (u32, u32), area_name: &str, cam_dst: f32, 
+    pub fn draw<S: glium::Surface>(&self, target: &mut S, cycle_status: &Status,
+                window_stats: &WindowStats, grid_dims: (u32, u32), area_name: &str, cam_dst: f32,
                 top_right: [f32; 4], cam_pos_raw: [f32; 3])
     {
         let (width, height) = target.get_dimensions();
@@ -73,12 +73,12 @@ impl StatusText {
         self.draw_line(&format!("Total CPS: {:.1}", cycle_status.ttl_cps()), 6, 206, target);
         self.draw_line(&format!("Area Name: \"{}\"", area_name), 6, 236, target);
         self.draw_line(&format!("Area Size: {} X {}", grid_dims.0, grid_dims.1), 6, 266, target);
-        // self.draw_line(&format!("Top Right Corner: ({}, {})", 
+        // self.draw_line(&format!("Top Right Corner: ({}, {})",
         //     top_right[0], top_right[1]), 6, 296, target);
-        self.draw_line(&format!("Camera Pos: ({}, {}, {})", cam_pos_raw[0], 
+        self.draw_line(&format!("Camera Pos: ({}, {}, {})", cam_pos_raw[0],
             cam_pos_raw[1], cam_pos_raw[2]), 6, 296, target);
-        
-    }    
+
+    }
 }
 
 
