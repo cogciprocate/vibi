@@ -104,8 +104,10 @@ impl<'d> HexGrid<'d> {
             let slc_idm = self.buffer.cur_slc_range().end - 1;
 
             // Set up model position:
-            let x_shift = 18.0 * slc_count as f32 * (slc_idm - slc_id) as f32;
-            let y_shift = 10.0 * slc_count as f32 * (slc_idm - slc_id) as f32;
+            // let x_shift = 18.0 * slc_count as f32 * (slc_idm - slc_id) as f32;
+            // let y_shift = 10.0 * slc_count as f32 * (slc_idm - slc_id) as f32;
+            let x_shift = 90.0 * (slc_idm - slc_id) as f32;
+            let y_shift = 50.0 * (slc_idm - slc_id) as f32;
             let z_shift = 1.0;
 
             // Model transformation matrix:
@@ -117,7 +119,7 @@ impl<'d> HexGrid<'d> {
             ];
 
             // Uniforms:
-            let uniforms = uniform! {        
+            let uniforms = uniform! {
                 model: model,
                 view: view,
                 persp: persp,
@@ -232,7 +234,7 @@ static vertex_shader_src: &'static str = r#"
 
         float x_scl = 0.086602540378f + border;
         float y_scl = 0.05 + border;
-        
+
         float v_id = float(uint(gl_InstanceID) / grid_u_size);
         float u_id = float(uint(gl_InstanceID) % grid_u_size);
 
@@ -248,7 +250,7 @@ static vertex_shader_src: &'static str = r#"
         v_state = state;
     };
 "#;
-        
+
 
 // Fragment Shader:
 #[allow(non_upper_case_globals)]
@@ -258,7 +260,7 @@ static fragment_shader_src: &'static str = r#"
     // Unused (using uniform atm):
     in vec3 v_color;
     in vec3 v_normal;
-    in vec3 v_position;    
+    in vec3 v_position;
     // Determines red component:
     in float v_state;
     // in uchar v_state;
@@ -284,14 +286,14 @@ static fragment_shader_src: &'static str = r#"
 
         vec3 camera_dir = normalize(-v_position);
         vec3 half_direction = normalize(normalize(u_light_pos) + camera_dir);
-        float specular = pow(max(dot(half_direction, normalize(v_normal)), 0.0), 
+        float specular = pow(max(dot(half_direction, normalize(v_normal)), 0.0),
             specular_coeff);
 
         float state_norm = v_state / 255.0;
         vec3 tile_color = vec3(state_norm, u_global_color.g, u_global_color.b);
 
         color = vec4((ambient_color * tile_color) + diffuse_ampl
-            * diffuse_color + specular * specular_color, 1.0);    
+            * diffuse_color + specular * specular_color, 1.0);
     };
 "#;
 
@@ -348,7 +350,7 @@ fn persp_matrix(width: u32, height: u32, fov_zoom: f32) -> [[f32; 4]; 4] {
 
     // let (width, height) = target.get_dimensions();
     let aspect_ratio = height as f32 / width as f32;
-    let fov: f32 = 3.141592 / fov_zoom;    
+    let fov: f32 = 3.141592 / fov_zoom;
     let f = 1.0 / (fov / 2.0).tan();
 
     [
@@ -397,7 +399,7 @@ fn view_matrix(position: &[f32; 3], direction: &[f32; 3], up: &[f32; 3]) -> [[f3
 
 
 
-//     pub fn draw_old<S: Surface>(&self, target: &mut S, elapsed_ms: f64, 
+//     pub fn draw_old<S: Surface>(&self, target: &mut S, elapsed_ms: f64,
 //                 hex_grid_buf: &HexGridBuffer)
 //     {
 //         // [FIXME]: TEMPORARY:
@@ -417,7 +419,7 @@ fn view_matrix(position: &[f32; 3], direction: &[f32; 3], up: &[f32; 3]) -> [[f3
 //         let grid_ctr_z = -grid_ctr_x * 1.5;
 
 //         // Grid count:
-//         let grid_count = (grid_dims.0 * grid_dims.1) as usize;    
+//         let grid_count = (grid_dims.0 * grid_dims.1) as usize;
 
 //         // Perspective transformation matrix:
 //         let persp = persp_matrix(width, height, 3.0);
@@ -434,11 +436,11 @@ fn view_matrix(position: &[f32; 3], direction: &[f32; 3], up: &[f32; 3]) -> [[f3
 
 //         // View transformation matrix: { position(x,y,z), direction(x,y,z), up_dim(x,y,z)}
 //         let view = view_matrix(
-//             &[    grid_ctr_x + cam_x, 
-//                 0.0 + cam_y, 
+//             &[    grid_ctr_x + cam_x,
+//                 0.0 + cam_y,
 //                 (grid_ctr_z * 0.4) + cam_z + -1.7],  // <-- second f32 sets z base
-//             &[    0.0 - (cam_x / 5.0), 
-//                 0.0 - (cam_y / 5.0), 
+//             &[    0.0 - (cam_x / 5.0),
+//                 0.0 - (cam_y / 5.0),
 //                 0.5  * -grid_ctr_z],  // <-- first f32 sets distant focus point
 //             &[0.0, 1.0, 0.0]
 //         );
@@ -457,15 +459,15 @@ fn view_matrix(position: &[f32; 3], direction: &[f32; 3], up: &[f32; 3]) -> [[f3
 
 //         // // Model color (all three elements fluctuate):
 //         // let global_color = [
-//         //     (f32::abs(f32::cos(f_c / 3.0) * 0.99)) + 0.001, 
-//         //     (f32::abs(f32::sin(f_c / 2.0) * 0.99)) + 0.001, 
+//         //     (f32::abs(f32::cos(f_c / 3.0) * 0.99)) + 0.001,
+//         //     (f32::abs(f32::sin(f_c / 2.0) * 0.99)) + 0.001,
 //         //     (f32::abs(f32::cos(f_c / 1.0) * 0.99)) + 0.001,
 //         // ];
 
 //         // Model color (only blue fluctuates):
 //         let global_color = [
-//             0.0, 
-//             0.0, 
+//             0.0,
+//             0.0,
 //             // // 0% - 30% blue just for effect:
 //             // (f32::abs(f32::cos(f_c) * 0.30)),
 //             // 30% blue static:
@@ -473,7 +475,7 @@ fn view_matrix(position: &[f32; 3], direction: &[f32; 3], up: &[f32; 3]) -> [[f3
 //         ];
 
 //         // Uniforms:
-//         let uniforms = uniform! {        
+//         let uniforms = uniform! {
 //             model: grid_model,
 //             view: view,
 //             persp: persp,
@@ -486,7 +488,7 @@ fn view_matrix(position: &[f32; 3], direction: &[f32; 3], up: &[f32; 3]) -> [[f3
 //         };
 
 //         // // Draw Grid (without per-instance vertex buffer):
-//         // target.draw((&self.vertices, glium::vertex::EmptyInstanceAttributes { len: grid_count }), 
+//         // target.draw((&self.vertices, glium::vertex::EmptyInstanceAttributes { len: grid_count }),
 //         //     &self.indices, &self.program, &uniforms, &self.params).unwrap();
 
 //         // Draw Grid (with per-instance vertex buffer):
@@ -494,4 +496,4 @@ fn view_matrix(position: &[f32; 3], direction: &[f32; 3], up: &[f32; 3]) -> [[f3
 //             &self.indices, &self.program, &uniforms, &self.params).unwrap();
 //     }
 
-//     
+//

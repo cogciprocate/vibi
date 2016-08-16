@@ -20,10 +20,10 @@ fn main() {
         window::Window::open(control_tx, result_rx);
     }).expect("Error creating 'win' thread");
 
-    let th_vis = thread::Builder::new().name("vis".to_string()).spawn(move || {
+    let th_vis = thread::Builder::new().name("cyc".to_string()).spawn(move || {
         cycle::CycleLoop::run(0, control_rx, result_tx, define_lm_schemes(), define_a_schemes(),
             Some(ca_settings()));
-    }).expect("Error creating 'vis' thread");
+    }).expect("Error creating 'cyc' thread");
 
     if let Err(e) = th_win.join() { println!("th_win.join(): Error: '{:?}'", e); }
     if let Err(e) = th_vis.join() { println!("th_vin.join(): Error: '{:?}'", e); }
@@ -38,7 +38,7 @@ fn define_lm_schemes() -> LayerMapSchemeList {
             //.layer("test_noise", 1, map::DEFAULT, LayerKind::Axonal(Spatial))
             .axn_layer("motor_ctx", map::NS_IN | LayerTags::uid(MOTOR_UID), AxonKind::Horizontal)
             // .axn_layer("olfac", map::NS_IN | LayerTags::with_uid(OLFAC_UID), Horizontal)
-            .axn_layer("eff_in", map::FB_IN, AxonKind::Spatial)
+            // .axn_layer("eff_in", map::FB_IN, AxonKind::Spatial)
             .axn_layer("aff_in", map::FF_IN, AxonKind::Spatial)
             // .axn_layer("out", map::FF_FB_OUT, Spatial)
             .axn_layer("unused", map::UNUSED_TESTING, AxonKind::Spatial)
@@ -46,14 +46,15 @@ fn define_lm_schemes() -> LayerMapSchemeList {
             .layer("iv_inhib", 0, map::DEFAULT, CellScheme::inhibitory(4, "iv"))
 
             .layer("iv", 1, map::PSAL,
-                CellScheme::spiny_stellate(6, vec!["aff_in"], 400, 16))
+                CellScheme::spiny_stellate(6, vec!["aff_in"], 400, 14))
 
             .layer("iii", 2, map::PTAL,
-                CellScheme::pyramidal(1, 5, vec!["iii"], 600, 16)
-                    .apical(vec!["eff_in"/*, "olfac"*/], 16))
+                CellScheme::pyramidal(1, 5, vec!["iii"], 500, 20)
+                    // .apical(vec!["eff_in"/*, "olfac"*/], 18)
+                )
         )
         .lmap(LayerMapScheme::new("v0_lm", LayerMapKind::Thalamic)
-            .layer("spatial", 1, map::FF_OUT, LayerKind::Axonal(AxonKind::Spatial))
+            .layer("external", 1, map::FF_OUT, LayerKind::Axonal(AxonKind::Spatial))
             // .layer("horiz_ns", 1, map::NS_OUT | LayerTags::uid(MOTOR_UID),
             //     LayerKind::Axonal(AxonKind::Horizontal))
         )
@@ -70,12 +71,12 @@ fn define_a_schemes() -> AreaSchemeList {
     // const HZS: u32 = 16;
     const ENCODE_SIZE: u32 = 64; // had been used for GlyphSequences
     // const ENCODE_SIZE: u32 = 24; // for SensoryTract
-    const AREA_SIDE: u32 = 32;
+    const AREA_SIDE: u32 = 48;
 
     AreaSchemeList::new()
         .area_ext("v0", "v0_lm", ENCODE_SIZE,
             // InputScheme::GlyphSequences { seq_lens: (5, 5), seq_count: 10, scale: 1.4, hrz_dims: (16, 16) },
-            InputScheme::ScalarSequence { range: (0.0, 500.0), incr: 1.0 },
+            InputScheme::ScalarSequence { range: (0.0, 172.0), incr: 1.0 },
             None,
             None,
         )

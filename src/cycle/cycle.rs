@@ -249,7 +249,8 @@ fn refresh_hex_grid_buf(ri: &RunInfo, slc_range: Range<u8>, buf: Arc<Mutex<Vec<u
 {
     let axn_range = ri.cortex.area(&ri.area_name).axn_tract_map().axn_id_range(slc_range.clone());
 
-    match buf.try_lock() {
+    // match buf.try_lock() {
+    match buf.lock() {
         // Ok(ref mut b) => ri.cortex.area(&ri.area_name).sample_aff_out(&mut b[range]),
         Ok(ref mut b) => Some(ri.cortex.area(&ri.area_name)
             .sample_axn_slc_range(slc_range, &mut b[axn_range])),
@@ -321,14 +322,15 @@ fn loop_cycles(ri: &mut RunInfo, control_rx: &Receiver<CyCtl>, result_tx: &mut S
             //     Err(_) => (),
             // }
 
-            match ri.cortex.external_tract_mut("v0b".to_owned()) {
-                Ok(ref mut input_tract) => {
-                    for tc in input_tract.iter_mut() {
-                        *tc = (ri.status.cur_cycle % 255) as u8;
-                    }
-                },
-                Err(_) => (),
-            }
+            // // DEBUG?:
+            // match ri.cortex.input_tract_mut("v0b".to_owned()) {
+            //     Ok(ref mut input_tract) => {
+            //         for tc in input_tract.iter_mut() {
+            //             *tc = (ri.status.cur_cycle % 255) as u8;
+            //         }
+            //     },
+            //     Err(_) => (),
+            // }
 
             ri.cortex.cycle();
         }
