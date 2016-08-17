@@ -94,6 +94,7 @@ impl WindowStats {
 // [FIXME]: Needs a rename. Anything containing 'Window' is misleading (Pane is the window).
 pub struct Window<'d> {
     pub cycle_status: Status,
+    pub cycle_in_progress: bool,
     pub area_info: AreaInfo,
     pub stats: WindowStats,
     pub close_pending: bool,
@@ -200,6 +201,7 @@ impl<'d> Window<'d> {
         // Main window data struct:
         let mut window = Window {
             cycle_status: Status::new(),
+            cycle_in_progress: false,
             area_info: area_info.clone(),
             stats: WindowStats::new(),
             close_pending: false,
@@ -224,6 +226,8 @@ impl<'d> Window<'d> {
         window.request_tx.send(Request::CurrentIter).unwrap();
         window.command_tx.send(Command::None).unwrap();
         window.recv_cycle_results(true);
+        window.request_tx.send(Request::Status).unwrap();
+        window.command_tx.send(Command::None).unwrap();
 
         //////////////////////////////////////////////////////////////////////////
         ///////////////////// Primary Event & Rendering Loop /////////////////////
@@ -240,12 +244,6 @@ impl<'d> Window<'d> {
             for ev in display.poll_events() {
                 window.handle_event_remainder(ui.handle_event(ev));
             }
-
-            // window.request_tx.send(Request::CurrentIter).unwrap();
-            // window.command_tx.send(Command::None).unwrap();
-            // window.recv_cycle_results(true);
-
-            // Check that the request chain is seeded...
 
             // Check the results channel and determine if the cycle process
             // has caught up to this window before sending new requests.
@@ -270,11 +268,13 @@ impl<'d> Window<'d> {
                 }
             }
 
-            // Check current iterator for next frame:
-            window.request_tx.send(Request::CurrentIter).unwrap();
+            if window.cycle_in_progress {
+                // Check current iterator for next frame:
+                window.request_tx.send(Request::CurrentIter).unwrap();
 
-            // Send a no-op to flush request buffer if necessary:
-            window.command_tx.send(Command::None).unwrap();
+                // Send a no-op to flush request buffer if necessary:
+                window.command_tx.send(Command::None).unwrap();
+            }
 
             // Increment our counters:
             let elapsed_ms = window.stats.elapsed_ms();
@@ -363,9 +363,22 @@ impl<'d> Window<'d> {
                 Event::Closed => self.close_pending = true,
                 _ => (),
             },
-            WindowCtl::CyCmd(cmd) => self.command_tx.send(cmd).unwrap(),
+            WindowCtl::CyCmd(cmd) => {
+                // If `Stop`/`Exit` is being sent or if any other command is
+                // being sent while the cycle is in progress, set
+                // `cycle_in_progress` false.
+                match cmd.clone() {
+                    Command::Stop | Command::Exit => self.cycle_in_progress = false,
+                    _ => if self.cycle_in_progress { self.cycle_in_progress = false; },
+                }
+
+                self.command_tx.send(cmd).unwrap();
+            },
             WindowCtl::SetCyIters(i) => self.iters_pending = i,
-            WindowCtl::CyIterate => self.command_tx.send(Command::Iterate(self.iters_pending)).unwrap(),
+            WindowCtl::CyIterate => {
+                self.command_tx.send(Command::Iterate(self.iters_pending)).unwrap();
+                self.cycle_in_progress = true;
+            },
             WindowCtl::HexGrid(cmd) => {
                 match cmd {
                     HexGridCtl::SlcRangeDefault => self.hex_grid.buffer.use_default_slc_range(),
