@@ -222,7 +222,7 @@ impl<'d> Window<'d> {
         //     {mt}'Escape' or 'q' to quit.",
         //     mt = "    ");
 
-        // Send initial request:
+        // Send initial requests:
         window.request_tx.send(Request::CurrentIter).unwrap();
         window.command_tx.send(Command::None).unwrap();
         window.recv_cycle_results(true);
@@ -296,7 +296,7 @@ impl<'d> Window<'d> {
 
             // Clean up and exit if necessary:
             if window.close_pending {
-                window.command_tx.send(Command::Exit).expect("Exit button control tx");
+                window.command_tx.send(Command::Exit).expect("Exit button command tx");
                 break;
             }
         }
