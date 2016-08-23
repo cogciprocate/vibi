@@ -51,7 +51,7 @@ fn define_lm_schemes() -> LayerMapSchemeList {
             .layer("iv_inhib", 0, map::DEFAULT, CellScheme::inhibitory(4, "iv"))
 
             .layer("iv", 1, map::PSAL,
-                CellScheme::spiny_stellate(6, vec!["aff_in"], 400, 14))
+                CellScheme::spiny_stellate(6, vec!["aff_in_0", "aff_in_1"], 400, 14))
 
             .layer("iii", 2, map::PTAL,
                 CellScheme::pyramidal(1, 5, vec!["iii"], 500, 20)
@@ -75,17 +75,17 @@ fn define_lm_schemes() -> LayerMapSchemeList {
 
 
 fn define_a_schemes() -> AreaSchemeList {
-    // const CYCLES_PER_FRAME: usize = 1;
-    // const HZS: u32 = 16;
     // ENCODE_SIZE: 64 --> range: (0.0, 172.0)
-    const ENCODE_SIZE: u32 = 64; // had been used for GlyphSequences
-    // const ENCODE_SIZE: u32 = 24; // for SensoryTract
+    // ENCODE_SIZE: 32 --> range: (0.0, 76.0)
+    const ENCODE_SIZE: u32 = 32; // had been used for GlyphSequences
     const AREA_SIDE: u32 = 48;
 
     AreaSchemeList::new()
         .area_ext("v0", "v0_lm", ENCODE_SIZE,
             // InputScheme::GlyphSequences { seq_lens: (5, 5), seq_count: 10, scale: 1.4, hrz_dims: (16, 16) },
-            InputScheme::ReversoScalarSequence { range: (0.0, 172.0), incr: 1.0 },
+            // InputScheme::ReversoScalarSequence { range: (0.0, 172.0), incr: 1.0 }, // 64x64
+            InputScheme::ReversoScalarSequence { range: (0.0, 76.0), incr: 1.0 }, // 32x32
+            // InputScheme::VectorEncoder { ranges: vec![(0.0, 76.0), (0.0, 76.0)] },
             None,
             None,
         )
