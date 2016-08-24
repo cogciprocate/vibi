@@ -4,8 +4,8 @@ use glium::{self, Surface, Program, DrawParameters, VertexBuffer, IndexBuffer};
 use glium::glutin::{ElementState, MouseButton};
 // use vecmath;
 use enamel::MouseState;
-
 use bismit::flywheel::AreaInfo;
+use bismit::map::SliceTractMap;
 use window::HexGridBuffer;
 
 const HEX_X: f32 = 0.086602540378 + 0.01;
@@ -190,6 +190,10 @@ impl<'d> HexGrid<'d> {
 
     pub fn cam_pos_raw(&self) -> [f32; 3] {
         self.cam_pos_raw
+    }
+
+    pub fn tract_map(&self) -> &SliceTractMap {
+        &self.buffer.tract_map()
     }
 }
 

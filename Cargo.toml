@@ -5,7 +5,7 @@ authors = ["Nick Sanders <nsan1129@gmail.com>"]
 
 
 [dependencies.bismit]
-path = "/home/nick/projects/bismit"
+path = "/home/nick/src/github.com/cogciprocate/bismit"
 # git = "https://github.com/cogciprocate/bismit.git"
 
 [dependencies.enamel]

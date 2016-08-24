@@ -286,7 +286,7 @@ impl<'d> Window<'d> {
             // Draw status text:
             status_text.draw(&mut target, &window.cycle_status, &window.stats, window.grid_dims,
             &window.area_info.name, window.hex_grid.camera_pos()[2], window.hex_grid.top_right_scene,
-            window.hex_grid.cam_pos_raw());
+            window.hex_grid.cam_pos_raw(), window.hex_grid.tract_map());
 
             // Draw UI:
             ui.draw(&mut target);
@@ -316,6 +316,7 @@ impl<'d> Window<'d> {
                 self.hex_grid.buffer.set_default_slc_range(info.aff_out_slc_range.clone());
                 self.hex_grid.buffer.set_tract_map(info.tract_map);
             },
+            Response::Exiting => self.close_pending = true,
             _ => (),
         }
     }

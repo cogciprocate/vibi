@@ -73,14 +73,14 @@ fn define_lm_schemes() -> LayerMapSchemeList {
 fn define_a_schemes() -> AreaSchemeList {
     // const CYCLES_PER_FRAME: usize = 1;
     // const HZS: u32 = 16;
-    const ENCODE_SIZE: u32 = 64; // had been used for GlyphSequences
+    const ENCODE_SIZE: u32 = 32; // had been used for GlyphSequences
     // const ENCODE_SIZE: u32 = 24; // for SensoryTract
     const AREA_SIDE: u32 = 48;
 
     AreaSchemeList::new()
         .area_ext("v0", "v0_lm", ENCODE_SIZE,
             // InputScheme::GlyphSequences { seq_lens: (5, 5), seq_count: 10, scale: 1.4, hrz_dims: (16, 16) },
-            InputScheme::ScalarSequence { range: (0.0, 172.0), incr: 1.0 },
+            InputScheme::ScalarSequence { range: (-8.0, 8.0), incr: 0.03 },
             None,
             None,
         )

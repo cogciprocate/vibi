@@ -11,6 +11,7 @@ use glium::backend::Facade;
 
 use window::WindowStats;
 use bismit::flywheel::Status;
+use bismit::map::SliceTractMap;
 
 const TEXT_SCALE: f32 = 0.018;
 const TEXT_COLOR: (f32, f32, f32, f32) = (0.99, 0.99, 0.99, 1.0);
@@ -61,22 +62,24 @@ impl StatusText {
 
     pub fn draw<S: glium::Surface>(&self, target: &mut S, cycle_status: &Status,
                 window_stats: &WindowStats, grid_dims: (u32, u32), area_name: &str, cam_dst: f32,
-                top_right: [f32; 4], cam_pos_raw: [f32; 3])
+                top_right: [f32; 4], cam_pos_raw: [f32; 3], tract_map: &SliceTractMap)
     {
         let (width, height) = target.get_dimensions();
-        self.draw_line(&format!("Window: {} X {}", width, height), 6, 26, target);
+        self.draw_line(&format!("Camera Pos: ({}, {}, {})", cam_pos_raw[0],
+            cam_pos_raw[1], cam_pos_raw[2]), 6, 26, target);
         self.draw_line(&format!("View Distance: {:.0}%", cam_dst * 100.0), 6, 56, target);
-        self.draw_line(&format!("FPS: {:.1}", window_stats.fps()), 6, 86, target);
-        self.draw_line(&format!("Current Cycle: {:.1}", cycle_status.cur_cycle()), 6, 116, target);
-        self.draw_line(&format!("Current CPS: {:.1}", cycle_status.cur_cps()), 6, 146, target);
-        self.draw_line(&format!("Total Cycles: {:.1}", cycle_status.ttl_cycles()), 6, 176, target);
-        self.draw_line(&format!("Total CPS: {:.1}", cycle_status.ttl_cps()), 6, 206, target);
-        self.draw_line(&format!("Area Name: \"{}\"", area_name), 6, 236, target);
-        self.draw_line(&format!("Area Size: {} X {}", grid_dims.0, grid_dims.1), 6, 266, target);
+        self.draw_line(&format!("Window: {} X {}", width, height), 6, 86, target);
+        self.draw_line(&format!("FPS: {:.1}", window_stats.fps()), 6, 116, target);
+        self.draw_line(&format!("Current Cycle: {:.1}", cycle_status.cur_cycle()), 6, 146, target);
+        self.draw_line(&format!("Current CPS: {:.1}", cycle_status.cur_cps()), 6, 176, target);
+        self.draw_line(&format!("Total Cycles: {:.1}", cycle_status.ttl_cycles()), 6, 206, target);
+        self.draw_line(&format!("Total CPS: {:.1}", cycle_status.ttl_cps()), 6, 236, target);
+        self.draw_line(&format!("Area Name: \"{}\"", area_name), 6, 266, target);
+        self.draw_line(&format!("Area Size: {} X {}", grid_dims.0, grid_dims.1), 6, 296, target);
+        self.draw_line(&format!("Layers: {}", tract_map), 6, 326, target);
         // self.draw_line(&format!("Top Right Corner: ({}, {})",
         //     top_right[0], top_right[1]), 6, 296, target);
-        self.draw_line(&format!("Camera Pos: ({}, {}, {})", cam_pos_raw[0],
-            cam_pos_raw[1], cam_pos_raw[2]), 6, 296, target);
+
 
     }
 }
