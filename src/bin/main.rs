@@ -20,8 +20,8 @@ fn main() {
     let (response_tx, response_rx) = mpsc::channel();
 
     let th_flywheel = thread::Builder::new().name("flywheel".to_string()).spawn(move || {
-        let mut flywheel = Flywheel::from_blueprint(command_rx, config::define_lm_schemes(),
-            config::define_a_schemes(), None);
+        let mut flywheel = Flywheel::from_blueprint(config::define_lm_schemes(),
+            config::define_a_schemes(), None, command_rx);
         flywheel.add_req_res_pair(request_rx, response_tx);
         flywheel.spin();
     }).expect("Error creating 'flywheel' thread");

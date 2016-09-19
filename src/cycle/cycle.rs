@@ -471,7 +471,7 @@ fn prompt(ri: &mut RunInfo) -> LoopAction {
             let in_s1 = in_str.trim();
             let new_area_name = in_s1.to_string();
 
-            if ri.cortex.valid_area(&new_area_name) {
+            if ri.cortex.areas().contains_key(new_area_name.as_str()) {
                 ri.area_name = new_area_name;
             } else {
                 print!("Invalid area.");

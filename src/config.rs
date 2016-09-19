@@ -31,12 +31,12 @@ pub fn define_lm_schemes() -> LayerMapSchemeList {
                 CellScheme::pyramidal(1, 4, vec!["iii"], 800, 10)
                     .apical(vec!["eff_in"/*, "olfac"*/], 12))
         )
-        .lmap(LayerMapScheme::new("v0_lm", LayerMapKind::Thalamic)
+        .lmap(LayerMapScheme::new("v0_lm", LayerMapKind::Subcortical)
             .layer("spatial", 1, map::FF_OUT, LayerKind::Axonal(AxonKind::Spatial))
             .layer("horiz_ns", 1, map::NS_OUT | LayerTags::uid(MOTOR_UID),
                 LayerKind::Axonal(AxonKind::Horizontal))
         )
-        // .lmap(LayerMapScheme::new("v0b_lm", LayerMapKind::Thalamic)
+        // .lmap(LayerMapScheme::new("v0b_lm", LayerMapKind::Subcortical)
         //     .layer("spatial", 1, map::FF_OUT, LayerKind::Axonal(AxonKind::Spatial))
         //     // .layer("horiz_ns", 1, map::NS_OUT | LayerTags::uid(MOTOR_UID),
         //     //     LayerKind::Axonal(AxonKind::Horizontal))
@@ -133,16 +133,16 @@ pub fn disable_stuff(cortex: &mut Cortex) {
     /* ######################### */
     /* ##### DISABLE STUFF ##### */
     /* ######################### */
-    for (_, area) in &mut cortex.areas {
-        // area.psal_mut().dens_mut().syns_mut().set_offs_to_zero_temp();
-        // area.bypass_inhib = true;
-        // area.bypass_filters = true;
-        // area.disable_pyrs = true;
+    // for (_, area) in &mut cortex.areas {
+    //     // area.psal_mut().dens_mut().syns_mut().set_offs_to_zero_temp();
+    //     // area.bypass_inhib = true;
+    //     // area.bypass_filters = true;
+    //     // area.disable_pyrs = true;
 
-        // area.disable_ssts = true;
-        // area.disable_mcols = true;
+    //     // area.disable_ssts = true;
+    //     // area.disable_mcols = true;
 
-        // area.disable_learning = true;
-        // area.disable_regrowth = true;
-    }
+    //     // area.disable_learning = true;
+    //     // area.disable_regrowth = true;
+    // }
 }

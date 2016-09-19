@@ -15,10 +15,6 @@ path = "/home/nick/projects/enamel"
 [dependencies.time]
 git = "https://github.com/rust-lang/time.git"
 
-[replace]
-"cl-sys:0.1.0" = { git = 'https://github.com/cogciprocate/cl-sys' }
-"ocl-core:0.1.0" = { git = "https://github.com/cogciprocate/ocl-core" }
-
 [dependencies]
 rand = "*"
 glium = "0.14"

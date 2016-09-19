@@ -285,6 +285,14 @@ static fragment_shader_src: &'static str = r#"
     // // Pink model:
     // const vec3 global_color = vec3(0.9882, 0.4902, 0.7059);
 
+    // float gt(float x, float y) {
+    //     return max(sign(x - y), 0.0);
+    // }
+
+    float gt_zero(float val) {
+        return max(sign(val - 0.0002), 0.0);
+    }
+
     void main() {
         float diffuse_ampl = max(dot(normalize(v_normal), normalize(u_light_pos)), 0.0);
 
@@ -294,12 +302,30 @@ static fragment_shader_src: &'static str = r#"
             specular_coeff);
 
         float state_norm = v_state / 255.0;
-        vec3 tile_color = vec3(state_norm, u_global_color.g, u_global_color.b);
+        float state_compressed = state_norm * 0.5;
+        float state_compressed_boosted = state_compressed + (0.5 * gt_zero(state_norm));
+        // float state_compressed_boosted = gt_zero(state_norm);
+
+        vec3 tile_color = vec3(
+            state_compressed_boosted,
+            u_global_color.g,
+            u_global_color.b - (u_global_color.b * state_compressed_boosted)
+        );
 
         color = vec4((ambient_color * tile_color) + diffuse_ampl
             * diffuse_color + specular * specular_color, 1.0);
     };
 "#;
+
+// MISC CRAP:
+//
+// The safer comparison follows:
+//
+// float f1 = 10.0;
+// float f2 = f1 / 3;
+// float f3 = f2 * 3.0;
+// float delta = f1 - f3;
+// bool bEqual = -0.0001 < delta && delta < 0.0001;
 
 
 // [FIXME]: CONVERT TO TRIANGLE STRIPS

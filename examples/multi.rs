@@ -58,7 +58,7 @@ fn define_lm_schemes() -> LayerMapSchemeList {
                     // .apical(vec!["eff_in"/*, "olfac"*/], 18)
                 )
         )
-        .lmap(LayerMapScheme::new("v0_lm", LayerMapKind::Thalamic)
+        .lmap(LayerMapScheme::new("v0_lm", LayerMapKind::Subcortical)
             .layer("external_0", 1, map::FF_OUT | LayerTags::uid(1000),
                 LayerKind::Axonal(AxonKind::Spatial))
             .layer("external_1", 1, map::FF_OUT | LayerTags::uid(1001),
@@ -66,7 +66,7 @@ fn define_lm_schemes() -> LayerMapSchemeList {
             // .layer("horiz_ns", 1, map::NS_OUT | LayerTags::uid(MOTOR_UID),
             //     LayerKind::Axonal(AxonKind::Horizontal))
         )
-        // .lmap(LayerMapScheme::new("v0b_lm", LayerMapKind::Thalamic)
+        // .lmap(LayerMapScheme::new("v0b_lm", LayerMapKind::Subcortical)
         //     .layer("spatial", 1, map::FF_OUT, LayerKind::Axonal(AxonKind::Spatial))
         //     // .layer("horiz_ns", 1, map::NS_OUT | LayerTags::uid(MOTOR_UID),
         //     //     LayerKind::Axonal(AxonKind::Horizontal))
