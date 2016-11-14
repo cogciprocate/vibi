@@ -7,7 +7,7 @@ extern crate vibi;
 use vibi::window;
 use vibi::bismit::{Cortex, CorticalAreaSettings};
 use vibi::bismit::map::{self, LayerTags, LayerMapKind, LayerMapScheme, LayerMapSchemeList,
-    AreaSchemeList, CellScheme, FilterScheme, InputScheme, AxonKind, LayerKind};
+    AreaScheme, AreaSchemeList, CellScheme, FilterScheme, InputScheme, AxonKind, LayerKind};
 use vibi::bismit::flywheel::Flywheel;
 
 fn main() {
@@ -19,8 +19,8 @@ fn main() {
     let (response_tx, response_rx) = mpsc::channel();
 
     let th_flywheel = thread::Builder::new().name("flywheel".to_string()).spawn(move || {
-        let mut flywheel = Flywheel::from_blueprint(command_rx, define_lm_schemes(),
-            define_a_schemes(), None);
+        let mut flywheel = Flywheel::from_blueprint(define_lm_schemes(),
+            define_a_schemes(), None, command_rx);
         flywheel.add_req_res_pair(request_rx, response_tx);
         flywheel.spin();
     }).expect("Error creating 'flywheel' thread");
@@ -43,15 +43,18 @@ fn define_lm_schemes() -> LayerMapSchemeList {
             .axn_layer("motor_ctx", map::NS_IN | LayerTags::uid(MOTOR_UID), AxonKind::Horizontal)
             // .axn_layer("olfac", map::NS_IN | LayerTags::with_uid(OLFAC_UID), Horizontal)
             // .axn_layer("eff_in", map::FB_IN, AxonKind::Spatial)
-            .axn_layer("aff_in_0", map::FF_IN | LayerTags::uid(1000), AxonKind::Spatial)
+            .axn_layer("aff_in", map::FF_IN, AxonKind::Spatial)
+            // .axn_layer("aff_in_0", map::FF_IN | LayerTags::uid(1000), AxonKind::Spatial)
             .axn_layer("aff_in_1", map::FF_IN | LayerTags::uid(1001), AxonKind::Spatial)
+            // .axn_layer("aff_in_2", map::FF_IN | LayerTags::uid(1002), AxonKind::Spatial)
+            .axn_layer("aff_in_3", map::FF_IN | LayerTags::uid(1003), AxonKind::Spatial)
             // .axn_layer("out", map::FF_FB_OUT, Spatial)
             .axn_layer("unused", map::UNUSED_TESTING, AxonKind::Spatial)
             .layer("mcols", 1, map::FF_FB_OUT, CellScheme::minicolumn("iv", "iii"))
             .layer("iv_inhib", 0, map::DEFAULT, CellScheme::inhibitory(4, "iv"))
 
             .layer("iv", 1, map::PSAL,
-                CellScheme::spiny_stellate(6, vec!["aff_in_0", "aff_in_1"], 400, 14))
+                CellScheme::spiny_stellate(6, vec!["aff_in", /*"aff_in_0",*/ "aff_in_1"], 400, 14))
 
             .layer("iii", 2, map::PTAL,
                 CellScheme::pyramidal(1, 5, vec!["iii"], 500, 20)
@@ -59,9 +62,17 @@ fn define_lm_schemes() -> LayerMapSchemeList {
                 )
         )
         .lmap(LayerMapScheme::new("v0_lm", LayerMapKind::Subcortical)
-            .layer("external_0", 1, map::FF_OUT | LayerTags::uid(1000),
+            .layer("external_0", 1, map::FF_OUT /*| LayerTags::uid(1000)*/,
                 LayerKind::Axonal(AxonKind::Spatial))
             .layer("external_1", 1, map::FF_OUT | LayerTags::uid(1001),
+                LayerKind::Axonal(AxonKind::Spatial))
+            // .layer("horiz_ns", 1, map::NS_OUT | LayerTags::uid(MOTOR_UID),
+            //     LayerKind::Axonal(AxonKind::Horizontal))
+        )
+        .lmap(LayerMapScheme::new("v0_lm_2", LayerMapKind::Subcortical)
+            .layer("external_2", 1, map::FF_OUT /*| LayerTags::uid(1001)*/,
+                LayerKind::Axonal(AxonKind::Spatial))
+            .layer("external_3", 1, map::FF_OUT | LayerTags::uid(1003),
                 LayerKind::Axonal(AxonKind::Spatial))
             // .layer("horiz_ns", 1, map::NS_OUT | LayerTags::uid(MOTOR_UID),
             //     LayerKind::Axonal(AxonKind::Horizontal))
@@ -81,25 +92,46 @@ fn define_a_schemes() -> AreaSchemeList {
     const AREA_SIDE: u32 = 48;
 
     AreaSchemeList::new()
-        .area_ext("v0", "v0_lm", ENCODE_SIZE,
-            // InputScheme::GlyphSequences { seq_lens: (5, 5), seq_count: 10, scale: 1.4, hrz_dims: (16, 16) },
-            // InputScheme::ReversoScalarSequence { range: (0.0, 172.0), incr: 1.0 }, // 64x64
-            InputScheme::ReversoScalarSequence { range: (0.0, 76.0), incr: 1.0 }, // 32x32
-            // InputScheme::VectorEncoder { ranges: vec![(0.0, 76.0), (0.0, 76.0)] },
-            None,
-            None,
-        )
+        // .area_ext("v0", "v0_lm", ENCODE_SIZE,
+        //     // InputScheme::GlyphSequences { seq_lens: (5, 5), seq_count: 10, scale: 1.4, hrz_dims: (16, 16) },
+        //     // InputScheme::ReversoScalarSequence { range: (0.0, 172.0), incr: 1.0 }, // 64x64
+        //     InputScheme::ReversoScalarSequence { range: (0.0, 76.0), incr: 1.0 }, // 32x32
+        //     // InputScheme::VectorEncoder { ranges: vec![(0.0, 76.0), (0.0, 76.0)] },
+        //     None,
+        //     None,
+        // )
         // .area_ext("v0b", "v0b_lm", ENCODE_SIZE,
         //     InputScheme::SensoryTract,
         //     None,
         //     None,
         // )
-        .area("v1", "visual", AREA_SIDE,
-            // Some(vec![FilterScheme::new("retina", None)]),
-            None,
-            Some(vec!["v0"]),
-            // Some(vec!["v0b"]),
+        // .area("v1", "visual", AREA_SIDE,
+        //     // Some(vec![FilterScheme::new("retina", None)]),
+        //     None,
+        //     Some(vec!["v0"]),
+        //     // Some(vec!["v0b"]),
+        // )
+        .area(AreaScheme::new("v0_0", "v0_lm", ENCODE_SIZE)
+            // .input(InputScheme::ReversoScalarSequence { range: (0.0, 172.0), incr: 1.0 }) // 64x64
+            .input(InputScheme::ReversoScalarSequence { range: (0.0, 76.0), incr: 1.0 }) // 32x32
         )
+        .area(AreaScheme::new("v0_1", "v0_lm_2", 24)
+            // .input(InputScheme::ReversoScalarSequence { range: (0.0, 172.0), incr: 1.0 }) // 64x64
+            .input(InputScheme::ReversoScalarSequence { range: (0.0, 76.0), incr: 1.0 }) // 32x32
+        )
+        .area(AreaScheme::new("v0_2", "v0_lm", ENCODE_SIZE)
+            // .input(InputScheme::ReversoScalarSequence { range: (0.0, 172.0), incr: 1.0 }) // 64x64
+            .input(InputScheme::ReversoScalarSequence { range: (0.0, 76.0), incr: 1.0 }) // 32x32
+        )
+        .area(AreaScheme::new("v1", "visual", AREA_SIDE)
+            .eff_areas(vec!["v0_0", "v0_1", "v0_2"])
+            // .filter_chain(map::FF_IN | LayerTags::uid(1003), vec![FilterScheme::new("retina", None)])
+            // .filter_chain(map::FF_IN | LayerTags::uid(1002), vec![FilterScheme::new("retina", None)])
+            .filter_chain(map::FF_IN | LayerTags::uid(1001), vec![FilterScheme::new("retina", None)])
+            // .filter_chain(map::FF_IN | LayerTags::uid(1000), vec![FilterScheme::new("retina", None)])
+            .filter_chain(map::FF_IN, vec![FilterScheme::new("retina", None)])
+        )
+
 }
 
 // #########################

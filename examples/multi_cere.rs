@@ -5,10 +5,14 @@
 extern crate vibi;
 
 use vibi::window;
-use vibi::bismit::{Cortex, CorticalAreaSettings};
+use vibi::bismit::{Cortex, CorticalAreaSettings, Subcortex, Flywheel, TestScNucleus};
 use vibi::bismit::map::{self, LayerTags, LayerMapKind, LayerMapScheme, LayerMapSchemeList,
-    AreaScheme, AreaSchemeList, CellScheme, FilterScheme, InputScheme, AxonKind, LayerKind};
-use vibi::bismit::flywheel::Flywheel;
+    AreaSchemeList, CellScheme, FilterScheme, InputScheme, AxonKind, LayerKind, AreaScheme};
+use vibi::bismit::encode::{ReversoScalarSequence};
+
+const MOTOR_UID: u32 = 101;
+const U1: u32 = U0 + 1;
+const U0: u32 = 1000;
 
 fn main() {
     use std::thread;
@@ -19,8 +23,21 @@ fn main() {
     let (response_tx, response_rx) = mpsc::channel();
 
     let th_flywheel = thread::Builder::new().name("flywheel".to_string()).spawn(move || {
-        let mut flywheel = Flywheel::from_blueprint(define_lm_schemes(),
-            define_a_schemes(), None, command_rx);
+        let mut cortex = Cortex::new(define_lm_schemes(), define_a_schemes(), Some(ca_settings()))
+            .sub(Subcortex::new().nucleus(Box::new(TestScNucleus::new("m0"))));
+
+        let ia_idx = cortex.thal().ext_pathway_idx(&"v0".to_owned()).unwrap();
+        cortex.thal_mut().ext_pathway(ia_idx).unwrap().specify_encoder(Box::new(
+                // HexMoldTest::new(6 * DST_AREA_SCL as i8, (AREA_SIDE, AREA_SIDE))
+                // InputScheme::ReversoScalarSequence { range: (0.0, 76.0), incr: 1.0 }
+                ReversoScalarSequence::new((0.0, 76.0), 1.0, &[
+                    map::FF_OUT | LayerTags::uid(U0),
+                    map::FF_OUT | LayerTags::uid(U1)])
+            )).unwrap();
+
+        // let mut flywheel = Flywheel::from_blueprint(define_lm_schemes(),
+        //     define_a_schemes(), None, command_rx);
+        let mut flywheel = Flywheel::new(cortex, command_rx);
         flywheel.add_req_res_pair(request_rx, response_tx);
         flywheel.spin();
     }).expect("Error creating 'flywheel' thread");
@@ -34,31 +51,34 @@ fn main() {
 }
 
 fn define_lm_schemes() -> LayerMapSchemeList {
-    const MOTOR_UID: u32 = 101;
     // const OLFAC_UID: u32 = 102;
 
     LayerMapSchemeList::new()
-        .lmap(LayerMapScheme::new("visual", LayerMapKind::Cortical)
+        .lmap(LayerMapScheme::new("v1_lm", LayerMapKind::Cortical)
             //.layer("test_noise", 1, map::DEFAULT, LayerKind::Axonal(Spatial))
             .axn_layer("motor_ctx", map::NS_IN | LayerTags::uid(MOTOR_UID), AxonKind::Horizontal)
             // .axn_layer("olfac", map::NS_IN | LayerTags::with_uid(OLFAC_UID), Horizontal)
             // .axn_layer("eff_in", map::FB_IN, AxonKind::Spatial)
-            .axn_layer("aff_in", map::FF_IN, AxonKind::Spatial)
+            .axn_layer("aff_in_0", map::FF_IN | LayerTags::uid(U0), AxonKind::Spatial)
+            .axn_layer("aff_in_1", map::FF_IN | LayerTags::uid(U1), AxonKind::Spatial)
             // .axn_layer("out", map::FF_FB_OUT, Spatial)
             .axn_layer("unused", map::UNUSED_TESTING, AxonKind::Spatial)
             .layer("mcols", 1, map::FF_FB_OUT, CellScheme::minicolumn("iv", "iii"))
             .layer("iv_inhib", 0, map::DEFAULT, CellScheme::inhibitory(4, "iv"))
 
             .layer("iv", 1, map::PSAL,
-                CellScheme::spiny_stellate(7, vec!["aff_in"], 400, 12))
+                CellScheme::spiny_stellate(6, vec!["aff_in_0", "aff_in_1"], 400, 14))
 
             .layer("iii", 2, map::PTAL,
-                CellScheme::pyramidal(1, 6, vec!["iii"], 500, 14)
+                CellScheme::pyramidal(1, 5, vec!["iii"], 500, 20)
                     // .apical(vec!["eff_in"/*, "olfac"*/], 18)
                 )
         )
         .lmap(LayerMapScheme::new("v0_lm", LayerMapKind::Subcortical)
-            .layer("external", 1, map::FF_OUT, LayerKind::Axonal(AxonKind::Spatial))
+            .layer("external_0", 1, map::FF_OUT | LayerTags::uid(U0),
+                LayerKind::Axonal(AxonKind::Spatial))
+            .layer("external_1", 1, map::FF_OUT | LayerTags::uid(U1),
+                LayerKind::Axonal(AxonKind::Spatial))
             // .layer("horiz_ns", 1, map::NS_OUT | LayerTags::uid(MOTOR_UID),
             //     LayerKind::Axonal(AxonKind::Horizontal))
         )
@@ -71,24 +91,25 @@ fn define_lm_schemes() -> LayerMapSchemeList {
 
 
 fn define_a_schemes() -> AreaSchemeList {
-    // const CYCLES_PER_FRAME: usize = 1;
-    // const HZS: u32 = 16;
-    const ENCODE_SIZE: u32 = 64; // had been used for GlyphSequences
-    // const ENCODE_SIZE: u32 = 24; // for SensoryTract
+    // ENCODE_SIZE: 64 --> range: (0.0, 172.0)
+    // ENCODE_SIZE: 32 --> range: (0.0, 76.0)
+    const ENCODE_SIZE: u32 = 32; // had been used for GlyphSequences
     const AREA_SIDE: u32 = 48;
 
     AreaSchemeList::new()
         // .area_ext("v0", "v0_lm", ENCODE_SIZE,
         //     // InputScheme::GlyphSequences { seq_lens: (5, 5), seq_count: 10, scale: 1.4, hrz_dims: (16, 16) },
-        //     InputScheme::ScalarSequence { range: (-8.0, 8.0), incr: 0.03 },
+        //     // InputScheme::ReversoScalarSequence { range: (0.0, 172.0), incr: 1.0 }, // 64x64
+        //     InputScheme::ReversoScalarSequence { range: (0.0, 76.0), incr: 1.0 }, // 32x32
+        //     // InputScheme::VectorEncoder { ranges: vec![(0.0, 76.0), (0.0, 76.0)] },
         //     None,
         //     None,
         // )
-        // .area_ext("v0b", "v0b_lm", ENCODE_SIZE,
-        //     InputScheme::SensoryTract,
-        //     None,
-        //     None,
-        // )
+        // // .area_ext("v0b", "v0b_lm", ENCODE_SIZE,
+        // //     InputScheme::SensoryTract,
+        // //     None,
+        // //     None,
+        // // )
         // .area("v1", "visual", AREA_SIDE,
         //     // Some(vec![FilterScheme::new("retina", None)]),
         //     None,
@@ -96,12 +117,10 @@ fn define_a_schemes() -> AreaSchemeList {
         //     // Some(vec!["v0b"]),
         // )
         .area(AreaScheme::new("v0", "v0_lm", ENCODE_SIZE)
-            // .input(InputScheme::GlyphSequences { seq_lens: (5, 5), seq_count: 10, scale: 1.4, hrz_dims: (16, 16) }),
-            .input(InputScheme::ScalarSequence { range: (-8.0, 8.0), incr: 0.03 }),
+            .input(InputScheme::Custom { layer_count: 2 })
         )
-        .area(AreaScheme::new("v1", "visual", AREA_SIDE)
+        .area(AreaScheme::new("v1", "v1_lm", AREA_SIDE)
             .eff_areas(vec!["v0"])
-            .filter_chain(map::FF_IN, vec![FilterScheme::new("retina", None)])
         )
 }
 

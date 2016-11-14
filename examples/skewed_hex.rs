@@ -27,11 +27,10 @@ fn main() {
 
         let ia_idx = cortex.thal().ext_pathway_idx(&"v0".to_owned()).unwrap();
         cortex.thal_mut().ext_pathway(ia_idx).unwrap().specify_encoder(Box::new(
-            HexMoldTest::new(7 * DST_AREA_SCL as i8, (AREA_SIDE, AREA_SIDE))
+            HexMoldTest::new(6 * DST_AREA_SCL as i8, (AREA_SIDE, AREA_SIDE))
         )).unwrap();
 
         let mut flywheel = Flywheel::new(cortex, command_rx);
-
         flywheel.add_req_res_pair(request_rx, response_tx);
         flywheel.spin();
     }).expect("Error creating 'flywheel' thread");
@@ -60,10 +59,11 @@ fn define_lm_schemes() -> LayerMapSchemeList {
             .layer("iv_inhib", 0, map::DEFAULT, CellScheme::inhibitory(4, "iv"))
 
             .layer("iv", 1, map::PSAL,
-                CellScheme::spiny_stellate(3, vec!["aff_in"], 400, 4))
+                CellScheme::spiny_stellate(6, vec!["aff_in"], 000, 10))
+
 
             .layer("iii", 1, map::PTAL,
-                CellScheme::pyramidal(1, 3, vec!["iii"], 500, 4)
+                CellScheme::pyramidal(1, 3, vec!["iii"], 500, 10)
                     // .apical(vec!["eff_in"/*, "olfac"*/], 18)
                 )
         )
@@ -76,7 +76,7 @@ fn define_lm_schemes() -> LayerMapSchemeList {
 }
 
 
-const DST_AREA_SCL: u32 = 5;
+const DST_AREA_SCL: u32 = 8;
 const AREA_SIDE: u32 = 16 * DST_AREA_SCL;
 
 
@@ -85,10 +85,11 @@ fn define_a_schemes() -> AreaSchemeList {
 
     AreaSchemeList::new()
         // .add_area(AreaScheme::new("m0", "motor_gen", AREA_SIDE))
-        .add_area(AreaScheme::irregular("v0", "v0_lm", [50, 270])
+        // .add_area(AreaScheme::irregular("v0", "v0_lm", [51, 271])
+        .area(AreaScheme::irregular("v0", "v0_lm", [64, 64])
             .input(InputScheme::Custom)
         )
-        .add_area(AreaScheme::new("v1", "v1_lm", AREA_SIDE)
+        .area(AreaScheme::new("v1", "v1_lm", AREA_SIDE)
             .eff_areas(vec!["v0"])
         )
 }

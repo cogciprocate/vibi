@@ -3,7 +3,7 @@
 // use find_folder::Search;
 use bismit::Cortex;
 use bismit::map::{self, LayerTags, LayerMapKind, LayerMapScheme, LayerMapSchemeList,
-    AreaSchemeList, CellScheme, FilterScheme, InputScheme, AxonKind, LayerKind};
+    AreaScheme, AreaSchemeList, CellScheme, FilterScheme, InputScheme, AxonKind, LayerKind};
 // use bismit::proto::{ProtolayerMap, ProtolayerMaps, ProtoareaMaps, Axonal, Spatial, Horizontal,
 //     Cortical, Thalamic, Protocell, Protofilter, Protoinput};
 
@@ -52,20 +52,29 @@ pub fn define_a_schemes() -> AreaSchemeList {
     const AREA_SIDE: u32 = 48;
 
     AreaSchemeList::new()
-        .area_ext("v0", "v0_lm", ENCODE_SIZE,
-            InputScheme::GlyphSequences { seq_lens: (5, 5), seq_count: 10, scale: 1.4, hrz_dims: (16, 16) },
-            None,
-            None,
+        // .area_ext("v0", "v0_lm", ENCODE_SIZE,
+        //     InputScheme::GlyphSequences { seq_lens: (5, 5), seq_count: 10, scale: 1.4, hrz_dims: (16, 16) },
+        //     None,
+        //     None,
+        // )
+        .area(AreaScheme::new("v0", "v0_lm", ENCODE_SIZE)
+            .input(InputScheme::GlyphSequences { seq_lens: (5, 5), seq_count: 10,
+                scale: 1.4, hrz_dims: (16, 16) })
         )
+
         // .area_ext("v0b", "v0b_lm", ENCODE_SIZE,
         //     InputScheme::SensoryTract,
         //     None,
         //     None,
         // )
-        .area("v1", "visual", AREA_SIDE,
-            Some(vec![FilterScheme::new("retina", None)]),
-            Some(vec!["v0"]),
-            // Some(vec!["v0b"]),
+        // .area("v1", "visual", AREA_SIDE,
+        //     Some(vec![FilterScheme::new("retina", None)]),
+        //     Some(vec!["v0"]),
+        //     // Some(vec!["v0b"]),
+        // )
+        .area(AreaScheme::new("v1", "visual", AREA_SIDE)
+            .eff_areas(vec!["v0"])
+            .filter_chain(map::FF_IN, vec![FilterScheme::new("retina", None)])
         )
 
         // .area("b1", "visual", AREA_SIDE,
