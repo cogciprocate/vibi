@@ -7,10 +7,10 @@ extern crate vibi;
 use vibi::window;
 use vibi::bismit::{Cortex, CorticalAreaSettings, Subcortex, Flywheel, TestScNucleus};
 use vibi::bismit::map::{self, LayerTags, LayerMapKind, LayerMapScheme, LayerMapSchemeList,
-    AreaSchemeList, CellScheme, FilterScheme, InputScheme, AxonKind, LayerKind, AreaScheme};
+    AreaSchemeList, CellScheme, FilterScheme, InputScheme, AxonTopology, LayerKind, AreaScheme};
 use vibi::bismit::encode::{ReversoScalarSequence};
 
-const MOTOR_UID: u32 = 101;
+// const MOTOR_UID: u32 = 101;
 const U1: u32 = U0 + 1;
 const U0: u32 = 1000;
 
@@ -56,13 +56,13 @@ fn define_lm_schemes() -> LayerMapSchemeList {
     LayerMapSchemeList::new()
         .lmap(LayerMapScheme::new("v1_lm", LayerMapKind::Cortical)
             //.layer("test_noise", 1, map::DEFAULT, LayerKind::Axonal(Spatial))
-            // .axn_layer("motor_ctx", map::NS_IN | LayerTags::uid(MOTOR_UID), AxonKind::Horizontal)
+            // .axn_layer("motor_ctx", map::NS_IN | LayerTags::uid(MOTOR_UID), AxonTopology::Horizontal)
             // .axn_layer("olfac", map::NS_IN | LayerTags::with_uid(OLFAC_UID), Horizontal)
-            // .axn_layer("eff_in", map::FB_IN, AxonKind::Spatial)
-            .axn_layer("aff_in_0", map::FF_IN | LayerTags::uid(U0), AxonKind::Spatial)
-            .axn_layer("aff_in_1", map::FF_IN | LayerTags::uid(U1), AxonKind::Spatial)
+            // .axn_layer("eff_in", map::FB_IN, AxonTopology::Spatial)
+            .axn_layer("aff_in_0", map::FF_IN | LayerTags::uid(U0), AxonTopology::Spatial)
+            .axn_layer("aff_in_1", map::FF_IN | LayerTags::uid(U1), AxonTopology::Spatial)
             // .axn_layer("out", map::FF_FB_OUT, Spatial)
-            // .axn_layer("unused", map::UNUSED_TESTING, AxonKind::Spatial)
+            // .axn_layer("unused", map::UNUSED_TESTING, AxonTopology::Spatial)
             .layer("mcols", 1, map::FF_FB_OUT, CellScheme::minicolumn("iv", "iii"))
             .layer("iv_inhib", 0, map::DEFAULT, CellScheme::inhibitory(4, "iv"))
 
@@ -74,44 +74,45 @@ fn define_lm_schemes() -> LayerMapSchemeList {
                     // .apical(vec!["eff_in"/*, "olfac"*/], 18)
                 )
             .layer("v", 1, map::PMEL,
-                CellScheme::pyramidal(1, 5, vec!["iii"], 500, 20)
+                CellScheme::pyramidal(1, 5, vec!["iii", "v"], 500, 20)
                     // .apical(vec!["eff_in"/*, "olfac"*/], 18)
                 )
         )
         .lmap(LayerMapScheme::new("v0_lm", LayerMapKind::Subcortical)
             .layer("external_0", 1, map::FF_OUT | LayerTags::uid(U0),
-                LayerKind::Axonal(AxonKind::Spatial))
+                LayerKind::Axonal(AxonTopology::Spatial))
             .layer("external_1", 1, map::FF_OUT | LayerTags::uid(U1),
-                LayerKind::Axonal(AxonKind::Spatial))
+                LayerKind::Axonal(AxonTopology::Spatial))
             // .layer("horiz_ns", 1, map::NS_OUT | LayerTags::uid(MOTOR_UID),
-            //     LayerKind::Axonal(AxonKind::Horizontal))
+            //     LayerKind::Axonal(AxonTopology::Horizontal))
         )
         // .lmap(LayerMapScheme::new("v0b_lm", LayerMapKind::Subcortical)
-        //     .layer("spatial", 1, map::FF_OUT, LayerKind::Axonal(AxonKind::Spatial))
+        //     .layer("spatial", 1, map::FF_OUT, LayerKind::Axonal(AxonTopology::Spatial))
         //     // .layer("horiz_ns", 1, map::NS_OUT | LayerTags::uid(MOTOR_UID),
-        //     //     LayerKind::Axonal(AxonKind::Horizontal))
+        //     //     LayerKind::Axonal(AxonTopology::Horizontal))
         // )
         .lmap(LayerMapScheme::new("m1_lm", LayerMapKind::Cortical)
             //.layer("test_noise", 1, map::DEFAULT, LayerKind::Axonal(Spatial))
-            .axn_layer("motor_ctx", map::NS_IN | map::FF_IN | LayerTags::uid(MOTOR_UID),
-                AxonKind::Horizontal)
+            .axn_layer("motor_plan", map::FF_IN, AxonTopology::Horizontal)
             // .axn_layer("olfac", map::NS_IN | LayerTags::with_uid(OLFAC_UID), Horizontal)
-            // .axn_layer("eff_in", map::FB_IN, AxonKind::Spatial)
-            // .axn_layer("aff_in_0", map::FF_IN | LayerTags::uid(U0), AxonKind::Spatial)
-            // .axn_layer("aff_in_1", map::FF_IN | LayerTags::uid(U1), AxonKind::Spatial)
+            // .axn_layer("eff_in", map::FB_IN, AxonTopology::Spatial)
+            // .axn_layer("aff_in_0", map::FF_IN | LayerTags::uid(U0), AxonTopology::Spatial)
+            // .axn_layer("aff_in_1", map::FF_IN | LayerTags::uid(U1), AxonTopology::Spatial)
             // .axn_layer("out", map::FF_FB_OUT, Spatial)
-            .axn_layer("unused", map::UNUSED_TESTING, AxonKind::Spatial)
+            .axn_layer("unused", map::UNUSED_TESTING, AxonTopology::Spatial)
             .layer("mcols", 1, map::FF_FB_OUT, CellScheme::minicolumn("iv", "iii"))
-            // .layer("iv_inhib", 0, map::DEFAULT, CellScheme::inhibitory(4, "iv"))
+            .layer("iv_inhib", 0, map::DEFAULT, CellScheme::inhibitory(4, "iv"))
 
+            // .layer("iv", 1, map::PSAL,
+            //     CellScheme::spiny_stellate(6, vec!["aff_in_0"], 400, 14))
+            .layer("iv", 1, map::PSAL,
+                CellScheme::spiny_stellate(6, vec!["motor_plan"], 400, 14))
             .layer("iii", 2, map::PTAL,
                 CellScheme::pyramidal(1, 5, vec!["iii"], 500, 20)
-                    .apical(vec!["motor_ctx"], 0)
-                )
+                    .apical(vec!["motor_plan"], 16))
             .layer("v", 1, map::PMEL,
-                CellScheme::pyramidal(1, 5, vec!["iii"], 500, 20)
-                    // .apical(vec!["eff_in"/*, "olfac"*/], 18)
-                )
+                CellScheme::pyramidal(1, 5, vec!["iii"], 500, 20))
+                    // .apical(vec!["eff_in"/*, "olfac"*/], 18))
         )
 
 }
@@ -120,8 +121,8 @@ fn define_lm_schemes() -> LayerMapSchemeList {
 fn define_a_schemes() -> AreaSchemeList {
     // ENCODE_SIZE: 64 --> range: (0.0, 172.0)
     // ENCODE_SIZE: 32 --> range: (0.0, 76.0)
-    const ENCODE_SIZE: u32 = 32; // had been used for GlyphSequences
-    const AREA_SIDE: u32 = 48;
+    const ENCODE_SIZE: u32 = 16; // had been used for GlyphSequences
+    const AREA_SIDE: u32 = 32;
 
     AreaSchemeList::new()
         // .area_ext("v0", "v0_lm", ENCODE_SIZE,
@@ -150,7 +151,7 @@ fn define_a_schemes() -> AreaSchemeList {
             .eff_areas(vec!["v0"])
         )
         .area(AreaScheme::new("m1", "m1_lm", AREA_SIDE)
-            .eff_areas(vec!["v1"])
+            .eff_areas(vec!["v1", "v0"])
         )
 }
 

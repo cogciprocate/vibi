@@ -3,7 +3,8 @@
 // use find_folder::Search;
 use bismit::Cortex;
 use bismit::map::{self, LayerTags, LayerMapKind, LayerMapScheme, LayerMapSchemeList,
-    AreaScheme, AreaSchemeList, CellScheme, FilterScheme, InputScheme, AxonKind, LayerKind};
+    AreaScheme, AreaSchemeList, CellScheme, FilterScheme, InputScheme, AxonTopology, LayerKind,
+    AxonDomain};
 // use bismit::proto::{ProtolayerMap, ProtolayerMaps, ProtoareaMaps, Axonal, Spatial, Horizontal,
 //     Cortical, Thalamic, Protocell, Protofilter, Protoinput};
 
@@ -15,31 +16,31 @@ pub fn define_lm_schemes() -> LayerMapSchemeList {
     LayerMapSchemeList::new()
         .lmap(LayerMapScheme::new("visual", LayerMapKind::Cortical)
             //.layer("test_noise", 1, map::DEFAULT, LayerKind::Axonal(Spatial))
-            .axn_layer("motor_ctx", map::NS_IN | LayerTags::uid(MOTOR_UID), AxonKind::Horizontal)
+            .axn_layer("motor_ctx", map::NS_IN | LayerTags::uid(MOTOR_UID), AxonDomain::Local, AxonTopology::Horizontal)
             // .axn_layer("olfac", map::NS_IN | LayerTags::with_uid(OLFAC_UID), Horizontal)
-            .axn_layer("eff_in", map::FB_IN, AxonKind::Spatial)
-            .axn_layer("aff_in", map::FF_IN, AxonKind::Spatial)
+            .axn_layer("eff_in", map::FB_IN, AxonDomain::Local, AxonTopology::Spatial)
+            .axn_layer("aff_in", map::FF_IN, AxonDomain::Local, AxonTopology::Spatial)
             // .axn_layer("out", map::FF_FB_OUT, Spatial)
-            .axn_layer("unused", map::UNUSED_TESTING, AxonKind::Spatial)
-            .layer("mcols", 1, map::FF_FB_OUT, CellScheme::minicolumn("iv", "iii"))
-            .layer("iv_inhib", 0, map::DEFAULT, CellScheme::inhibitory(4, "iv"))
+            .axn_layer("unused", map::UNUSED_TESTING, AxonDomain::Local, AxonTopology::Spatial)
+            .layer("mcols", 1, map::FF_FB_OUT, AxonDomain::Local, CellScheme::minicolumn("iv", "iii"))
+            .layer("iv_inhib", 0, map::DEFAULT, AxonDomain::Local, CellScheme::inhibitory(4, "iv"))
 
-            .layer("iv", 1, map::PSAL,
+            .layer("iv", 1, map::PSAL, AxonDomain::Local,
                 CellScheme::spiny_stellate(4, vec!["aff_in"], 400, 8))
 
-            .layer("iii", 2, map::PTAL,
+            .layer("iii", 2, map::PTAL, AxonDomain::Local,
                 CellScheme::pyramidal(1, 4, vec!["iii"], 800, 10)
                     .apical(vec!["eff_in"/*, "olfac"*/], 12))
         )
         .lmap(LayerMapScheme::new("v0_lm", LayerMapKind::Subcortical)
-            .layer("spatial", 1, map::FF_OUT, LayerKind::Axonal(AxonKind::Spatial))
-            .layer("horiz_ns", 1, map::NS_OUT | LayerTags::uid(MOTOR_UID),
-                LayerKind::Axonal(AxonKind::Horizontal))
+            .layer("spatial", 1, map::FF_OUT, AxonDomain::Local, LayerKind::Axonal(AxonTopology::Spatial))
+            .layer("horiz_ns", 1, map::NS_OUT | LayerTags::uid(MOTOR_UID), AxonDomain::Local,
+                LayerKind::Axonal(AxonTopology::Horizontal))
         )
         // .lmap(LayerMapScheme::new("v0b_lm", LayerMapKind::Subcortical)
-        //     .layer("spatial", 1, map::FF_OUT, LayerKind::Axonal(AxonKind::Spatial))
+        //     .layer("spatial", 1, map::FF_OUT, LayerKind::Axonal(AxonTopology::Spatial))
         //     // .layer("horiz_ns", 1, map::NS_OUT | LayerTags::uid(MOTOR_UID),
-        //     //     LayerKind::Axonal(AxonKind::Horizontal))
+        //     //     LayerKind::Axonal(AxonTopology::Horizontal))
         // )
 }
 

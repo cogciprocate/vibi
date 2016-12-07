@@ -144,11 +144,11 @@ pub struct CycleLoop;
 impl CycleLoop {
     pub fn run(autorun_iters: u32, control_rx: Receiver<CyCtl>, mut result_tx: Sender<CyRes>,
                 lm_schemes: LayerMapSchemeList, a_schemes: AreaSchemeList,
-                ca_settings: Option<CorticalAreaSettings>) -> bool {
+                ca_settings: Option<CorticalAreaSettings>, area_name: String) -> bool {
         let cortex = Cortex::new(lm_schemes, a_schemes, ca_settings);
         // config::disable_stuff(&mut cortex);
 
-        let area_name = "v1".to_owned();
+        // let area_name = "m1".to_owned();
 
         // let area_dims = {
         //     let dims = cortex.area(&area_name).dims();
