@@ -21,7 +21,7 @@ fn main() {
 
     let th_flywheel = thread::Builder::new().name("flywheel".to_string()).spawn(move || {
         let mut flywheel = Flywheel::from_blueprint(config::define_lm_schemes(),
-            config::define_a_schemes(), None, command_rx, "vi".into());
+            config::define_a_schemes(), None, command_rx, "v1".into());
         flywheel.add_req_res_pair(request_rx, response_tx);
         flywheel.spin();
     }).expect("Error creating 'flywheel' thread");
