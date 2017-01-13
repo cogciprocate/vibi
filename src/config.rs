@@ -2,25 +2,26 @@
 
 // use find_folder::Search;
 use bismit::Cortex;
-use bismit::map::{self, LayerTags, LayerMapKind, LayerMapScheme, LayerMapSchemeList,
-    AreaScheme, AreaSchemeList, CellScheme, FilterScheme, InputScheme, AxonTopology, LayerKind,
+use bismit::map::{self, LayerMapKind, LayerMapScheme, LayerMapSchemeList,
+    AreaScheme, AreaSchemeList, CellScheme, InputScheme, AxonTopology, LayerKind,
     AxonDomain, InputTrack};
+use bismit::encode::GlyphSequences;
 // use bismit::proto::{ProtolayerMap, ProtolayerMaps, ProtoareaMaps, Axonal, Spatial, Horizontal,
 //     Cortical, Thalamic, Protocell, Protofilter, Protoinput};
 
 /* Eventually move defines to a config file or some such */
 pub fn define_lm_schemes() -> LayerMapSchemeList {
-    const MOTOR_UID: u32 = 543;
+    // const MOTOR_UID: u32 = 543;
     // const OLFAC_UID: u32 = 654;
 
     LayerMapSchemeList::new()
-        .lmap(LayerMapScheme::new("v1", LayerMapKind::Cortical)
+        .lmap(LayerMapScheme::new("v1_lm", LayerMapKind::Cortical)
             //.layer("test_noise", 1, map::DEFAULT, LayerKind::Axonal(Spatial))
 
             // .input_layer("motor_ctx", map::NS_IN | LayerTags::uid(MOTOR_UID),
             //     AxonDomain::Local, AxonTopology::Horizontal)
-            .input_layer("motor_ctx", map::NS_IN | LayerTags::uid(MOTOR_UID),
-                AxonDomain::input(&[(InputTrack::Efferent, &[map::THAL_NSP])]),
+            .input_layer("motor_ctx", map::DEFAULT,
+                AxonDomain::input(&[(InputTrack::Afferent, GlyphSequences::val_lyr_tags())]),
                 AxonTopology::Horizontal
             )
 
@@ -30,38 +31,34 @@ pub fn define_lm_schemes() -> LayerMapSchemeList {
             //     AxonTopology::Spatial
             // )
 
-            .input_layer("aff_in", map::FF_IN,
-                AxonDomain::input(&[(InputTrack::Afferent, &[map::THAL_SP])]),
+            .input_layer("aff_in", map::DEFAULT,
+                AxonDomain::input(&[(InputTrack::Afferent, GlyphSequences::img_lyr_tags())]),
                 AxonTopology::Spatial
             )
 
             .input_layer("unused", map::UNUSED_TESTING, AxonDomain::Local, AxonTopology::Spatial)
-            .layer("mcols", 1, map::FF_FB_OUT, AxonDomain::Local, CellScheme::minicolumn("iv", "iii"))
+            .layer("mcols", 1, map::DEFAULT, AxonDomain::output(&[map::THAL_SP]),
+                CellScheme::minicolumn("iv", "iii"))
             .layer("iv_inhib", 0, map::DEFAULT, AxonDomain::Local, CellScheme::inhibitory(4, "iv"))
 
             .layer("iv", 1, map::PSAL, AxonDomain::Local,
-                CellScheme::spiny_stellate(&[("aff_in", 12)], 4, 400)
+                CellScheme::spiny_stellate(&[("aff_in", 12, 1)], 4, 400)
             )
 
             .layer("iii", 2, map::PTAL, AxonDomain::Local,
-                CellScheme::pyramidal(&[("iii", 20)], 2, 5, 800)
+                CellScheme::pyramidal(&[("iii", 20, 1)], 2, 5, 800)
                     // .apical(&[("eff_in", 22)], 1, 5, 500)
             )
         )
-        .lmap(LayerMapScheme::new("v0", LayerMapKind::Subcortical)
-            // .layer("spatial", 1, map::FF_OUT, AxonDomain::Local, LayerKind::Axonal(AxonTopology::Spatial))
-            .layer("spatial", 1, map::FF_OUT,
-                AxonDomain::output(&[map::THAL_SP]),
-                LayerKind::Axonal(AxonTopology::Spatial))
-            .layer("horiz_ns", 1, map::NS_OUT | LayerTags::uid(MOTOR_UID),
-                AxonDomain::output(&[map::THAL_NSP]),
+        .lmap(LayerMapScheme::new("v0_lm", LayerMapKind::Subcortical)
+            .layer("horiz_ns", 1, map::DEFAULT,
+                AxonDomain::output(GlyphSequences::val_lyr_tags()),
                 LayerKind::Axonal(AxonTopology::Horizontal))
+
+            .layer("spatial", 1, map::DEFAULT,
+                AxonDomain::output(GlyphSequences::img_lyr_tags()),
+                LayerKind::Axonal(AxonTopology::Spatial))
         )
-        // .lmap(LayerMapScheme::new("v0b_lm", LayerMapKind::Subcortical)
-        //     .layer("spatial", 1, map::FF_OUT, LayerKind::Axonal(AxonTopology::Spatial))
-        //     // .layer("horiz_ns", 1, map::NS_OUT | LayerTags::uid(MOTOR_UID),
-        //     //     LayerKind::Axonal(AxonTopology::Horizontal))
-        // )
 }
 
 
@@ -78,7 +75,7 @@ pub fn define_a_schemes() -> AreaSchemeList {
         //     None,
         //     None,
         // )
-        .area(AreaScheme::new("v0", "v0", ENCODE_SIZE)
+        .area(AreaScheme::new("v0", "v0_lm", ENCODE_SIZE)
             .input(InputScheme::GlyphSequences { seq_lens: (5, 5), seq_count: 10,
                 scale: 1.4, hrz_dims: (16, 16) })
         )
@@ -93,9 +90,10 @@ pub fn define_a_schemes() -> AreaSchemeList {
         //     Some(vec!["v0"]),
         //     // Some(vec!["v0b"]),
         // )
-        .area(AreaScheme::new("v1", "v0", AREA_SIDE)
+        .area(AreaScheme::new("v1", "v1_lm", AREA_SIDE)
             .eff_areas(vec!["v0"])
-            .filter_chain(map::FF_IN, vec![FilterScheme::new("retina", None)])
+            .filter_chain(InputTrack::Afferent, GlyphSequences::img_lyr_tags(),
+                &[("retina", None)])
         )
 
         // .area("b1", "visual", AREA_SIDE,
