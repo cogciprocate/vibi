@@ -248,6 +248,13 @@ impl<'d> Window<'d> {
             // Check the results channel and determine if the cycle process
             // has caught up to this window before sending new requests.
             if window.recv_cycle_results(false) {
+                // Early exit (avoids a channel panic):
+                if window.close_pending {
+                    target.finish().unwrap();
+                    window.command_tx.send(Command::Exit).ok();
+                    break;
+                }
+
                 // If the hex grid buffer is not clear, e.g. the last sample
                 // request is still unwritten, clear it by attempting to write to
                 // the device vertex buffer if it is ready.
@@ -296,7 +303,7 @@ impl<'d> Window<'d> {
 
             // Clean up and exit if necessary:
             if window.close_pending {
-                window.command_tx.send(Command::Exit).expect("Exit button command tx");
+                window.command_tx.send(Command::Exit).ok();
                 break;
             }
         }
@@ -309,7 +316,11 @@ impl<'d> Window<'d> {
     fn handle_response(&mut self, response: Response) {
         match response {
             Response::CurrentIter(iter) => self.cycle_status.cur_cycle = iter,
-            Response::Status(cysts) => self.cycle_status = *cysts,
+            Response::Status(cysts) => {
+                self.cycle_status = *cysts;
+                self.cycle_in_progress = self.cycle_status.cycling;
+                // println!("Cycle Status: cycling: {}", self.cycle_in_progress);
+            },
             Response::AreaInfo(info) => {
                 let info = *info;
                 self.area_info = info.clone();
@@ -338,8 +349,13 @@ impl<'d> Window<'d> {
                     },
                     Err(e) => match e {
                         TryRecvError::Empty => break,
-                        TryRecvError::Disconnected => panic!("Window::recv_cycle_results(): \
-                            Sender disconnected."),
+                        // TryRecvError::Disconnected => panic!("Window::recv_cycle_results(): \
+                        //     Sender disconnected."),
+                        TryRecvError::Disconnected => {
+                            self.cycle_in_progress = false;
+                            self.close_pending = true;
+                            break;
+                        },
                     },
                 }
             }
