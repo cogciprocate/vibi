@@ -52,7 +52,6 @@ fn main() {
 }
 
 fn define_lm_schemes() -> LayerMapSchemeList {
-    // const OLFAC_UID: u32 = 102;
     let at0 = AxonTag::unique();
     let at1 = AxonTag::unique();
 
@@ -71,19 +70,17 @@ fn define_lm_schemes() -> LayerMapSchemeList {
                 AxonTopology::Spatial
             )
             .layer("mcols", 1, map::DEFAULT, AxonDomain::output(&[map::THAL_SP]),
-                CellScheme::minicolumn("iv", "iii"))
-            .layer("iv_inhib", 0, map::DEFAULT, AxonDomain::Local, CellScheme::inhibitory(4, "iv"))
-
+                CellScheme::minicolumn("iv", "iii")
+            )
             .layer("iv", 1, map::PSAL, AxonDomain::Local,
                 CellScheme::spiny_stellate(&[("aff_in_0", 14, 1), ("aff_in_1", 14, 1)], 6, 600)
             )
-
+            .layer("iv_inhib", 0, map::DEFAULT, AxonDomain::Local, CellScheme::inhibitory(4, "iv"))
             .layer("iii", 2, map::PTAL, AxonDomain::Local,
                 CellScheme::pyramidal(&[("iii", 20, 1)], 1, 5, 500)
                     // .apical(&[("eff_in", 22)], 1, 5, 500)
             )
-
-            .layer("v", 1, map::PMEL, AxonDomain::Local,
+            .layer("v", 1, map::PML, AxonDomain::Local,
                 CellScheme::pyramidal(&[("iii", 20, 4), ("v", 20, 1)], 1, 5, 500)
                     // .apical(vec!["eff_in"/*, "olfac"*/], 18)
             )
@@ -134,6 +131,7 @@ fn define_a_schemes() -> AreaSchemeList {
             .other_area("v0", None)
             // .filter_chain(map::FF_IN | LayerTags::uid(U0), vec![FilterScheme::new("retina", None)])
             // .filter_chain(map::FF_IN | LayerTags::uid(U1), vec![FilterScheme::new("retina", None)])
+            // .filter_chain(InputTrack::Afferent, LayerTags::something, &[("retina", None)])
         )
         // .area(AreaScheme::new("m1", "m1_lm", AREA_SIDE)
         //     .eff_areas(vec!["v1", "v0"])
