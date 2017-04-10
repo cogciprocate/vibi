@@ -17,7 +17,7 @@ use vibi::bismit::encode::{ReversoScalarSequence, HexMoldTest};
 
 // ENCODE_SIZE: 64 --> range: (0.0, 172.0)
 // ENCODE_SIZE: 32 --> range: (0.0, 76.0)
-const ENCODE_SIZE: u32 = 32; // had been used for GlyphSequences
+const ENCODE_SIZE: u32 = 48; // had been used for GlyphSequences
 const ENCODE_LAYER_COUNT: usize = 2;
 const AREA_SIDE: u32 = 48;
 
@@ -35,7 +35,7 @@ fn main() {
 
         let ia_idx = cortex.thal().ext_pathway_idx(&"v0".to_owned()).unwrap();
         cortex.thal_mut().ext_pathway(ia_idx).unwrap().set_encoder(Box::new(
-                HexMoldTest::new(6, [24, 24], 
+                HexMoldTest::new(6, [24, 24],
                     (ENCODE_SIZE, ENCODE_SIZE, 1))
                 // InputScheme::ReversoScalarSequence { range: (0.0, 76.0), incr: 1.0 }
                 // ReversoScalarSequence::new((0.0, 76.0), 1.0, &[

@@ -187,8 +187,10 @@ impl CycleLoop {
                         CyCtl::RequestCurrentAreaInfo => {
                             result_tx.send(CyRes::AreaInfo(Box::new(AreaInfo {
                                 name: ri.area_name.to_string(),
-                                aff_out_slc_range: ri.cortex.area(&ri.area_name).area_map().aff_out_slc_range(),
-                                tract_map: ri.cortex.area(&ri.area_name).axn_tract_map(),
+                                aff_out_slc_range: ri.cortex.areas().by_key(ri.area_name.as_str())
+                                    .unwrap().area_map().aff_out_slc_range(),
+                                tract_map: ri.cortex.areas().by_key(ri.area_name.as_str())
+                                    .unwrap().axn_tract_map(),
                             }))).expect("Error sending area info.");
                             continue;
                         },
@@ -247,12 +249,13 @@ impl CycleLoop {
 fn refresh_hex_grid_buf(ri: &RunInfo, slc_range: Range<u8>, buf: Arc<Mutex<Vec<u8>>>)
         -> Option<OclEvent>
 {
-    let axn_range = ri.cortex.area(&ri.area_name).axn_tract_map().axn_id_range(slc_range.clone());
+    let axn_range = ri.cortex.areas().by_key(ri.area_name.as_str()).unwrap().axn_tract_map()
+        .axn_id_range(slc_range.clone());
 
     // match buf.try_lock() {
     match buf.lock() {
         // Ok(ref mut b) => ri.cortex.area(&ri.area_name).sample_aff_out(&mut b[range]),
-        Ok(ref mut b) => Some(ri.cortex.area(&ri.area_name)
+        Ok(ref mut b) => Some(ri.cortex.areas().by_key(ri.area_name.as_str()).unwrap()
             .sample_axn_slc_range(slc_range, &mut b[axn_range])),
         Err(_) => None,
     }
@@ -471,7 +474,7 @@ fn prompt(ri: &mut RunInfo) -> LoopAction {
             let in_s1 = in_str.trim();
             let new_area_name = in_s1.to_string();
 
-            if ri.cortex.areas().contains_key(new_area_name.as_str()) {
+            if ri.cortex.areas().by_key(new_area_name.as_str()).is_some() {
                 ri.area_name = new_area_name;
             } else {
                 print!("Invalid area.");
