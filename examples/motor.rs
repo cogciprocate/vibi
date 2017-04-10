@@ -15,6 +15,12 @@ use vibi::bismit::encode::{ReversoScalarSequence, HexMoldTest};
 // const U1: u32 = U0 + 1;
 // const U0: u32 = 1000;
 
+// ENCODE_SIZE: 64 --> range: (0.0, 172.0)
+// ENCODE_SIZE: 32 --> range: (0.0, 76.0)
+const ENCODE_SIZE: u32 = 32; // had been used for GlyphSequences
+const ENCODE_LAYER_COUNT: usize = 2;
+const AREA_SIDE: u32 = 48;
+
 fn main() {
     use std::thread;
     use std::sync::mpsc;
@@ -28,13 +34,14 @@ fn main() {
             .sub(Subcortex::new().nucleus(Box::new(TestScNucleus::new("m0"))));
 
         let ia_idx = cortex.thal().ext_pathway_idx(&"v0".to_owned()).unwrap();
-        cortex.thal_mut().ext_pathway(ia_idx).unwrap().specify_encoder(Box::new(
-                HexMoldTest::new(6, [24, 24])
+        cortex.thal_mut().ext_pathway(ia_idx).unwrap().set_encoder(Box::new(
+                HexMoldTest::new(6, [24, 24], 
+                    (ENCODE_SIZE, ENCODE_SIZE, 1))
                 // InputScheme::ReversoScalarSequence { range: (0.0, 76.0), incr: 1.0 }
                 // ReversoScalarSequence::new((0.0, 76.0), 1.0, &[
                 //     map::FF_OUT | LayerTags::uid(U0),
                 //     map::FF_OUT | LayerTags::uid(U1)])
-            )).unwrap();
+            ));
 
         // let mut flywheel = Flywheel::from_blueprint(define_lm_schemes(),
         //     define_a_schemes(), None, command_rx);
@@ -73,15 +80,15 @@ fn define_lm_schemes() -> LayerMapSchemeList {
                 CellScheme::minicolumn("iv", "iii")
             )
             .layer("iv", 1, map::PSAL, AxonDomain::Local,
-                CellScheme::spiny_stellate(&[("aff_in_0", 14, 1), ("aff_in_1", 14, 1)], 6, 600)
+                CellScheme::spiny_stellate(&[("aff_in_0", 14, 1), ("aff_in_1", 10, 1)], 6, 600)
             )
             .layer("iv_inhib", 0, map::DEFAULT, AxonDomain::Local, CellScheme::inhibitory(4, "iv"))
             .layer("iii", 2, map::PTAL, AxonDomain::Local,
-                CellScheme::pyramidal(&[("iii", 20, 1)], 1, 5, 500)
+                CellScheme::pyramidal(&[("iii", 12, 1)], 1, 5, 500)
                     // .apical(&[("eff_in", 22)], 1, 5, 500)
             )
             .layer("v", 1, map::PML, AxonDomain::Local,
-                CellScheme::pyramidal(&[("iii", 20, 4), ("v", 20, 1)], 1, 5, 500)
+                CellScheme::pyramidal(&[("iii", 12, 4), ("v", 20, 1)], 1, 5, 500)
                     // .apical(vec!["eff_in"/*, "olfac"*/], 18)
             )
         )
@@ -97,11 +104,6 @@ fn define_lm_schemes() -> LayerMapSchemeList {
 
 
 fn define_a_schemes() -> AreaSchemeList {
-    // ENCODE_SIZE: 64 --> range: (0.0, 172.0)
-    // ENCODE_SIZE: 32 --> range: (0.0, 76.0)
-    const ENCODE_SIZE: u32 = 48; // had been used for GlyphSequences
-    const AREA_SIDE: u32 = 32;
-
     AreaSchemeList::new()
         // .area_ext("v0", "v0_lm", ENCODE_SIZE,
         //     // InputScheme::GlyphSequences { seq_lens: (5, 5), seq_count: 10, scale: 1.4, hrz_dims: (16, 16) },
@@ -123,7 +125,8 @@ fn define_a_schemes() -> AreaSchemeList {
         //     // Some(vec!["v0b"]),
         // )
         .area(AreaScheme::new("v0", "v0_lm", ENCODE_SIZE)
-            .input(InputScheme::Custom { layer_count: 2 })
+            .input(InputScheme::Custom { layer_count: ENCODE_LAYER_COUNT })
+            // .input(InputScheme::None { layer_count: ENCODE_LAYER_COUNT })
         )
         .area(AreaScheme::new("v1", "v1_lm", AREA_SIDE)
             .eff_areas(vec!["v0"])

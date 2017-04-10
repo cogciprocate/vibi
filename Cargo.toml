@@ -5,8 +5,8 @@ authors = ["Nick Sanders <nsan1129@gmail.com>"]
 
 
 [dependencies.bismit]
-# path = "/home/nick/src/github.com/cogciprocate/bismit"
-git = "https://github.com/cogciprocate/bismit.git"
+path = "/home/nick/src/github.com/cogciprocate/bismit"
+# git = "https://github.com/cogciprocate/bismit.git"
 
 [dependencies.enamel]
 # path = "/home/nick/projects/enamel"
@@ -17,7 +17,9 @@ git = "https://github.com/rust-lang/time.git"
 
 [dependencies]
 rand = "*"
+# glium = "0.15"
 glium = "0.14"
+# glium_text = "0.11"
 glium_text = "0.9"
 # image = "*"
 find_folder = "*"

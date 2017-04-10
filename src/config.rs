@@ -63,7 +63,7 @@ pub fn define_lm_schemes() -> LayerMapSchemeList {
 pub fn define_a_schemes() -> AreaSchemeList {
     // const CYCLES_PER_FRAME: usize = 1;
     // const HZS: u32 = 16;
-    const ENCODE_SIZE: u32 = 64; // had been used for GlyphSequences
+    const ENCODE_SIZE: u32 = 32; // had been used for GlyphSequences
     // const ENCODE_SIZE: u32 = 24; // for SensoryTract
     const AREA_SIDE: u32 = 48;
 
