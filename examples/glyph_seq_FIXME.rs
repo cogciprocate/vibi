@@ -47,7 +47,7 @@ fn define_lm_schemes() -> LayerMapSchemeList {
                 AxonTopology::Spatial
             )
             .layer("mcols", 1, map::FF_FB_OUT, CellScheme::minicolumn("iv", "iii"))
-            .layer("iv_inhib", 0, map::DEFAULT, CellScheme::inhibitory(4, "iv"))
+            .layer("iv_inhib", 0, map::DEFAULT, CellScheme::inhib(4, "iv"))
             .layer("iv", 1, map::PSAL,
                 CellScheme::spiny_stellate(7, vec!["glyph_img"], 400, 12)
             )

@@ -13,6 +13,7 @@ extern crate nalgebra;
 // extern crate vecmath;
 // extern crate rustc_serialize;
 extern crate rand;
+// #[macro_use] extern crate log;
 #[macro_use] extern crate colorify;
 extern crate enamel;
 pub extern crate bismit;

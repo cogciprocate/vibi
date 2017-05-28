@@ -7,7 +7,7 @@ extern crate vibi;
 use vibi::window;
 use vibi::bismit::{Cortex, CorticalAreaSettings, Subcortex, Flywheel, TestScNucleus};
 use vibi::bismit::map::{self, LayerTags, LayerMapKind, LayerMapScheme, LayerMapSchemeList,
-    AreaSchemeList, CellScheme, FilterScheme, InputScheme, AxonTopology, LayerKind, AreaScheme,
+    AreaSchemeList, CellScheme, FilterScheme, EncoderScheme, AxonTopology, LayerKind, AreaScheme,
     AxonDomain, AxonTag, InputTrack, AxonTags};
 use vibi::bismit::encode::{ReversoScalarSequence, HexMoldTest};
 
@@ -18,7 +18,7 @@ use vibi::bismit::encode::{ReversoScalarSequence, HexMoldTest};
 // ENCODE_SIZE: 64 --> range: (0.0, 172.0)
 // ENCODE_SIZE: 32 --> range: (0.0, 76.0)
 const ENCODE_SIZE: u32 = 48; // had been used for GlyphSequences
-const ENCODE_LAYER_COUNT: usize = 2;
+// const ENCODE_LAYER_COUNT: usize = 2;
 const AREA_SIDE: u32 = 48;
 
 fn main() {
@@ -31,7 +31,7 @@ fn main() {
 
     let th_flywheel = thread::Builder::new().name("flywheel".to_string()).spawn(move || {
         let mut cortex = Cortex::new(define_lm_schemes(), define_a_schemes(), Some(ca_settings()))
-            .sub(Subcortex::new().nucleus(Box::new(TestScNucleus::new("m0"))));
+            .sub(Subcortex::new().nucl(TestScNucleus::new("m0")));
 
         let ia_idx = cortex.thal().ext_pathway_idx(&"v0".to_owned()).unwrap();
         cortex.thal_mut().ext_pathway(ia_idx).unwrap().set_encoder(Box::new(
@@ -82,7 +82,7 @@ fn define_lm_schemes() -> LayerMapSchemeList {
             .layer("iv", 1, map::PSAL, AxonDomain::Local,
                 CellScheme::spiny_stellate(&[("aff_in_0", 14, 1), ("aff_in_1", 10, 1)], 6, 600)
             )
-            .layer("iv_inhib", 0, map::DEFAULT, AxonDomain::Local, CellScheme::inhibitory(4, "iv"))
+            .layer("iv_inhib", 0, map::DEFAULT, AxonDomain::Local, CellScheme::inhib(4, "iv"))
             .layer("iii", 2, map::PTAL, AxonDomain::Local,
                 CellScheme::pyramidal(&[("iii", 12, 1)], 1, 5, 500)
                     // .apical(&[("eff_in", 22)], 1, 5, 500)
@@ -125,7 +125,7 @@ fn define_a_schemes() -> AreaSchemeList {
         //     // Some(vec!["v0b"]),
         // )
         .area(AreaScheme::new("v0", "v0_lm", ENCODE_SIZE)
-            .input(InputScheme::Custom { layer_count: ENCODE_LAYER_COUNT })
+            .encoder(EncoderScheme::Custom)
             // .input(InputScheme::None { layer_count: ENCODE_LAYER_COUNT })
         )
         .area(AreaScheme::new("v1", "v1_lm", AREA_SIDE)

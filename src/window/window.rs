@@ -1,4 +1,4 @@
-use std::sync::mpsc::{Receiver, Sender, TryRecvError};
+use std::sync::mpsc::{Receiver, Sender, TryRecvError, SendError};
 use time::{self, Timespec, Duration};
 use glium::{self, DisplayBuild, Surface};
 // use cycle::{CyCmd, CyRes, Status as CyStatus, AreaInfo};
@@ -114,10 +114,16 @@ impl<'d> Window<'d> {
                 response_rx: Receiver<Response>) {
         // Get initial area info:
         request_tx.send(Request::AreaInfo).expect("Error requesting current area name");
-        let area_info = match response_rx.recv().expect("Current area name reception error") {
-            Response::AreaInfo(info) => *info,
-            _ => panic!("Invalid area name response."),
-        };
+        let area_info;
+        loop {
+            match response_rx.recv().expect("Current area name reception error") {
+                Response::AreaInfo(info) => {
+                    area_info = *info;
+                    break;
+                },
+                _ => (),
+            };
+        }
 
         let display: glium::backend::glutin_backend::GlutinFacade = glium::glutin::WindowBuilder::new()
             .with_depth_buffer(24)
@@ -222,12 +228,21 @@ impl<'d> Window<'d> {
         //     {mt}'Escape' or 'q' to quit.",
         //     mt = "    ");
 
+        // Returns true if any send errors are received.
+        fn handle_init_sends<T>(res: Result<(), SendError<T>>, window: &mut Window ) {
+            if let Err(_) = res {
+                window.close_pending = window.close_pending & true;
+            }
+        }
+
         // Send initial requests:
-        window.request_tx.send(Request::CurrentIter).unwrap();
-        window.command_tx.send(Command::None).unwrap();
+        handle_init_sends(window.request_tx.send(Request::CurrentIter), &mut window);
+        handle_init_sends(window.command_tx.send(Command::None), &mut window);
         window.recv_cycle_results(true);
-        window.request_tx.send(Request::Status).unwrap();
-        window.command_tx.send(Command::None).unwrap();
+        handle_init_sends(window.request_tx.send(Request::Status), &mut window);
+        handle_init_sends(window.command_tx.send(Command::None), &mut window);
+
+        if window.close_pending { println!("Send error during vibi window init."); }
 
         //////////////////////////////////////////////////////////////////////////
         ///////////////////// Primary Event & Rendering Loop /////////////////////
@@ -349,8 +364,6 @@ impl<'d> Window<'d> {
                     },
                     Err(e) => match e {
                         TryRecvError::Empty => break,
-                        // TryRecvError::Disconnected => panic!("Window::recv_cycle_results(): \
-                        //     Sender disconnected."),
                         TryRecvError::Disconnected => {
                             self.cycle_in_progress = false;
                             self.close_pending = true;

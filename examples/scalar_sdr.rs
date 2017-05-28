@@ -7,7 +7,7 @@ extern crate vibi;
 use vibi::window;
 use vibi::bismit::{Cortex, CorticalAreaSettings};
 use vibi::bismit::map::{self, LayerTags, LayerMapKind, LayerMapScheme, LayerMapSchemeList,
-    AreaSchemeList, CellScheme, FilterScheme, InputScheme, AxonTopology, LayerKind, AreaScheme,
+    AreaSchemeList, CellScheme, FilterScheme, EncoderScheme, AxonTopology, LayerKind, AreaScheme,
     AxonDomain, AxonTag, InputTrack, AxonTags};
 use vibi::bismit::flywheel::Flywheel;
 
@@ -21,7 +21,7 @@ fn main() {
 
     let th_flywheel = thread::Builder::new().name("flywheel".to_string()).spawn(move || {
         let mut flywheel = Flywheel::from_blueprint(define_lm_schemes(),
-            define_a_schemes(), Some(ca_settings()), command_rx, "v1".into());
+            define_a_schemes(), Some(ca_settings()), command_rx, "v1");
         flywheel.add_req_res_pair(request_rx, response_tx);
         flywheel.spin();
     }).expect("Error creating 'flywheel' thread");
@@ -49,7 +49,7 @@ fn define_lm_schemes() -> LayerMapSchemeList {
             .layer("iv", 1, map::PSAL, AxonDomain::Local,
                 CellScheme::spiny_stellate(&[("aff_in", 16, 1)], 7, 600)
             )
-            .layer("iv_inhib", 0, map::DEFAULT, AxonDomain::Local, CellScheme::inhibitory(4, "iv"))
+            .layer("iv_inhib", 0, map::DEFAULT, AxonDomain::Local, CellScheme::inhib(4, "iv"))
             .layer("iii", 2, map::PTAL, AxonDomain::Local,
                 CellScheme::pyramidal(&[("iii", 20, 1)], 1, 6, 500)
                     // .apical(&[("eff_in", 22)], 1, 5, 500)
@@ -78,10 +78,11 @@ fn define_a_schemes() -> AreaSchemeList {
 
     AreaSchemeList::new()
         .area(AreaScheme::new("v0", "v0_lm", ENCODE_SIZE)
-            // .input(InputScheme::GlyphSequences { seq_lens: (5, 5), seq_count: 10,
+            // .input(EncoderScheme::GlyphSequences { seq_lens: (5, 5), seq_count: 10,
             //    scale: 1.4, hrz_dims: (16, 16) }),
-            .input(InputScheme::ScalarSdrGradiant { range: (-8.0, 8.0), way_span: 16.0, incr: 0.1 }),
-            // .input(InputScheme::None { layer_count: 1 }),
+            .encoder(EncoderScheme::ScalarSdrGradiant { range: (-8.0, 8.0), way_span: 16.0,
+                incr: 0.1 }),
+            // .input(EncoderScheme::None { layer_count: 1 }),
         )
         .area(AreaScheme::new("v1", "visual", AREA_SIDE)
             .eff_areas(vec!["v0"])

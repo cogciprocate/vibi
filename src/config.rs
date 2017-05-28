@@ -3,7 +3,7 @@
 // use find_folder::Search;
 use bismit::Cortex;
 use bismit::map::{self, LayerMapKind, LayerMapScheme, LayerMapSchemeList,
-    AreaScheme, AreaSchemeList, CellScheme, InputScheme, AxonTopology, LayerKind,
+    AreaScheme, AreaSchemeList, CellScheme, EncoderScheme, AxonTopology, LayerKind,
     AxonDomain, InputTrack};
 use bismit::encode::GlyphSequences;
 // use bismit::proto::{ProtolayerMap, ProtolayerMaps, ProtoareaMaps, Axonal, Spatial, Horizontal,
@@ -42,7 +42,7 @@ pub fn define_lm_schemes() -> LayerMapSchemeList {
             .layer("iv", 1, map::PSAL, AxonDomain::Local,
                 CellScheme::spiny_stellate(&[("aff_in", 12, 1)], 4, 400)
             )
-            .layer("iv_inhib", 0, map::DEFAULT, AxonDomain::Local, CellScheme::inhibitory(4, "iv"))
+            .layer("iv_inhib", 0, map::DEFAULT, AxonDomain::Local, CellScheme::inhib("iv", 4))
             .layer("iii", 2, map::PTAL, AxonDomain::Local,
                 CellScheme::pyramidal(&[("iii", 20, 1)], 2, 5, 800)
                     // .apical(&[("eff_in", 22)], 1, 5, 500)
@@ -69,17 +69,17 @@ pub fn define_a_schemes() -> AreaSchemeList {
 
     AreaSchemeList::new()
         // .area_ext("v0", "v0_lm", ENCODE_SIZE,
-        //     InputScheme::GlyphSequences { seq_lens: (5, 5), seq_count: 10, scale: 1.4, hrz_dims: (16, 16) },
+        //     EncoderScheme::GlyphSequences { seq_lens: (5, 5), seq_count: 10, scale: 1.4, hrz_dims: (16, 16) },
         //     None,
         //     None,
         // )
         .area(AreaScheme::new("v0", "v0_lm", ENCODE_SIZE)
-            .input(InputScheme::GlyphSequences { seq_lens: (5, 5), seq_count: 10,
+            .encoder(EncoderScheme::GlyphSequences { seq_lens: (5, 5), seq_count: 10,
                 scale: 1.4, hrz_dims: (16, 16) })
         )
 
         // .area_ext("v0b", "v0b_lm", ENCODE_SIZE,
-        //     InputScheme::SensoryTract,
+        //     EncoderScheme::SensoryTract,
         //     None,
         //     None,
         // )
@@ -119,7 +119,7 @@ pub fn define_a_schemes() -> AreaSchemeList {
 
         //let mut ir_labels = IdxStreamer::new(LayerMapKind::CorticalDims::new(1, 1, 1, 0, None), "data/train-labels-idx1-ubyte", 1);
         // .area_ext("u0", "external", AREA_SIDE, AREA_SIDE,
-        //     InputScheme::IdxStreamer {
+        //     EncoderScheme::IdxStreamer {
         //         file_name: "data/train-labels-idx1-ubyte",
         //         cyc_per: CYCLES_PER_FRAME,
         //     },
@@ -134,7 +134,7 @@ pub fn define_a_schemes() -> AreaSchemeList {
         // )
 
         // .area_ext("o0sp", "v0_layer_map", AREA_SIDE,
-        //     InputScheme::IdxStreamerLoop {
+        //     EncoderScheme::IdxStreamerLoop {
         //         file_name: "data/train-images-idx3-ubyte",
         //         cyc_per: CYCLES_PER_FRAME,
         //         scale: 1.3,
@@ -144,7 +144,7 @@ pub fn define_a_schemes() -> AreaSchemeList {
         //     None,
         // )
 
-        // .area_ext("o0", "o0_lm", 24, InputScheme::Zeros, None, None)
+        // .area_ext("o0", "o0_lm", 24, EncoderScheme::Zeros, None, None)
 
         // .area("o1", "visual", AREA_SIDE,
         //     None,

@@ -5,7 +5,8 @@ authors = ["Nick Sanders <nsan1129@gmail.com>"]
 
 
 [dependencies.bismit]
-path = "/home/nick/src/github.com/cogciprocate/bismit"
+# path = "/home/nick/src/github.com/cogciprocate/bismit"
+path = "../bismit"
 # git = "https://github.com/cogciprocate/bismit.git"
 
 [dependencies.enamel]
@@ -28,6 +29,7 @@ vecmath = "*"
 # rustc-serialize = "*"
 colorify = "*"
 nalgebra = "*"
+log = "*"
 
 # cgmath = "*"
 # piston_window = "*"

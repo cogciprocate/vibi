@@ -74,7 +74,7 @@ impl HexGridBuffer {
             // default_slc_range: full_slc_range.clone(),
             default_slc_range: area_info.aff_out_slc_range.clone(),
             // cur_slc_range: full_slc_range.clone(),
-            cur_slc_range: area_info.aff_out_slc_range.clone(),
+            cur_slc_range: full_slc_range.clone(),
             tract_map: area_info.tract_map,
             is_clear: false,
         }
