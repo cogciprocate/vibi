@@ -44,12 +44,13 @@ fn define_lm_schemes() -> LayerMapSchemeList {
                 AxonTopology::Spatial
             )
             .layer("mcols", 1, map::DEFAULT, AxonDomain::output(&[map::THAL_SP]),
-                CellScheme::minicolumn("iv", "iii")
+                CellScheme::minicolumn("iv", "iii", 9999)
             )
             .layer("iv", 1, map::PSAL, AxonDomain::Local,
                 CellScheme::spiny_stellate(&[("aff_in", 16, 1)], 7, 600)
             )
-            .layer("iv_inhib", 0, map::DEFAULT, AxonDomain::Local, CellScheme::inhib(4, "iv"))
+            .layer("iv_inhib", 0, map::DEFAULT, AxonDomain::Local, CellScheme::inhib("iv", 6, 0))
+            .layer("iv_smooth", 0, map::DEFAULT, AxonDomain::Local, CellScheme::smooth("iv", 4, 1))
             .layer("iii", 2, map::PTAL, AxonDomain::Local,
                 CellScheme::pyramidal(&[("iii", 20, 1)], 1, 6, 500)
                     // .apical(&[("eff_in", 22)], 1, 5, 500)
@@ -72,9 +73,9 @@ fn define_lm_schemes() -> LayerMapSchemeList {
 fn define_a_schemes() -> AreaSchemeList {
     // const CYCLES_PER_FRAME: usize = 1;
     // const HZS: u32 = 16;
-    const ENCODE_SIZE: u32 = 64; // had been used for GlyphSequences
+    const ENCODE_SIZE: u32 = 32; // had been used for GlyphSequences
     // const ENCODE_SIZE: u32 = 24; // for SensoryTract
-    const AREA_SIDE: u32 = 48;
+    const AREA_SIDE: u32 = 16;
 
     AreaSchemeList::new()
         .area(AreaScheme::new("v0", "v0_lm", ENCODE_SIZE)
