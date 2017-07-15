@@ -41,19 +41,20 @@ fn define_lm_schemes() -> LayerMapSchemeList {
         .lmap(LayerMapScheme::new("visual", LayerMapKind::Cortical)
             .input_layer("aff_in", map::DEFAULT,
                 AxonDomain::input(&[(InputTrack::Afferent, &[map::THAL_SP, at0])]),
-                AxonTopology::Spatial
+                // AxonTopology::Spatial
+                AxonTopology::Horizontal
+            )
+            .layer("iv", 1, map::PSAL, AxonDomain::Local,
+                CellScheme::spiny_stellate(&[("aff_in", 32, 1)], 4, 100)
+            )
+            .layer("iv_inhib", 0, map::DEFAULT, AxonDomain::Local, CellScheme::inhib("iv", 4, 0))
+            .layer("iv_smooth", 0, map::DEFAULT, AxonDomain::Local, CellScheme::smooth("iv", 4, 1))
+            .layer("iii", 2, map::PTAL, AxonDomain::Local,
+                CellScheme::pyramidal(&[("iii", 20, 1)], 1, 5, 200)
+                    // .apical(&[("eff_in", 22)], 1, 5, 500)
             )
             .layer("mcols", 1, map::DEFAULT, AxonDomain::output(&[map::THAL_SP]),
                 CellScheme::minicolumn("iv", "iii", 9999)
-            )
-            .layer("iv", 1, map::PSAL, AxonDomain::Local,
-                CellScheme::spiny_stellate(&[("aff_in", 16, 1)], 7, 600)
-            )
-            .layer("iv_inhib", 0, map::DEFAULT, AxonDomain::Local, CellScheme::inhib("iv", 6, 0))
-            .layer("iv_smooth", 0, map::DEFAULT, AxonDomain::Local, CellScheme::smooth("iv", 4, 1))
-            .layer("iii", 2, map::PTAL, AxonDomain::Local,
-                CellScheme::pyramidal(&[("iii", 20, 1)], 1, 6, 500)
-                    // .apical(&[("eff_in", 22)], 1, 5, 500)
             )
         )
         .lmap(LayerMapScheme::new("v0_lm", LayerMapKind::Subcortical)
@@ -81,8 +82,8 @@ fn define_a_schemes() -> AreaSchemeList {
         .area(AreaScheme::new("v0", "v0_lm", ENCODE_SIZE)
             // .input(EncoderScheme::GlyphSequences { seq_lens: (5, 5), seq_count: 10,
             //    scale: 1.4, hrz_dims: (16, 16) }),
-            .encoder(EncoderScheme::ScalarSdrGradiant { range: (-8.0, 8.0), way_span: 16.0,
-                incr: 0.1 }),
+            .encoder(EncoderScheme::ScalarSdrGradiant { range: (0.0, 40.0), way_span: 1.0,
+                incr: 1.0 }),
             // .input(EncoderScheme::None { layer_count: 1 }),
         )
         .area(AreaScheme::new("v1", "visual", AREA_SIDE)
