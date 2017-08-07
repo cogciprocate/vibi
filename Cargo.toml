@@ -46,3 +46,9 @@ log = "*"
 
 # [dependencies.glium]
 # git = "https://github.com/tomaka/glium.git"
+
+
+[replace]
+"qutex:0.1.1" = { path = "/home/nick/src/github.com/cogciprocate/qutex" }
+"cl-sys:0.3.0" = { git = 'https://github.com/cogciprocate/cl-sys' }
+"ocl-core:0.5.1" = { git = "https://github.com/cogciprocate/ocl-core" }

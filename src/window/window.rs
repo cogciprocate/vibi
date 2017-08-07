@@ -330,7 +330,7 @@ impl<'d> Window<'d> {
 
     fn handle_response(&mut self, response: Response) {
         match response {
-            Response::CurrentIter(iter) => self.cycle_status.cur_cycle = iter,
+            Response::CurrentIter(iter) => self.cycle_status.cur_cycle.0 = iter,
             Response::Status(cysts) => {
                 self.cycle_status = *cysts;
                 self.cycle_in_progress = self.cycle_status.cycling;

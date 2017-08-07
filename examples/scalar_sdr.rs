@@ -45,7 +45,7 @@ fn define_lm_schemes() -> LayerMapSchemeList {
                 AxonTopology::Horizontal
             )
             .layer("iv", 1, map::PSAL, AxonDomain::Local,
-                CellScheme::spiny_stellate(&[("aff_in", 32, 1)], 4, 100)
+                CellScheme::spiny_stellate(&[("aff_in", 16, 1)], 5, 200)
             )
             .layer("iv_inhib", 0, map::DEFAULT, AxonDomain::Local, CellScheme::inhib("iv", 4, 0))
             .layer("iv_smooth", 0, map::DEFAULT, AxonDomain::Local, CellScheme::smooth("iv", 4, 1))
@@ -82,7 +82,7 @@ fn define_a_schemes() -> AreaSchemeList {
         .area(AreaScheme::new("v0", "v0_lm", ENCODE_SIZE)
             // .input(EncoderScheme::GlyphSequences { seq_lens: (5, 5), seq_count: 10,
             //    scale: 1.4, hrz_dims: (16, 16) }),
-            .encoder(EncoderScheme::ScalarSdrGradiant { range: (0.0, 40.0), way_span: 1.0,
+            .encoder(EncoderScheme::ScalarSdrGradiant { range: (0.0, 10.0), way_span: 1.0,
                 incr: 1.0 }),
             // .input(EncoderScheme::None { layer_count: 1 }),
         )
@@ -97,15 +97,13 @@ fn define_a_schemes() -> AreaSchemeList {
 // #########################
 #[allow(unused_mut)]
 pub fn ca_settings() -> CorticalAreaSettings {
-    let mut settings = CorticalAreaSettings::new();
-
-    // settings.bypass_inhib = true;
-    // settings.bypass_filters = true;
-    // settings.disable_pyrs = true;
-    // settings.disable_ssts = true;
-    // settings.disable_mcols = true;
-    // settings.disable_regrowth = true;
-    // settings.disable_learning = true;
-
-    settings
+    CorticalAreaSettings::new()
+        // .bypass_inhib()
+        // .bypass_filters()
+        // .disable_pyrs()
+        // .disable_ssts()
+        // .disable_mcols()
+        // .disable_regrowth()
+        // .disable_learning()
+        // .build_opt(BuildOpt::cmplr_def("DEBUG_SMOOTHER_OVERLAP", 1))
 }
