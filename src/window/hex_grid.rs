@@ -94,7 +94,7 @@ impl<'d> HexGrid<'d> {
 
         // Loop through currently visible slices:
         for slc_id in self.buffer.cur_slc_range().clone() {
-            let grid_dims = self.buffer.tract_map().slc_dims(slc_id);
+            let grid_dims = self.buffer.tract_map().slc_dims(slc_id as u8);
 
             // let x_size = (grid_dims.0 + grid_dims.1) as f32 * HEX_X;
             let y_size = (grid_dims.0 + grid_dims.1) as f32 * HEX_Y;
@@ -130,8 +130,9 @@ impl<'d> HexGrid<'d> {
             };
 
             // Draw Grid (with per-instance vertex buffer):
-            target.draw((&self.vertices, self.buffer.raw_states_buf(slc_id).per_instance().unwrap()),
-                &self.indices, &self.program, &uniforms, &self.params).unwrap();
+            target.draw((&self.vertices, self.buffer.raw_states_buf(slc_id as u8)
+                .per_instance().unwrap()), &self.indices, &self.program, &uniforms,
+                &self.params).unwrap();
         }
     }
 

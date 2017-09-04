@@ -34,9 +34,9 @@ pub struct HexGridBuffer {
     // state_vertices: Vec<StateVertex>,
     // vertex_buf: VertexBuffer<StateVertex>,
     raw_states_buf: VertexBuffer<StateVertex>,
-    full_slc_range: Range<u8>,
-    default_slc_range: Range<u8>,
-    cur_slc_range: Range<u8>,
+    full_slc_range: Range<usize>,
+    default_slc_range: Range<usize>,
+    cur_slc_range: Range<usize>,
     tract_map: SliceTractMap,
     is_clear: bool,
 }
@@ -117,7 +117,7 @@ impl HexGridBuffer {
         }
     }
 
-    pub fn set_default_slc_range(&mut self, slc_range: Range<u8>) {
+    pub fn set_default_slc_range(&mut self, slc_range: Range<usize>) {
         self.default_slc_range = slc_range;
     }
 
@@ -138,7 +138,7 @@ impl HexGridBuffer {
     }
 
     pub fn aff_out_grid_dims(&self) -> (u32, u32) {
-        self.tract_map.slc_dims(self.default_slc_range.start)
+        self.tract_map.slc_dims(self.default_slc_range.start as u8)
     }
 
 
@@ -164,12 +164,13 @@ impl HexGridBuffer {
 
     /// Returns a slice of the vertex buffer corresponding to a ganglion slice id.
     pub fn raw_states_buf(&self, slc_id: u8) -> VertexBufferSlice<StateVertex> {
-        let axn_id_range: Range<usize> = self.tract_map.axn_id_range(slc_id..slc_id + 1);
+        let axn_id_range: Range<usize> = self.tract_map.axn_id_range(
+            (slc_id as usize)..(slc_id as usize + 1));
         self.raw_states_buf.slice(axn_id_range)
             .expect("HexGridBuffer::raw_states_buf(): Slice id out of range")
     }
 
-    pub fn cur_slc_range(&self) -> Range<u8> {
+    pub fn cur_slc_range(&self) -> Range<usize> {
         self.cur_slc_range.clone()
     }
 

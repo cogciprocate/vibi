@@ -4,9 +4,10 @@ use std::sync::mpsc::{Sender, Receiver};
 use std::sync::{Arc, Mutex};
 use std::str::{FromStr};
 use time::{self, Timespec, Duration};
-
 use bismit::{Cortex, OclEvent, LayerMapSchemeList, AreaSchemeList, CorticalAreaSettings};
-use bismit::map::SliceTractMap;
+// use bismit::map::SliceTractMap;
+
+pub use bismit::flywheel::AreaInfo;
 // use config;
 
 const INITIAL_TEST_ITERATIONS: u32 = 1;
@@ -21,7 +22,7 @@ const PRINT_AFF_OUT: bool = false;
 pub enum CyCtl {
     None,
     Iterate(u32),
-    Sample(Range<u8>, Arc<Mutex<Vec<u8>>>),
+    Sample(Range<usize>, Arc<Mutex<Vec<u8>>>),
     RequestCurrentAreaInfo,
     RequestCurrentIter,
     // ViewAllSlices(bool),
@@ -43,14 +44,6 @@ pub enum CyRes {
     Status(Box<Status>),
     AreaInfo(Box<AreaInfo>),
     // OtherShit(SliceTractMap),
-}
-
-
-#[derive(Clone, Debug)]
-pub struct AreaInfo {
-    pub name: String,
-    pub aff_out_slc_range: Range<u8>,
-    pub tract_map: SliceTractMap,
 }
 
 
@@ -246,7 +239,7 @@ impl CycleLoop {
 }
 
 
-fn refresh_hex_grid_buf(ri: &RunInfo, slc_range: Range<u8>, buf: Arc<Mutex<Vec<u8>>>)
+fn refresh_hex_grid_buf(ri: &RunInfo, slc_range: Range<usize>, buf: Arc<Mutex<Vec<u8>>>)
         -> Option<OclEvent>
 {
     let axn_range = ri.cortex.areas().by_key(ri.area_name.as_str()).unwrap().axn_tract_map()

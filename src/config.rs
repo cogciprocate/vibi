@@ -35,9 +35,9 @@ pub fn define_lm_schemes() -> LayerMapSchemeList {
                 AxonDomain::input(&[(InputTrack::Afferent, GlyphSequences::img_lyr_tags())]),
                 AxonTopology::Spatial
             )
-            .input_layer("unused", map::UNUSED_TESTING, AxonDomain::Local, AxonTopology::Spatial)
+            .input_layer("unused", map::UNUSED, AxonDomain::Local, AxonTopology::Spatial)
             .layer("mcols", 1, map::DEFAULT, AxonDomain::output(&[map::THAL_SP]),
-                CellScheme::minicolumn("iv", "iii", 9999)
+                CellScheme::minicolumn(9999)
             )
             .layer("iv", 1, map::PSAL, AxonDomain::Local,
                 CellScheme::spiny_stellate(&[("aff_in", 12, 1)], 4, 400)
