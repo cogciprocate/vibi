@@ -1,4 +1,5 @@
 #![allow(dead_code, unused_variables)]
+// use std::sync::mpsc::Sender;
 use glium::backend::glutin_backend::{GlutinFacade};
 use glium::{self, Surface, Program, DrawParameters, VertexBuffer, IndexBuffer};
 use glium::glutin::{ElementState, MouseButton};

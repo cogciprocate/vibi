@@ -30,6 +30,7 @@ vecmath = "*"
 colorify = "*"
 nalgebra = "*"
 log = "*"
+futures = "*"
 
 # cgmath = "*"
 # piston_window = "*"

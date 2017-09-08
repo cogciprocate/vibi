@@ -7,13 +7,14 @@
 extern crate glium_text;
 // extern crate image;
 extern crate time;
-extern crate find_folder;
-extern crate num;
-extern crate nalgebra;
+// extern crate find_folder;
+// extern crate num;
+// extern crate nalgebra;
 // extern crate vecmath;
 // extern crate rustc_serialize;
 extern crate rand;
 // #[macro_use] extern crate log;
+// extern crate futures;
 #[macro_use] extern crate colorify;
 extern crate enamel;
 pub extern crate bismit;

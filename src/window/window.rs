@@ -2,6 +2,7 @@ use std::sync::mpsc::{Receiver, Sender, TryRecvError, SendError};
 use time::{self, Timespec, Duration};
 use glium::{self, DisplayBuild, Surface};
 // use cycle::{CyCmd, CyRes, Status as CyStatus, AreaInfo};
+use bismit::{SamplerKind, SamplerBufferKind};
 use bismit::flywheel::{Command, Request, Response, Status, AreaInfo};
 use window::{HexGrid, StatusText};
 use enamel::{ui, Pane, EventRemainder, UiRequest, TextBox, HexButton, ElementState,
@@ -125,7 +126,7 @@ impl<'d> Window<'d> {
             };
         }
 
-        let display: glium::backend::glutin_backend::GlutinFacade = glium::glutin::WindowBuilder::new()
+        let display = glium::glutin::WindowBuilder::new()
             .with_depth_buffer(24)
             .with_dimensions(1400, 800)
             .with_title("Vibi".to_string())
@@ -138,6 +139,7 @@ impl<'d> Window<'d> {
 
         // Hex grid:
         let hex_grid = HexGrid::new(&display, area_info.clone());
+        let grid_dims = hex_grid.buffer.aff_out_grid_dims();
 
         // Status text UI element (fps & grid side):
         let status_text = StatusText::new(&display);
@@ -202,8 +204,6 @@ impl<'d> Window<'d> {
 
             .init();
 
-        let grid_dims = hex_grid.buffer.aff_out_grid_dims();
-
         // Main window data struct:
         let mut window = Window {
             cycle_status: Status::new(),
@@ -242,6 +242,13 @@ impl<'d> Window<'d> {
         handle_init_sends(window.request_tx.send(Request::Status), &mut window);
         handle_init_sends(window.command_tx.send(Command::None), &mut window);
 
+        handle_init_sends(window.request_tx.send(Request::Sampler {
+                area_name: window.area_info.name.clone(),
+                kind: SamplerKind::AxonLayer(None),
+                buffer_kind: SamplerBufferKind::Single
+            }), &mut window);
+        handle_init_sends(window.command_tx.send(Command::None), &mut window);
+
         if window.close_pending { println!("Send error during vibi window init."); }
 
         //////////////////////////////////////////////////////////////////////////
@@ -270,24 +277,26 @@ impl<'d> Window<'d> {
                     break;
                 }
 
-                // If the hex grid buffer is not clear, e.g. the last sample
-                // request is still unwritten, clear it by attempting to write to
-                // the device vertex buffer if it is ready.
-                if !window.hex_grid.buffer.is_clear() {
-                    let is_clear = window.hex_grid.buffer.refresh_vertex_buf();
-                    window.hex_grid.buffer.set_clear(is_clear);
-                }
+                // // If the hex grid buffer is not clear, e.g. the last sample
+                // // request is still unwritten, clear it by attempting to write to
+                // // the device vertex buffer if it is ready.
+                // if !window.hex_grid.buffer.is_clear() {
+                //     let is_clear = window.hex_grid.buffer.refresh_vertex_buf();
+                //     window.hex_grid.buffer.set_clear(is_clear);
+                // }
 
-                // If the hex grid buffer is now clear, send a new sample request
-                // for the next frame.
-                if window.hex_grid.buffer.is_clear() {
-                    // // DEBUG:
-                    // println!("Requesting buffer sample...");
+                // // If the hex grid buffer is now clear, send a new sample request
+                // // for the next frame.
+                // if window.hex_grid.buffer.is_clear() {
+                //     // // DEBUG:
+                //     // println!("Requesting buffer sample...");
 
-                    window.request_tx.send(Request::Sample(window.hex_grid.buffer.cur_slc_range(),
-                        window.hex_grid.buffer.raw_states_vec())).expect("Sample raw states");
-                    window.hex_grid.buffer.set_clear(false);
-                }
+                //     window.request_tx.send(Request::Sample(window.hex_grid.buffer.cur_slc_range(),
+                //         window.hex_grid.buffer.raw_states_vec())).expect("Sample raw states");
+                //     window.hex_grid.buffer.set_clear(false);
+                // }
+
+                window.hex_grid.buffer.refresh_vertex_buf();
             }
 
             if window.cycle_in_progress {
@@ -343,6 +352,9 @@ impl<'d> Window<'d> {
                 self.hex_grid.buffer.set_tract_map(info.tract_map);
             },
             Response::Exiting => self.close_pending = true,
+            Response::Sampler(tract_rx) => {
+                self.hex_grid.buffer.set_tract_buffer(tract_rx);
+            },
             _ => (),
         }
     }

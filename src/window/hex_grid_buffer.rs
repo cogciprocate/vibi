@@ -3,15 +3,17 @@ use std::sync::{Arc, Mutex};
 use std::ops::Range;
 use rand;
 use rand::distributions::{IndependentSample, Range as RandRange};
+// use futures::Future;
 use glium::backend::glutin_backend::{GlutinFacade};
 // use glium::buffer::{Buffer, BufferSlice, BufferMode, BufferType};
 use glium::vertex::{VertexBuffer, VertexBufferSlice};
 use bismit::flywheel::AreaInfo;
 use bismit::map::SliceTractMap;
+use bismit::TractReceiver;
 
 // [NOTE]: This is only one setting dictating how quickly vibi 'appears' to refresh.
-// const SMOOTH_REFRESH: bool = false;
-const SMOOTH_REFRESH: bool = true;
+const SMOOTH_REFRESH: bool = false;
+// const SMOOTH_REFRESH: bool = true;
 
 
 #[derive(Copy, Clone, Debug)]
@@ -31,6 +33,7 @@ implement_vertex!(StateVertex, state);
 #[allow(dead_code)]
 pub struct HexGridBuffer {
     raw_states_vec: Arc<Mutex<Vec<u8>>>,
+    raw_states_rx: Option<TractReceiver>,
     // state_vertices: Vec<StateVertex>,
     // vertex_buf: VertexBuffer<StateVertex>,
     raw_states_buf: VertexBuffer<StateVertex>,
@@ -38,7 +41,7 @@ pub struct HexGridBuffer {
     default_slc_range: Range<usize>,
     cur_slc_range: Range<usize>,
     tract_map: SliceTractMap,
-    is_clear: bool,
+    // is_clear: bool,
 }
 
 impl HexGridBuffer {
@@ -67,23 +70,23 @@ impl HexGridBuffer {
 
         HexGridBuffer {
             raw_states_vec: Arc::new(Mutex::new(raw_states_vec)),
+            raw_states_rx: None,
             // state_vertices: state_vertices,
             // vertex_buf: vertex_buf,
             raw_states_buf: raw_states_buf,
             full_slc_range: full_slc_range.clone(),
-            // default_slc_range: full_slc_range.clone(),
-            default_slc_range: area_info.aff_out_slc_range.clone(),
-            // cur_slc_range: full_slc_range.clone(),
+            default_slc_range: full_slc_range.clone(),
+            // default_slc_range: area_info.aff_out_slc_range.clone(),
             cur_slc_range: full_slc_range.clone(),
             tract_map: area_info.tract_map,
-            is_clear: false,
+            // is_clear: false,
         }
     }
 
-    fn write_to_buf(&self, raw_states: &Vec<u8>) {
-        let vec_ref = unsafe { &*(raw_states as *const Vec<u8>
-            as *const _ as *const Vec<StateVertex>) };
-        self.raw_states_buf.write(&vec_ref);
+    fn write_to_buf(&self, raw_states: &[u8]) {
+        let vec_ref = unsafe { &*(raw_states as *const [u8]
+            as *const _ as *const [StateVertex]) };
+        self.raw_states_buf.write(vec_ref);
     }
 
     /// Refreshes the per-instance data within our vertex buffer.
@@ -98,22 +101,32 @@ impl HexGridBuffer {
     ///
     /// This is an opportunistic refresh, it will sometimes do nothing at all.
     pub fn refresh_vertex_buf(&mut self) -> bool {
-        if SMOOTH_REFRESH {
-            match self.raw_states_vec.lock() {
-                Ok(ref raw_states_vec) => {
-                    self.write_to_buf(raw_states_vec);
-                    true
-                },
-                Err(err) => panic!(err.to_string()),
-            }
+        // if SMOOTH_REFRESH {
+        //     match self.raw_states_vec.lock() {
+        //         Ok(ref raw_states_vec) => {
+        //             self.write_to_buf(raw_states_vec);
+        //             true
+        //         },
+        //         Err(err) => panic!(err.to_string()),
+        //     }
+        // } else {
+        //     match self.raw_states_vec.try_lock() {
+        //         Ok(ref raw_states_vec) => {
+        //             self.write_to_buf(raw_states_vec);
+        //             true
+        //         },
+        //         Err(_) => false,
+        //     }
+        // }
+
+        if let Some(read_buf) = self.raw_states_rx.as_ref().unwrap()
+            .recv(SMOOTH_REFRESH).wait().unwrap()
+        {
+            let read_guard = read_buf.read_u8().wait().unwrap();
+            self.write_to_buf(read_guard.as_slice());
+            true
         } else {
-            match self.raw_states_vec.try_lock() {
-                Ok(ref raw_states_vec) => {
-                    self.write_to_buf(raw_states_vec);
-                    true
-                },
-                Err(_) => false,
-            }
+            false
         }
     }
 
@@ -188,11 +201,15 @@ impl HexGridBuffer {
         &self.tract_map
     }
 
-    pub fn is_clear(&self) -> bool {
-        self.is_clear
-    }
+    // pub fn is_clear(&self) -> bool
+    //     self.is_clear
+    // }
 
-    pub fn set_clear(&mut self, is_clear: bool) {
-        self.is_clear = is_clear;
+    // pub fn set_clear(&mut self, is_clear: bool) {
+    //     self.is_clear = is_clear;
+    // }
+
+    pub fn set_tract_buffer(&mut self, rx: TractReceiver) {
+        self.raw_states_rx = Some(rx);
     }
 }
