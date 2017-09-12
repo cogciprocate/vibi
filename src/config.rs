@@ -1,10 +1,11 @@
 //! Default configuration for vibi used when run as binary.
 
 // use find_folder::Search;
-use bismit::Cortex;
+// use bismit::Cortex;
+use bismit::CorticalAreaSettings;
 use bismit::map::{self, LayerMapKind, LayerMapScheme, LayerMapSchemeList,
     AreaScheme, AreaSchemeList, CellScheme, EncoderScheme, AxonTopology, LayerKind,
-    AxonDomain, InputTrack};
+    AxonDomain, InputTrack, LayerTags};
 use bismit::encode::GlyphSequences;
 // use bismit::proto::{ProtolayerMap, ProtolayerMaps, ProtoareaMaps, Axonal, Spatial, Horizontal,
 //     Cortical, Thalamic, Protocell, Protofilter, Protoinput};
@@ -20,7 +21,7 @@ pub fn define_lm_schemes() -> LayerMapSchemeList {
 
             // .input_layer("motor_ctx", map::NS_IN | LayerTags::uid(MOTOR_UID),
             //     AxonDomain::Local, AxonTopology::Horizontal)
-            .input_layer("motor_ctx", map::DEFAULT,
+            .input_layer("motor_ctx", LayerTags::DEFAULT,
                 AxonDomain::input(&[(InputTrack::Afferent, GlyphSequences::val_lyr_tags())]),
                 AxonTopology::Horizontal
             )
@@ -31,29 +32,35 @@ pub fn define_lm_schemes() -> LayerMapSchemeList {
             //     AxonTopology::Spatial
             // )
 
-            .input_layer("aff_in", map::DEFAULT,
+            .input_layer("aff_in", LayerTags::DEFAULT,
                 AxonDomain::input(&[(InputTrack::Afferent, GlyphSequences::img_lyr_tags())]),
                 AxonTopology::Spatial
             )
-            .input_layer("unused", map::UNUSED, AxonDomain::Local, AxonTopology::Spatial)
-            .layer("mcols", 1, map::DEFAULT, AxonDomain::output(&[map::THAL_SP]),
+            .input_layer("unused", LayerTags::UNUSED, AxonDomain::Local, AxonTopology::Spatial)
+            .layer("mcols", 1, LayerTags::DEFAULT, AxonDomain::output(&[map::THAL_SP]),
                 CellScheme::minicolumn(9999)
             )
-            .layer("iv", 1, map::PSAL, AxonDomain::Local,
+            .layer("iv", 1, LayerTags::PSAL, AxonDomain::Local,
                 CellScheme::spiny_stellate(&[("aff_in", 12, 1)], 4, 400)
             )
-            .layer("iv_inhib", 0, map::DEFAULT, AxonDomain::Local, CellScheme::inhib("iv", 4, 0))
-            .layer("iii", 2, map::PTAL, AxonDomain::Local,
+            .layer("iv_inhib", 0, LayerTags::DEFAULT, AxonDomain::Local,
+                CellScheme::inhib("iv", 4, 0)
+            )
+
+            .layer("iii", 2, LayerTags::PTAL, AxonDomain::Local,
                 CellScheme::pyramidal(&[("iii", 20, 1)], 2, 5, 800)
                     // .apical(&[("eff_in", 22)], 1, 5, 500)
             )
+            .layer("iii_output", 0, LayerTags::DEFAULT, AxonDomain::Local,
+                CellScheme::pyr_outputter("iii", 0)
+            )
         )
         .lmap(LayerMapScheme::new("v0_lm", LayerMapKind::Subcortical)
-            .layer("horiz_ns", 1, map::DEFAULT,
+            .layer("horiz_ns", 1, LayerTags::DEFAULT,
                 AxonDomain::output(GlyphSequences::val_lyr_tags()),
                 LayerKind::Axonal(AxonTopology::Horizontal))
 
-            .layer("spatial", 1, map::DEFAULT,
+            .layer("spatial", 1, LayerTags::DEFAULT,
                 AxonDomain::output(GlyphSequences::img_lyr_tags()),
                 LayerKind::Axonal(AxonTopology::Spatial))
         )
@@ -90,8 +97,8 @@ pub fn define_a_schemes() -> AreaSchemeList {
         // )
         .area(AreaScheme::new("v1", "v1_lm", AREA_SIDE)
             .eff_areas(vec!["v0"])
-            .filter_chain(InputTrack::Afferent, GlyphSequences::img_lyr_tags(),
-                &[("retina", None)])
+            // .filter_chain(InputTrack::Afferent, GlyphSequences::img_lyr_tags(),
+            //     &[("retina", None)])
         )
 
         // .area("b1", "visual", AREA_SIDE,
@@ -153,22 +160,17 @@ pub fn define_a_schemes() -> AreaSchemeList {
 
 }
 
-#[allow(unused_variables)]
-pub fn disable_stuff(cortex: &mut Cortex) {
+pub fn ca_settings() -> CorticalAreaSettings {
+    #[allow(unused_imports)]
+    use bismit::ocl::builders::BuildOpt;
 
-    /* ######################### */
-    /* ##### DISABLE STUFF ##### */
-    /* ######################### */
-    // for (_, area) in &mut cortex.areas {
-    //     // area.psal_mut().dens_mut().syns_mut().set_offs_to_zero_temp();
-    //     // area.bypass_inhib = true;
-    //     // area.bypass_filters = true;
-    //     // area.disable_pyrs = true;
-
-    //     // area.disable_ssts = true;
-    //     // area.disable_mcols = true;
-
-    //     // area.disable_learning = true;
-    //     // area.disable_regrowth = true;
-    // }
+    CorticalAreaSettings::new()
+        // .bypass_inhib()
+        // .bypass_filters()
+        // .disable_pyrs()
+        // .disable_ssts()
+        // .disable_mcols()
+        .disable_regrowth()
+        // .disable_learning()
+        // .build_opt(BuildOpt::cmplr_def("DEBUG_SMOOTHER_OVERLAP", 1))
 }

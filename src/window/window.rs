@@ -91,7 +91,6 @@ impl WindowStats {
 }
 
 
-
 // [FIXME]: Needs a rename. Anything containing 'Window' is misleading (Pane is the window).
 pub struct Window<'d> {
     pub cycle_status: Status,
@@ -229,7 +228,7 @@ impl<'d> Window<'d> {
         //     mt = "    ");
 
         // Returns true if any send errors are received.
-        fn handle_init_sends<T>(res: Result<(), SendError<T>>, window: &mut Window ) {
+        fn handle_init_sends<T>(res: Result<(), SendError<T>>, window: &mut Window) {
             if let Err(_) = res {
                 window.close_pending = window.close_pending & true;
             }
@@ -239,15 +238,19 @@ impl<'d> Window<'d> {
         handle_init_sends(window.request_tx.send(Request::CurrentIter), &mut window);
         handle_init_sends(window.command_tx.send(Command::None), &mut window);
         window.recv_cycle_results(true);
+
         handle_init_sends(window.request_tx.send(Request::Status), &mut window);
         handle_init_sends(window.command_tx.send(Command::None), &mut window);
+        window.recv_cycle_results(true);
 
+        // AxonSpace -> HexGridBuffer sampler:
         handle_init_sends(window.request_tx.send(Request::Sampler {
                 area_name: window.area_info.name.clone(),
                 kind: SamplerKind::AxonLayer(None),
                 buffer_kind: SamplerBufferKind::Single
             }), &mut window);
         handle_init_sends(window.command_tx.send(Command::None), &mut window);
+        window.recv_cycle_results(true);
 
         if window.close_pending { println!("Send error during vibi window init."); }
 
@@ -276,28 +279,10 @@ impl<'d> Window<'d> {
                     window.command_tx.send(Command::Exit).ok();
                     break;
                 }
-
-                // // If the hex grid buffer is not clear, e.g. the last sample
-                // // request is still unwritten, clear it by attempting to write to
-                // // the device vertex buffer if it is ready.
-                // if !window.hex_grid.buffer.is_clear() {
-                //     let is_clear = window.hex_grid.buffer.refresh_vertex_buf();
-                //     window.hex_grid.buffer.set_clear(is_clear);
-                // }
-
-                // // If the hex grid buffer is now clear, send a new sample request
-                // // for the next frame.
-                // if window.hex_grid.buffer.is_clear() {
-                //     // // DEBUG:
-                //     // println!("Requesting buffer sample...");
-
-                //     window.request_tx.send(Request::Sample(window.hex_grid.buffer.cur_slc_range(),
-                //         window.hex_grid.buffer.raw_states_vec())).expect("Sample raw states");
-                //     window.hex_grid.buffer.set_clear(false);
-                // }
-
-                window.hex_grid.buffer.refresh_vertex_buf();
             }
+
+            // AxonSpace -> HexGridBuffer sampler:
+            window.hex_grid.buffer.refresh_vertex_buf();
 
             if window.cycle_in_progress {
                 // Check current iterator for next frame:
@@ -465,7 +450,6 @@ impl<'d> Window<'d> {
             },
             _ => (),
         }
-
         // println!("WINDOW::HANDLE_MOUSE_INPUT(): focus: {}, dragging: {:?}", self.has_mouse_focus, self.dragging);
     }
 }

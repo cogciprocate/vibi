@@ -39,26 +39,26 @@ fn define_lm_schemes() -> LayerMapSchemeList {
 
     LayerMapSchemeList::new()
         .lmap(LayerMapScheme::new("visual", LayerMapKind::Cortical)
-            .input_layer("aff_in", map::DEFAULT,
+            .input_layer("aff_in", LayerTags::DEFAULT,
                 AxonDomain::input(&[(InputTrack::Afferent, &[map::THAL_SP, at0])]),
                 // AxonTopology::Spatial
                 AxonTopology::Horizontal
             )
-            .layer("iv", 1, map::PSAL, AxonDomain::Local,
+            .layer("iv", 1, LayerTags::PSAL, AxonDomain::Local,
                 CellScheme::spiny_stellate(&[("aff_in", 16, 1)], 5, 200)
             )
-            .layer("iv_inhib", 0, map::DEFAULT, AxonDomain::Local, CellScheme::inhib("iv", 4, 0))
-            .layer("iv_smooth", 0, map::DEFAULT, AxonDomain::Local, CellScheme::smooth("iv", 4, 1))
-            .layer("iii", 2, map::PTAL, AxonDomain::Local,
+            .layer("iv_inhib", 0, LayerTags::DEFAULT, AxonDomain::Local, CellScheme::inhib("iv", 4, 0))
+            .layer("iv_smooth", 0, LayerTags::DEFAULT, AxonDomain::Local, CellScheme::smooth("iv", 4, 1))
+            .layer("iii", 2, LayerTags::PTAL, AxonDomain::Local,
                 CellScheme::pyramidal(&[("iii", 20, 1)], 1, 5, 200)
                     // .apical(&[("eff_in", 22)], 1, 5, 500)
             )
-            .layer("mcols", 1, map::DEFAULT, AxonDomain::output(&[map::THAL_SP]),
+            .layer("mcols", 1, LayerTags::DEFAULT, AxonDomain::output(&[map::THAL_SP]),
                 CellScheme::minicolumn("iv", "iii", 9999)
             )
         )
         .lmap(LayerMapScheme::new("v0_lm", LayerMapKind::Subcortical)
-            .layer("external", 1, map::DEFAULT,
+            .layer("external", 1, LayerTags::DEFAULT,
                 AxonDomain::output(&[map::THAL_SP, at0]),
                 LayerKind::Axonal(AxonTopology::Spatial))
             // .layer("horiz_ns", 1, map::NS_OUT | LayerTags::uid(MOTOR_UID),
