@@ -287,9 +287,6 @@ impl<'d> Window<'d> {
             if window.cycle_in_progress {
                 // Check current iterator for next frame:
                 window.request_tx.send(Request::CurrentIter).unwrap();
-
-                // Send a no-op to flush request buffer if necessary:
-                window.command_tx.send(Command::None).unwrap();
             }
 
             // Increment our counters:

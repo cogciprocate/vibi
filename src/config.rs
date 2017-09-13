@@ -97,8 +97,8 @@ pub fn define_a_schemes() -> AreaSchemeList {
         // )
         .area(AreaScheme::new("v1", "v1_lm", AREA_SIDE)
             .eff_areas(vec!["v0"])
-            // .filter_chain(InputTrack::Afferent, GlyphSequences::img_lyr_tags(),
-            //     &[("retina", None)])
+            .filter_chain(InputTrack::Afferent, GlyphSequences::img_lyr_tags(),
+                &[("retina", None)])
         )
 
         // .area("b1", "visual", AREA_SIDE,

@@ -68,6 +68,8 @@ impl HexGridBuffer {
     ///
     /// Only refreshes if fresh data is available.
     pub fn refresh_vertex_buf(&mut self) {
+        // The future returned by `.recv(false)` will always immediately
+        // resolve without blocking.
         if let Some(read_buf) = self.raw_states_rx.as_ref().unwrap()
                 .recv(false).wait().unwrap()
         {
