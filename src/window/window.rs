@@ -330,7 +330,8 @@ impl<'d> Window<'d> {
             Response::AreaInfo(info) => {
                 let info = *info;
                 self.area_info = info.clone();
-                self.hex_grid.buffer.set_default_slc_range(info.aff_out_slc_range.clone());
+                // FIXME: Reimplement handling of switching visible slices.
+                // self.hex_grid.buffer.set_default_slc_ids(info.aff_out_slc_ids.clone());
                 self.hex_grid.buffer.set_tract_map(info.tract_map);
             },
             Response::Exiting => self.close_pending = true,

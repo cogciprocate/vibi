@@ -4,7 +4,7 @@ use std::sync::mpsc::{Sender, Receiver};
 use std::sync::{Arc, Mutex};
 use std::str::{FromStr};
 use time::{self, Timespec, Duration};
-use bismit::{Cortex, OclEvent, LayerMapSchemeList, AreaSchemeList, CorticalAreaSettings};
+use bismit::{Cortex, /*OclEvent,*/ LayerMapSchemeList, AreaSchemeList, CorticalAreaSettings};
 // use bismit::map::SliceTractMap;
 
 pub use bismit::flywheel::AreaInfo;
@@ -173,15 +173,16 @@ impl CycleLoop {
                     Ok(cyctl) => match cyctl {
                         CyCtl::Iterate(i) => ri.cycle_iters = i,
                         CyCtl::Exit => break,
-                        CyCtl::Sample(range, buf) => {
-                            refresh_hex_grid_buf(&ri, range, buf);
-                            continue;
+                        CyCtl::Sample(_range, _buf) => {
+                            // refresh_hex_grid_buf(&ri, range, buf);
+                            unimplemented!("Disabled when tract output was redesigned.");
+                            // continue;
                         },
                         CyCtl::RequestCurrentAreaInfo => {
                             result_tx.send(CyRes::AreaInfo(Box::new(AreaInfo {
                                 name: ri.area_name.to_string(),
-                                aff_out_slc_range: ri.cortex.areas().by_key(ri.area_name.as_str())
-                                    .unwrap().area_map().aff_out_slc_range(),
+                                aff_out_slc_ids: ri.cortex.areas().by_key(ri.area_name.as_str())
+                                    .unwrap().area_map().aff_out_slc_ids(),
                                 tract_map: ri.cortex.areas().by_key(ri.area_name.as_str())
                                     .unwrap().axn_tract_map(),
                             }))).expect("Error sending area info.");
@@ -239,20 +240,20 @@ impl CycleLoop {
 }
 
 
-fn refresh_hex_grid_buf(ri: &RunInfo, slc_range: Range<usize>, buf: Arc<Mutex<Vec<u8>>>)
-        -> Option<OclEvent>
-{
-    let axn_range = ri.cortex.areas().by_key(ri.area_name.as_str()).unwrap().axn_tract_map()
-        .axn_id_range(slc_range.clone());
+// fn refresh_hex_grid_buf(ri: &RunInfo, slc_range: Range<usize>, buf: Arc<Mutex<Vec<u8>>>)
+//         -> Option<OclEvent>
+// {
+//     let axn_range = ri.cortex.areas().by_key(ri.area_name.as_str()).unwrap().axn_tract_map()
+//         .axn_id_range(slc_range.clone());
 
-    // match buf.try_lock() {
-    match buf.lock() {
-        // Ok(ref mut b) => ri.cortex.area(&ri.area_name).sample_aff_out(&mut b[range]),
-        Ok(ref mut b) => Some(ri.cortex.areas().by_key(ri.area_name.as_str()).unwrap()
-            .sample_axn_slc_range(slc_range, &mut b[axn_range])),
-        Err(_) => None,
-    }
-}
+//     // match buf.try_lock() {
+//     match buf.lock() {
+//         // Ok(ref mut b) => ri.cortex.area(&ri.area_name).sample_aff_out(&mut b[range]),
+//         Ok(ref mut b) => Some(ri.cortex.areas().by_key(ri.area_name.as_str()).unwrap()
+//             .sample_axn_slc_range(slc_range, &mut b[axn_range])),
+//         Err(_) => None,
+//     }
+// }
 
 
 fn loop_cycles(ri: &mut RunInfo, control_rx: &Receiver<CyCtl>, result_tx: &mut Sender<CyRes>)
@@ -341,10 +342,11 @@ fn loop_cycles(ri: &mut RunInfo, control_rx: &Receiver<CyCtl>, result_tx: &mut S
                 CyCtl::RequestCurrentIter => result_tx.send(
                     CyRes::CurrentIter(ri.status.cur_cycle + 1)).unwrap(),
                 // If a new sample has been requested, fulfill it:
-                CyCtl::Sample(range, buf) => {
+                CyCtl::Sample(_range, _buf) => {
                     // println!("###### CycleLoop::run(): CANDIDATE 2 (RUNTIME): range: {:?}",
                     //     range);
-                    refresh_hex_grid_buf(&ri, range, buf);
+                    // refresh_hex_grid_buf(&ri, range, buf);
+                    unimplemented!("Disabled when tract output was redesigned.");
                 },
                 CyCtl::Stop => {
                     // println!("\nSTOP RECIEVED!\n");
