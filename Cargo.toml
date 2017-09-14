@@ -10,8 +10,8 @@ path = "../bismit"
 # git = "https://github.com/cogciprocate/bismit.git"
 
 [dependencies.enamel]
-# path = "/home/nick/projects/enamel"
-git = "https://github.com/cogciprocate/enamel.git"
+# git = "https://github.com/cogciprocate/enamel.git"
+path = "../enamel"
 
 [dependencies.time]
 git = "https://github.com/rust-lang/time.git"
@@ -20,7 +20,9 @@ git = "https://github.com/rust-lang/time.git"
 rand = "*"
 # glium = "0.15"
 glium = "0.14"
+# glium = "*"
 # glium_text = "0.11"
+# glium_text = "0.9"
 glium_text = "0.9"
 # image = "*"
 find_folder = "*"

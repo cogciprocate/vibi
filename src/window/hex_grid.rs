@@ -1,5 +1,6 @@
 #![allow(dead_code, unused_variables)]
 // use std::sync::mpsc::Sender;
+// use glium::backend::glutin::{GlutinFacade};
 use glium::backend::glutin_backend::{GlutinFacade};
 use glium::{self, Surface, Program, DrawParameters, VertexBuffer, IndexBuffer};
 use glium::glutin::{ElementState, MouseButton};
@@ -254,7 +255,7 @@ static vertex_shader_src: &'static str = r#"
         v_color = color;
         v_position = gl_Position.xyz / gl_Position.w;
         v_state = state;
-    };
+    }
 "#;
 
 
@@ -316,7 +317,7 @@ static fragment_shader_src: &'static str = r#"
 
         color = vec4((ambient_color * tile_color) + diffuse_ampl
             * diffuse_color + specular * specular_color, 1.0);
-    };
+    }
 "#;
 
 // MISC CRAP:

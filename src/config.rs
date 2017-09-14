@@ -170,7 +170,7 @@ pub fn ca_settings() -> CorticalAreaSettings {
         // .disable_pyrs()
         // .disable_ssts()
         // .disable_mcols()
-        .disable_regrowth()
+        // .disable_regrowth()
         // .disable_learning()
         // .build_opt(BuildOpt::cmplr_def("DEBUG_SMOOTHER_OVERLAP", 1))
 }

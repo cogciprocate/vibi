@@ -1,6 +1,6 @@
 use std::sync::mpsc::{Receiver, Sender, TryRecvError, SendError};
 use time::{self, Timespec, Duration};
-use glium::{self, DisplayBuild, Surface};
+use glium::{self, Surface, DisplayBuild};
 // use cycle::{CyCmd, CyRes, Status as CyStatus, AreaInfo};
 use bismit::{SamplerKind, SamplerBufferKind};
 use bismit::flywheel::{Command, Request, Response, Status, AreaInfo};
@@ -124,6 +124,16 @@ impl<'d> Window<'d> {
                 _ => (),
             };
         }
+
+        // let mut events_loop = glutin::EventsLoop::new();
+        // let window = glutin::WindowBuilder::new()
+        //     .with_dimensions(1600, 1200)
+        //     .with_title("Vibi".to_string());
+        // let context = glutin::ContextBuilder::new()
+            // .with_depth_buffer(24)
+            // .with_vsync(true)
+            // .with_multisampling(8);
+        // let display = glium::Display::new(window, context, &events_loop).unwrap();
 
         let display = glium::glutin::WindowBuilder::new()
             .with_depth_buffer(24)
