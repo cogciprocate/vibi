@@ -10,8 +10,8 @@ path = "../bismit"
 # git = "https://github.com/cogciprocate/bismit.git"
 
 [dependencies.enamel]
-# git = "https://github.com/cogciprocate/enamel.git"
-path = "../enamel"
+git = "https://github.com/cogciprocate/enamel.git"
+# path = "../enamel"
 
 [dependencies.time]
 git = "https://github.com/rust-lang/time.git"

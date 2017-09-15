@@ -141,28 +141,30 @@ impl<'d> HexGrid<'d> {
     // [TODO]: Simplify this mess and try to get it more accurate.
     pub fn update_cam_pos(&mut self) {
         let aspect_ratio = self.surface_dims.1 as f32 / self.surface_dims.0 as f32;
-        let slc_count = self.buffer.cur_slc_range().len();
+        let slc_count = self.buffer.cur_slc_range().len() as f32;
 
-        let x_ofs = 75.0;
+        let x_ofs = 225.;
         let cam_x_pos = self.cam_pos_norm[0].mul_add(-1000.0, x_ofs);
 
-        let y_ofs = -0.0;
+        let y_ofs = 120.;
         let cam_y_pos = self.cam_pos_norm[1].mul_add(1000.0, y_ofs);
 
-        let z_ofs = -0.01;
+        let z_ofs = -0.01 + -200.;
         let cam_z_pos = self.cam_pos_norm[2].mul_add(-53.0, z_ofs);
 
         self.cam_pos_raw = [cam_x_pos, cam_y_pos, cam_z_pos];
         // println!("CAMERA POSITION: norm: {:?}, raw: {:?}", self.cam_pos_norm, self.cam_pos_raw);
     }
 
+    // TODO: Add scroll/zoom speed adjustment.
     pub fn move_camera(&mut self, delta: (i32, i32)) {
-        let delta_x = delta.0 as f32 / self.surface_dims.0 as f32;
+        let adjustment_factor = 1.0;
+        let delta_x = adjustment_factor * delta.0 as f32 / self.surface_dims.0 as f32;
         let new_cam_x = self.cam_pos_norm[0] + delta_x;
         let new_x_valid = (new_cam_x >= -1.0 && new_cam_x <= 1.0) as i32 as f32;
         self.cam_pos_norm[0] = new_x_valid.mul_add(delta_x, self.cam_pos_norm[0]);
 
-        let delta_y = delta.1 as f32 / self.surface_dims.1 as f32;
+        let delta_y = adjustment_factor * delta.1 as f32 / self.surface_dims.1 as f32;
         let new_cam_y = self.cam_pos_norm[1] + delta_y;
         let new_y_valid = (new_cam_y >= -1.0 && new_cam_y <= 1.0) as i32 as f32;
         self.cam_pos_norm[1] = new_y_valid.mul_add(delta_y, self.cam_pos_norm[1]);
@@ -171,7 +173,8 @@ impl<'d> HexGrid<'d> {
     }
 
     pub fn zoom_camera(&mut self, delta: f32) {
-        let delta_z = delta * -0.001;
+        let zoom_adjustment_factor = 10.0;
+        let delta_z = (delta * -0.001) * zoom_adjustment_factor;
         let new_cam_z = self.cam_pos_norm[2] + delta_z;
         let new_z_valid = (new_cam_z >= 0.00 && new_cam_z <= 10.00) as i32 as f32;
         self.cam_pos_norm[2] = new_z_valid.mul_add(delta_z, self.cam_pos_norm[2]);

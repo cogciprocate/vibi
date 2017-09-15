@@ -4,7 +4,7 @@ version = "0.1.0"
 dependencies = [
  "bismit 0.0.1",
  "colorify 0.2.2 (registry+https://github.com/rust-lang/crates.io-index)",
- "enamel 0.3.0",
+ "enamel 0.3.0 (git+https://github.com/cogciprocate/enamel.git)",
  "find_folder 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "futures 0.1.15 (registry+https://github.com/rust-lang/crates.io-index)",
  "glium 0.14.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -72,7 +72,7 @@ dependencies = [
  "futures 0.1.15 (registry+https://github.com/rust-lang/crates.io-index)",
  "libc 0.2.30 (registry+https://github.com/rust-lang/crates.io-index)",
  "num 0.1.40 (registry+https://github.com/rust-lang/crates.io-index)",
- "ocl 0.15.0",
+ "ocl 0.15.0 (git+https://github.com/cogciprocate/ocl)",
  "rand 0.3.16 (registry+https://github.com/rust-lang/crates.io-index)",
  "time 0.1.38 (registry+https://github.com/rust-lang/crates.io-index)",
  "tokio-core 0.1.9 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -139,7 +139,7 @@ dependencies = [
 
 [[package]]
 name = "cl-sys"
-version = "0.3.1"
+version = "0.3.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "libc 0.2.30 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -267,6 +267,7 @@ dependencies = [
 [[package]]
 name = "enamel"
 version = "0.3.0"
+source = "git+https://github.com/cogciprocate/enamel.git#822d34e04bf8bfb95a0d761b774c6acb652d326f"
 dependencies = [
  "find_folder 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "glium 0.14.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -662,6 +663,7 @@ dependencies = [
 [[package]]
 name = "ocl"
 version = "0.15.0"
+source = "git+https://github.com/cogciprocate/ocl#8bc2d9028f0fed2ef310881d099bc874430f680d"
 dependencies = [
  "futures 0.1.15 (registry+https://github.com/rust-lang/crates.io-index)",
  "libc 0.2.30 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -677,7 +679,7 @@ version = "0.6.0"
 source = "git+https://github.com/cogciprocate/ocl-core#cb2bd713d6d97899296ef995b58a20509359c2a2"
 dependencies = [
  "bitflags 0.8.2 (registry+https://github.com/rust-lang/crates.io-index)",
- "cl-sys 0.3.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "cl-sys 0.3.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "enum_primitive 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "libc 0.2.30 (registry+https://github.com/rust-lang/crates.io-index)",
  "num 0.1.40 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -1072,7 +1074,7 @@ dependencies = [
 "checksum bytes 0.4.5 (registry+https://github.com/rust-lang/crates.io-index)" = "d828f97b58cc5de3e40c421d0cf2132d6b2da4ee0e11b8632fa838f0f9333ad6"
 "checksum cfg-if 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)" = "d4c819a1287eb618df47cc647173c5c4c66ba19d888a6e50d605672aed3140de"
 "checksum cgl 0.1.5 (registry+https://github.com/rust-lang/crates.io-index)" = "8bdd78cca65a739cb5475dbf6b6bbb49373e327f4a6f2b499c0f98632df38c10"
-"checksum cl-sys 0.3.1 (registry+https://github.com/rust-lang/crates.io-index)" = "1c21e00475720bf7e43b4a93da77252da069f6b87da239376ab140255797543d"
+"checksum cl-sys 0.3.2 (registry+https://github.com/rust-lang/crates.io-index)" = "16106e8bd39ac8fa96596a23c07cf3bf2d3cad770b96fd4fca92afe95feca5bb"
 "checksum cocoa 0.3.3 (registry+https://github.com/rust-lang/crates.io-index)" = "3afe4613f57a171039a98db1773f5840b5743cf85aaf03afb65ddfade4f4a9db"
 "checksum colorify 0.2.2 (registry+https://github.com/rust-lang/crates.io-index)" = "3eb006d3382cc3ca88eecfb3e2f22a8bd5d246507a514d5916c17cd40ad01c59"
 "checksum conv 0.3.3 (registry+https://github.com/rust-lang/crates.io-index)" = "78ff10625fd0ac447827aa30ea8b861fead473bb60aeb73af6c1c58caf0d1299"
@@ -1089,6 +1091,7 @@ dependencies = [
 "checksum dlib 0.3.1 (registry+https://github.com/rust-lang/crates.io-index)" = "148bce4ce1c36c4509f29cb54e62c2bd265551a9b00b38070fad551a851866ec"
 "checksum dtoa 0.4.2 (registry+https://github.com/rust-lang/crates.io-index)" = "09c3753c3db574d215cba4ea76018483895d7bff25a31b49ba45db21c48e50ab"
 "checksum dwmapi-sys 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)" = "07c4c7cc7b396419bc0a4d90371d0cee16cb5053b53647d287c0b728000c41fe"
+"checksum enamel 0.3.0 (git+https://github.com/cogciprocate/enamel.git)" = "<none>"
 "checksum enum_primitive 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)" = "be4551092f4d519593039259a9ed8daedf0da12e5109c5280338073eaeb81180"
 "checksum find_folder 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)" = "9f6d018fb95a0b59f854aed68ecd96ce2b80af7911b92b1fed3c4b1fa516b91b"
 "checksum freetype-sys 0.3.1 (registry+https://github.com/rust-lang/crates.io-index)" = "d60fcdf44a1f63d83cbf93d5c41b247feb11f1172c4f2b3f773eb46deaf6ec4e"
@@ -1131,6 +1134,7 @@ dependencies = [
 "checksum num-rational 0.1.39 (registry+https://github.com/rust-lang/crates.io-index)" = "288629c76fac4b33556f4b7ab57ba21ae202da65ba8b77466e6d598e31990790"
 "checksum num-traits 0.1.40 (registry+https://github.com/rust-lang/crates.io-index)" = "99843c856d68d8b4313b03a17e33c4bb42ae8f6610ea81b28abe076ac721b9b0"
 "checksum objc 0.2.2 (registry+https://github.com/rust-lang/crates.io-index)" = "877f30f37acef6749b1841cceab289707f211aecfc756553cd63976190e6cc2e"
+"checksum ocl 0.15.0 (git+https://github.com/cogciprocate/ocl)" = "<none>"
 "checksum ocl-core 0.6.0 (git+https://github.com/cogciprocate/ocl-core)" = "<none>"
 "checksum ocl-core-vector 0.1.0 (git+https://github.com/cogciprocate/ocl-core)" = "<none>"
 "checksum odds 0.2.25 (registry+https://github.com/rust-lang/crates.io-index)" = "c3df9b730298cea3a1c3faa90b7e2f9df3a9c400d0936d6015e6165734eefcba"
