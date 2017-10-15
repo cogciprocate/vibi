@@ -3,7 +3,7 @@
 // use glium::backend::glutin::{GlutinFacade};
 use glium::backend::glutin_backend::{GlutinFacade};
 use glium::{self, Surface, Program, DrawParameters, VertexBuffer, IndexBuffer};
-use glium::glutin::{ElementState, MouseButton};
+// use glium::glutin::{ElementState, MouseButton};
 // use vecmath;
 use enamel::MouseState;
 use bismit::flywheel::AreaInfo;
@@ -182,13 +182,13 @@ impl<'d> HexGrid<'d> {
         self.update_cam_pos();
     }
 
-    pub fn handle_mouse_input(&mut self, button_state: ElementState, button: MouseButton) {
+    // pub fn handle_mouse_input(&mut self, button_state: ElementState, button: MouseButton) {
 
-    }
+    // }
 
-    pub fn handle_mouse_moved(&mut self, mouse_state: &MouseState) {
+    // pub fn handle_mouse_moved(&mut self, mouse_state: &MouseState) {
 
-    }
+    // }
 
     pub fn camera_pos(&self) -> [f32; 3] {
         self.cam_pos_norm
