@@ -76,7 +76,8 @@ pub fn define_a_schemes() -> AreaSchemeList {
 
     AreaSchemeList::new()
         // .area_ext("v0", "v0_lm", ENCODE_SIZE,
-        //     EncoderScheme::GlyphSequences { seq_lens: (5, 5), seq_count: 10, scale: 1.4, hrz_dims: (16, 16) },
+        //     EncoderScheme::GlyphSequences { seq_lens: (5, 5), seq_count: 10,
+        //    scale: 1.4, hrz_dims: (16, 16) },
         //     None,
         //     None,
         // )

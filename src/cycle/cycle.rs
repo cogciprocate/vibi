@@ -138,7 +138,12 @@ impl CycleLoop {
     pub fn run(autorun_iters: u32, control_rx: Receiver<CyCtl>, mut result_tx: Sender<CyRes>,
                 lm_schemes: LayerMapSchemeList, a_schemes: AreaSchemeList,
                 ca_settings: Option<CorticalAreaSettings>, area_name: String) -> bool {
-        let cortex = Cortex::new(lm_schemes, a_schemes, ca_settings);
+        let mut builder = Cortex::builder(lm_schemes, a_schemes);
+        if let Some(ca_settings) = ca_settings {
+            builder = builder.ca_settings(ca_settings);
+        }
+
+        let cortex = builder.build().unwrap();
         // config::disable_stuff(&mut cortex);
 
         // let area_name = "m1".to_owned();

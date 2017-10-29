@@ -5,7 +5,7 @@ use glium::backend::glutin_backend::{GlutinFacade};
 use glium::{self, Surface, Program, DrawParameters, VertexBuffer, IndexBuffer};
 // use glium::glutin::{ElementState, MouseButton};
 // use vecmath;
-use enamel::MouseState;
+// use enamel::MouseState;
 use bismit::flywheel::AreaInfo;
 use bismit::map::SliceTractMap;
 use window::HexGridBuffer;
