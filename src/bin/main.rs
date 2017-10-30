@@ -23,9 +23,7 @@ fn main() {
     let th_flywheel = thread::Builder::new().name("flywheel".to_string()).spawn(move || {
         // let mut flywheel = Flywheel::from_blueprint(config::define_lm_schemes(),
         //     config::define_a_schemes(), Some(config::ca_settings()), command_rx, "v1");
-        // let cortex = Cortex::builder(config::define_lm_schemes(), config::define_a_schemes())
-        //     .ca_settings(config::ca_settings())
-        //     .build().unwrap();
+
         let layer_map_schemes = config::define_lm_schemes();
         let area_schemes = config::define_a_schemes();
 
