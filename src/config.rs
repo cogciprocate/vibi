@@ -1,14 +1,11 @@
 //! Default configuration for vibi used when run as binary.
 
-// use find_folder::Search;
-// use bismit::Cortex;
 use bismit::CorticalAreaSettings;
 use bismit::map::{self, LayerMapKind, LayerMapScheme, LayerMapSchemeList,
     AreaScheme, AreaSchemeList, CellScheme, EncoderScheme, AxonTopology, LayerKind,
     AxonDomain, InputTrack, LayerTags};
 use bismit::encode::GlyphSequences;
-// use bismit::proto::{ProtolayerMap, ProtolayerMaps, ProtoareaMaps, Axonal, Spatial, Horizontal,
-//     Cortical, Thalamic, Protocell, Protofilter, Protoinput};
+
 
 /* Eventually move defines to a config file or some such */
 pub fn define_lm_schemes() -> LayerMapSchemeList {

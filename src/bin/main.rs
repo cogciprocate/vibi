@@ -4,7 +4,7 @@ extern crate time;
 extern crate vibi;
 
 use vibi::{window, config};
-use vibi::bismit::{Cortex, Flywheel, Subcortex, InputGenerator};
+use vibi::bismit::{Cortex, Flywheel, /*Subcortex,*/ InputGenerator};
 // use vibi::bismit::subcortex::{};
 
 
@@ -21,19 +21,15 @@ fn main() {
     let (response_tx, response_rx) = mpsc::channel();
 
     let th_flywheel = thread::Builder::new().name("flywheel".to_string()).spawn(move || {
-        // let mut flywheel = Flywheel::from_blueprint(config::define_lm_schemes(),
-        //     config::define_a_schemes(), Some(config::ca_settings()), command_rx, "v1");
-
         let layer_map_schemes = config::define_lm_schemes();
         let area_schemes = config::define_a_schemes();
 
-        let input_gen = InputGenerator::new(&layer_map_schemes[&area_schemes["v0"].layer_map_name()],
-            &area_schemes["v0"]).unwrap();
-        let subcortex = Subcortex::new().nucleus(input_gen);
+        let input_gen = InputGenerator::new(&layer_map_schemes, &area_schemes, "v0").unwrap();
+        // let subcortex = Subcortex::new().nucleus(input_gen);
 
         let cortex = Cortex::builder(layer_map_schemes, area_schemes)
             .ca_settings(config::ca_settings())
-            .sub(subcortex)
+            .subcortical_nucleus(input_gen)
             .build().unwrap();
 
         let mut flywheel = Flywheel::new(cortex, command_rx, "v1");

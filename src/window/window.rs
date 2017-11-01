@@ -112,10 +112,14 @@ pub struct Window<'d> {
 impl<'d> Window<'d> {
     pub fn open(command_tx: Sender<Command>, request_tx: Sender<Request>,
                 response_rx: Receiver<Response>) {
+
+        // println!("VIBI: 0");
+
         // Get initial area info:
         request_tx.send(Request::AreaInfo).expect("Error requesting current area name");
         let area_info;
         loop {
+            // println!("VIBI: 800");
             match response_rx.recv().expect("Current area name reception error") {
                 Response::AreaInfo(info) => {
                     area_info = *info;
@@ -124,6 +128,8 @@ impl<'d> Window<'d> {
                 _ => (),
             };
         }
+
+        // println!("VIBI: 1000");
 
         // let mut events_loop = glutin::EventsLoop::new();
         // let window = glutin::WindowBuilder::new()
@@ -171,10 +177,12 @@ impl<'d> Window<'d> {
 
             .element(TextBox::new(ui::BOTTOM_RIGHT, (-0.385, 0.35), 4.45,
                     "Iters:", ui::C_ORANGE, "1m")
-                .keyboard_event_handler(Box::new(|key_state, vk_code, kb_state, text_string| {
+                .keyboard_event_handler(Box::new(|key_state, vk_code, kb_state,
+                    text_string| {
                         ui::key_into_string(key_state, vk_code, kb_state, text_string);
 
-                        let parsed = text_string.trim().replace("k","000").replace("m","000000").parse();
+                        let parsed = text_string.trim().replace("k","000")
+                            .replace("m","000000").parse();
 
                         let remainder = match parsed {
                             Ok(i) => WindowCtl::SetCyIters(i),
