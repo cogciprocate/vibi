@@ -1,7 +1,7 @@
 #![allow(dead_code, unused_variables)]
 // use std::sync::mpsc::Sender;
 // use glium::backend::glutin::{GlutinFacade};
-use glium::backend::glutin_backend::{GlutinFacade};
+use glium::backend::glutin::Display;
 use glium::{self, Surface, Program, DrawParameters, VertexBuffer, IndexBuffer};
 // use glium::glutin::{ElementState, MouseButton};
 // use vecmath;
@@ -35,7 +35,7 @@ pub struct HexGrid<'d> {
 }
 
 impl<'d> HexGrid<'d> {
-    pub fn new(display: &GlutinFacade, area_info: AreaInfo) -> HexGrid {
+    pub fn new(display: &Display, area_info: AreaInfo) -> HexGrid {
         // The greatest hexagon ever made (o rly?):
         let vertices = hex_vbo(display);
         let indices = hex_ibo(display);
@@ -335,7 +335,7 @@ static fragment_shader_src: &'static str = r#"
 
 
 // [FIXME]: CONVERT TO TRIANGLE STRIPS
-fn hex_vbo(display: &GlutinFacade) -> glium::vertex::VertexBuffer<Vertex> {
+fn hex_vbo(display: &Display) -> glium::vertex::VertexBuffer<Vertex> {
     let a = 0.5 / 10.0f32;
     let s = 0.57735026919 / 10.0f32; // 1/sqrt(3)
     let hs = s / 2.0f32;
@@ -352,7 +352,7 @@ fn hex_vbo(display: &GlutinFacade) -> glium::vertex::VertexBuffer<Vertex> {
 }
 
 // [FIXME]: CONVERT TO TRIANGLE STRIPS (as above)
-fn hex_ibo(display: &GlutinFacade) -> glium::IndexBuffer<u16> {
+fn hex_ibo(display: &Display) -> glium::IndexBuffer<u16> {
     glium::IndexBuffer::new(display, glium::index::PrimitiveType::TrianglesList, &[
             0, 1, 2,
             2, 3, 0,

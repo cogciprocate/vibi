@@ -4,7 +4,7 @@
 
 
 #[macro_use] extern crate glium;
-extern crate glium_text;
+extern crate glium_text_rusttype;
 // extern crate image;
 extern crate time;
 // extern crate find_folder;

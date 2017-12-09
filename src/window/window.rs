@@ -1,12 +1,14 @@
 use std::sync::mpsc::{Receiver, Sender, TryRecvError, SendError};
 use time::{self, Timespec, Duration};
-use glium::{self, Surface, DisplayBuild};
+// use glium::{self, Surface, DisplayBuild};
+use glium::{self, glutin, Surface};
+// use glium::backend::glutin::Display;
 // use cycle::{CyCmd, CyRes, Status as CyStatus, AreaInfo};
 use bismit::{SamplerKind, SamplerBufferKind};
 use bismit::flywheel::{Command, Request, Response, Status, AreaInfo};
 use window::{HexGrid, StatusText};
 use enamel::{ui, Pane, EventRemainder, UiRequest, TextBox, HexButton, ElementState,
-    MouseButton, MouseScrollDelta, SetMouseFocus, Event};
+    MouseButton, MouseScrollDelta, SetMouseFocus, Event, WindowEvent};
 
 
 #[derive(Clone, Debug)]
@@ -24,6 +26,7 @@ pub enum WindowCtl {
     SetCyIters(u32),
     CyIterate,
     CyCmd(Command),
+    Close,
 }
 
 impl EventRemainder for WindowCtl {
@@ -116,10 +119,13 @@ impl<'d> Window<'d> {
         // println!("VIBI: 0");
 
         // Get initial area info:
-        request_tx.send(Request::AreaInfo).expect("Error requesting current area name");
+        request_tx.send(Request::AreaInfo)
+            .expect("Error requesting current area name");
+        command_tx.send(Command::None).unwrap();
+
         let area_info;
         loop {
-            // println!("VIBI: 800");
+            println!("VIBI: Attempting to receive area info...");
             match response_rx.recv().expect("Current area name reception error") {
                 Response::AreaInfo(info) => {
                     area_info = *info;
@@ -129,28 +135,28 @@ impl<'d> Window<'d> {
             };
         }
 
-        // println!("VIBI: 1000");
+        println!("VIBI: Creating window...");
 
-        // let mut events_loop = glutin::EventsLoop::new();
-        // let window = glutin::WindowBuilder::new()
-        //     .with_dimensions(1600, 1200)
-        //     .with_title("Vibi".to_string());
-        // let context = glutin::ContextBuilder::new()
-            // .with_depth_buffer(24)
-            // .with_vsync(true)
-            // .with_multisampling(8);
-        // let display = glium::Display::new(window, context, &events_loop).unwrap();
+        // let display = glium::glutin::WindowBuilder::new()
+        //     .with_depth_buffer(24)
+        //     .with_dimensions(1400, 800)
+        //     .with_title("Vibi".to_string())
+        //     .with_multisampling(8)
+        //     // Disabled for development ->> .with_gl_robustness(glium::glutin::Robustness::NoError)
+        //     .with_vsync()
+        //     // .with_transparency(true)
+        //     // .with_fullscreen(glium::glutin::get_primary_monitor())
+        //     .build_glium().unwrap();
 
-        let display = glium::glutin::WindowBuilder::new()
+        let mut events_loop = glutin::EventsLoop::new();
+        let window = glutin::WindowBuilder::new()
+            .with_dimensions(1600, 1200)
+            .with_title("Vibi".to_string());
+        let context = glutin::ContextBuilder::new()
             .with_depth_buffer(24)
-            .with_dimensions(1400, 800)
-            .with_title("Vibi".to_string())
-            .with_multisampling(8)
-            // Disabled for development ->> .with_gl_robustness(glium::glutin::Robustness::NoError)
-            .with_vsync()
-            // .with_transparency(true)
-            // .with_fullscreen(glium::glutin::get_primary_monitor())
-            .build_glium().unwrap();
+            .with_vsync(true)
+            .with_multisampling(8);
+        let display = glium::Display::new(window, context, &events_loop).unwrap();
 
         // Hex grid:
         let hex_grid = HexGrid::new(&display, area_info.clone());
@@ -215,7 +221,7 @@ impl<'d> Window<'d> {
             .element(HexButton::new(ui::BOTTOM_RIGHT, (-0.20, 0.07), 1.8,
                     "Exit", ui::C_ORANGE)
                 .mouse_event_handler(Box::new(|_, _| {
-                    (UiRequest::None, WindowCtl::Event(Event::Closed))
+                    (UiRequest::None, WindowCtl::Close)
                 }))
             )
 
@@ -265,7 +271,8 @@ impl<'d> Window<'d> {
         handle_init_sends(window.request_tx.send(Request::Sampler {
                 area_name: window.area_info.name.clone(),
                 kind: SamplerKind::AxonLayer(None),
-                buffer_kind: SamplerBufferKind::Single
+                buffer_kind: SamplerBufferKind::Single,
+                backpressure: false,
             }), &mut window);
         handle_init_sends(window.command_tx.send(Command::None), &mut window);
         window.recv_cycle_results(true);
@@ -283,10 +290,15 @@ impl<'d> Window<'d> {
             // Get read for new input:
             ui.set_input_stale();
 
+            // // Check input events:
+            // for ev in display.poll_events() {
+            //     window.handle_event_remainder(ui.handle_event(ev));
+            // }
+
             // Check input events:
-            for ev in display.poll_events() {
+            events_loop.poll_events(|ev| {
                 window.handle_event_remainder(ui.handle_event(ev));
-            }
+            });
 
             // Check the results channel and determine if the cycle process
             // has caught up to this window before sending new requests.
@@ -334,7 +346,7 @@ impl<'d> Window<'d> {
 
         // Hide window when exiting.
         // [FIXME] TODO: Draw "Closing..." or something like that to the display instead.
-        display.get_window().unwrap().hide();
+        display.gl_window().hide();
     }
 
     fn handle_response(&mut self, response: Response) {
@@ -397,13 +409,24 @@ impl<'d> Window<'d> {
         match rdr {
             WindowCtl::None => (),
             WindowCtl::Event(event) => match event {
-                // Event::KeyboardInput(state, _, v_code) => ()
-                //     println!("Key: {:?} has been {:?}", ui::map_vkc(v_code), state),
-                Event::MouseMoved(p_x, p_y) => self.handle_mouse_moved((p_x, p_y)),
-                Event::MouseWheel(delta, _) => self.handle_mouse_wheel(delta),
-                Event::MouseInput(state, btn) => self.handle_mouse_input(state, btn),
-                Event::Touch(touch) => println!("Touch recieved: {:?}", touch),
-                Event::Closed => self.close_pending = true,
+                Event::WindowEvent { window_id: _, event: win_event } => {
+                    match win_event {
+                        // Event::KeyboardInput(state, _, v_code) => ()
+                        //     println!("Key: {:?} has been {:?}", ui::map_vkc(v_code), state),
+                        WindowEvent::MouseMoved { device_id: _, position } => {
+                            self.handle_mouse_moved(position)
+                        },
+                        WindowEvent::MouseWheel { device_id: _, delta, phase: _ } => {
+                            self.handle_mouse_wheel(delta)
+                        },
+                        WindowEvent::MouseInput { device_id: _, state, button } => {
+                            self.handle_mouse_input(state, button)
+                        },
+                        WindowEvent::Touch(touch) => println!("Touch recieved: {:?}", touch),
+                        WindowEvent::Closed => self.close_pending = true,
+                        _ => (),
+                    }
+                },
                 _ => (),
             },
             WindowCtl::CyCmd(cmd) => {
@@ -429,6 +452,7 @@ impl<'d> Window<'d> {
                 }
                 self.hex_grid.update_cam_pos();
             },
+            WindowCtl::Close => self.close_pending = true,
             // _ => (),
         }
     }
@@ -445,7 +469,8 @@ impl<'d> Window<'d> {
         self.hex_grid.zoom_camera(vrt);
     }
 
-    fn handle_mouse_moved(&mut self, pos: (i32, i32)) {
+    fn handle_mouse_moved(&mut self, pos: (f64, f64)) {
+        let pos = (pos.0 as i32, pos.1 as i32);
         self.mouse_pos = pos;
 
         if let Some(ref mut start_pos) = self.dragging {

@@ -2,9 +2,10 @@
 // TODO: Convert this into a UiElement or something.
 
 #![allow(dead_code, unused_variables)]
-use glium_text::{self, TextSystem, FontTexture, TextDisplay};
+use glium_text_rusttype::{self, TextSystem, FontTexture, TextDisplay};
 use glium;
-use glium::backend::Facade;
+use glium::backend::glutin::Display;
+// use glium::backend::Facade;
 // use glium::{self, Surface};
 // use glium::backend::{self, Facade};
 // use glium::backend::glutin_backend::{ GlutinFacade };
@@ -13,7 +14,7 @@ use window::WindowStats;
 use bismit::flywheel::Status;
 use bismit::map::SliceTractMap;
 
-const TEXT_SCALE: f32 = 0.018;
+const TEXT_SCALE: f32 = 0.036;
 const TEXT_COLOR: (f32, f32, f32, f32) = (0.99, 0.99, 0.99, 1.0);
 
 // TODO: DEPRICATE
@@ -25,15 +26,15 @@ pub struct StatusText {
 }
 
 impl StatusText {
-    pub fn new<F: Facade>(display: &F) -> StatusText {
+    pub fn new(display: &Display) -> StatusText {
         // Text system (experimental):
         let text_system = TextSystem::new(display);
 
         // Font:
-        let font_size = 12;
+        let font_size = 36;
         let font_texture = FontTexture::new(display, &include_bytes!(
                 "assets/fonts/NotoSans/NotoSans-Regular.ttf"
-            )[..], font_size).unwrap();
+            )[..], font_size, FontTexture::ascii_character_list()).unwrap();
 
         StatusText {
             text_system: text_system,
@@ -57,7 +58,8 @@ impl StatusText {
 
         let text_display = TextDisplay::new(&self.text_system, &self.font_texture, text);
 
-        glium_text::draw(&text_display, &self.text_system, target, text_xform, self.color);
+        glium_text_rusttype::draw(&text_display, &self.text_system, target, text_xform, self.color)
+            .unwrap();
     }
 
     pub fn draw<S: glium::Surface>(&self, target: &mut S, cycle_status: &Status,

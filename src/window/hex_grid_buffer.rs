@@ -3,8 +3,8 @@ use std::sync::{Arc, Mutex};
 use std::ops::Range;
 use rand;
 use rand::distributions::{IndependentSample, Range as RandRange};
-use glium::backend::glutin_backend::{GlutinFacade};
 // use glium::backend::glutin::{GlutinFacade};
+use glium::backend::glutin::Display;
 use glium::vertex::{VertexBuffer, VertexBufferSlice};
 use bismit::flywheel::AreaInfo;
 use bismit::map::SliceTractMap;
@@ -36,7 +36,7 @@ pub struct HexGridBuffer {
 }
 
 impl HexGridBuffer {
-    pub fn new(area_info: AreaInfo, display: &GlutinFacade)
+    pub fn new(area_info: AreaInfo, display: &Display)
             -> HexGridBuffer
     {
         let full_slc_range = area_info.tract_map.slc_id_range();

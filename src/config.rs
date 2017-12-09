@@ -14,12 +14,13 @@ pub fn define_lm_schemes() -> LayerMapSchemeList {
 
     LayerMapSchemeList::new()
         .lmap(LayerMapScheme::new("v1_lm", LayerMapKind::Cortical)
-            //.layer("test_noise", 1, map::DEFAULT, LayerKind::Axonal(Spatial))
+            //.layer_old("test_noise", 1, map::DEFAULT, LayerKind::Axonal(Spatial))
 
             // .input_layer("motor_ctx", map::NS_IN | LayerTags::uid(MOTOR_UID),
             //     AxonDomain::Local, AxonTopology::Horizontal)
             .input_layer("motor_ctx", LayerTags::DEFAULT,
-                AxonDomain::input(&[(InputTrack::Afferent, GlyphSequences::val_lyr_tags())]),
+                AxonDomain::input(&[(InputTrack::Afferent,
+                    GlyphSequences::val_lyr_tags())]),
                 AxonTopology::Horizontal
             )
 
@@ -30,34 +31,35 @@ pub fn define_lm_schemes() -> LayerMapSchemeList {
             // )
 
             .input_layer("aff_in", LayerTags::DEFAULT,
-                AxonDomain::input(&[(InputTrack::Afferent, GlyphSequences::img_lyr_tags())]),
+                AxonDomain::input(&[(InputTrack::Afferent,
+                    GlyphSequences::img_lyr_tags())]),
                 AxonTopology::Spatial
             )
             .input_layer("unused", LayerTags::UNUSED, AxonDomain::Local, AxonTopology::Spatial)
-            .layer("mcols", 1, LayerTags::DEFAULT, AxonDomain::output(&[map::THAL_SP]),
+            .layer_old("mcols", 1, LayerTags::DEFAULT, AxonDomain::output(&[map::THAL_SP]),
                 CellScheme::minicolumn(9999)
             )
-            .layer("iv", 1, LayerTags::PSAL, AxonDomain::Local,
-                CellScheme::spiny_stellate(&[("aff_in", 12, 1)], 4, 400)
+            .layer_old("iv", 1, LayerTags::PSAL, AxonDomain::Local,
+                CellScheme::ssc(&[("aff_in", 12, 1)], 4, 400)
             )
-            .layer("iv_inhib", 0, LayerTags::DEFAULT, AxonDomain::Local,
+            .layer_old("iv_inhib", 0, LayerTags::DEFAULT, AxonDomain::Local,
                 CellScheme::inhib("iv", 4, 0)
             )
 
-            .layer("iii", 2, LayerTags::PTAL, AxonDomain::Local,
-                CellScheme::pyramidal(&[("iii", 20, 1)], 2, 5, 800)
+            .layer_old("iii", 2, LayerTags::PTAL, AxonDomain::Local,
+                CellScheme::pyr(&[("iii", 20, 1)], 2, 5, 2, 800)
                     // .apical(&[("eff_in", 22)], 1, 5, 500)
             )
-            .layer("iii_output", 0, LayerTags::DEFAULT, AxonDomain::Local,
+            .layer_old("iii_output", 0, LayerTags::DEFAULT, AxonDomain::Local,
                 CellScheme::pyr_outputter("iii", 0)
             )
         )
         .lmap(LayerMapScheme::new("v0_lm", LayerMapKind::Subcortical)
-            .layer("horiz_ns", 1, LayerTags::DEFAULT,
+            .layer_old("horiz_ns", 1, LayerTags::DEFAULT,
                 AxonDomain::output(GlyphSequences::val_lyr_tags()),
                 LayerKind::Axonal(AxonTopology::Horizontal))
 
-            .layer("spatial", 1, LayerTags::DEFAULT,
+            .layer_old("spatial", 1, LayerTags::DEFAULT,
                 AxonDomain::output(GlyphSequences::img_lyr_tags()),
                 LayerKind::Axonal(AxonTopology::Spatial))
         )

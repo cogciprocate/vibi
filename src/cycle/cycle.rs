@@ -337,7 +337,7 @@ fn loop_cycles(ri: &mut RunInfo, control_rx: &Receiver<CyCtl>, result_tx: &mut S
             //     Err(_) => (),
             // }
 
-            ri.cortex.cycle();
+            ri.cortex.cycle().unwrap();
         }
 
         // Update current cycle:
@@ -377,7 +377,7 @@ fn cycle_print(ri: &mut RunInfo) -> LoopAction {
     if !ri.view_sdr_only { print!("\n\nRunning {} sense and print loop(s)...", 1usize); }
 
     if !ri.bypass_act {
-        ri.cortex.cycle();
+        ri.cortex.cycle().unwrap();
         ri.status.cur_cycle += 1;
     }
 
