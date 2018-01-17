@@ -150,7 +150,7 @@ impl<'d> Window<'d> {
 
         let mut events_loop = glutin::EventsLoop::new();
         let window = glutin::WindowBuilder::new()
-            .with_dimensions(1600, 1200)
+            .with_dimensions(1600, 900)
             .with_title("Vibi".to_string());
         let context = glutin::ContextBuilder::new()
             .with_depth_buffer(24)

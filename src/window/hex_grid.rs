@@ -10,6 +10,9 @@ use bismit::flywheel::AreaInfo;
 use bismit::map::SliceTractMap;
 use window::HexGridBuffer;
 
+const CAM_Z_NEAR: f32 = -0.4;
+const CAM_Z_FAR: f32 = 1.4;
+
 const HEX_X: f32 = 0.086602540378 + 0.01;
 const HEX_Y: f32 = 0.05 + 0.01;
 
@@ -172,12 +175,14 @@ impl<'d> HexGrid<'d> {
         self.update_cam_pos();
     }
 
+    // TODO: Redo this so we are actually zooming instead of moving camera.
     pub fn zoom_camera(&mut self, delta: f32) {
         let zoom_adjustment_factor = 10.0;
         let delta_z = (delta * -0.001) * zoom_adjustment_factor;
         let new_cam_z = self.cam_pos_norm[2] + delta_z;
-        let new_z_valid = (new_cam_z >= 0.00 && new_cam_z <= 10.00) as i32 as f32;
-        self.cam_pos_norm[2] = new_z_valid.mul_add(delta_z, self.cam_pos_norm[2]);
+        let new_z_is_valid = (new_cam_z >= CAM_Z_NEAR * zoom_adjustment_factor &&
+            new_cam_z <= CAM_Z_FAR * zoom_adjustment_factor) as i32 as f32;
+        self.cam_pos_norm[2] = new_z_is_valid.mul_add(delta_z, self.cam_pos_norm[2]);
 
         self.update_cam_pos();
     }

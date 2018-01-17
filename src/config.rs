@@ -17,11 +17,11 @@ pub fn define_lm_schemes() -> LayerMapSchemeList {
             //.layer_old("test_noise", 1, map::DEFAULT, LayerKind::Axonal(Spatial))
 
             // .input_layer("motor_ctx", map::NS_IN | LayerTags::uid(MOTOR_UID),
-            //     AxonDomain::Local, AxonTopology::Horizontal)
+            //     AxonDomain::Local, AxonTopology::Nonspatial)
             .input_layer("motor_ctx", LayerTags::DEFAULT,
                 AxonDomain::input(&[(InputTrack::Afferent,
                     GlyphSequences::val_lyr_tags())]),
-                AxonTopology::Horizontal
+                AxonTopology::Nonspatial
             )
 
             // .input_layer("olfac", map::NS_IN | LayerTags::with_uid(OLFAC_UID), Horizontal)
@@ -57,7 +57,7 @@ pub fn define_lm_schemes() -> LayerMapSchemeList {
         .lmap(LayerMapScheme::new("v0_lm", LayerMapKind::Subcortical)
             .layer_old("horiz_ns", 1, LayerTags::DEFAULT,
                 AxonDomain::output(GlyphSequences::val_lyr_tags()),
-                LayerKind::Axonal(AxonTopology::Horizontal))
+                LayerKind::Axonal(AxonTopology::Nonspatial))
 
             .layer_old("spatial", 1, LayerTags::DEFAULT,
                 AxonDomain::output(GlyphSequences::img_lyr_tags()),
