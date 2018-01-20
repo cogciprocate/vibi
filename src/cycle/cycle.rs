@@ -192,7 +192,7 @@ impl CycleLoop {
                                 aff_out_slc_ids: ri.cortex.areas().by_key(ri.area_name.as_str())
                                     .unwrap().area_map().aff_out_slc_ids(),
                                 tract_map: ri.cortex.areas().by_key(ri.area_name.as_str())
-                                    .unwrap().axn_tract_map(),
+                                    .unwrap().axon_tract_map(),
                             }))).expect("Error sending area info.");
                             continue;
                         },

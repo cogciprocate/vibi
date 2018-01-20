@@ -270,7 +270,7 @@ impl<'d> Window<'d> {
         // AxonSpace -> HexGridBuffer sampler:
         handle_init_sends(window.request_tx.send(Request::Sampler {
                 area_name: window.area_info.name.clone(),
-                kind: SamplerKind::AxonLayer(None),
+                kind: SamplerKind::Axons(None),
                 buffer_kind: SamplerBufferKind::Single,
                 backpressure: false,
             }), &mut window);

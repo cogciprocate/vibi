@@ -1,9 +1,7 @@
 //! Default configuration for vibi used when run as binary.
 
 use bismit::CorticalAreaSettings;
-use bismit::map::{self, LayerMapKind, LayerMapScheme, LayerMapSchemeList,
-    AreaScheme, AreaSchemeList, CellScheme, EncoderScheme, AxonTopology, LayerKind,
-    AxonDomain, InputTrack, LayerTags};
+use bismit::map::*;
 use bismit::encode::GlyphSequences;
 
 
@@ -14,54 +12,102 @@ pub fn define_lm_schemes() -> LayerMapSchemeList {
 
     LayerMapSchemeList::new()
         .lmap(LayerMapScheme::new("v1_lm", LayerMapKind::Cortical)
-            //.layer_old("test_noise", 1, map::DEFAULT, LayerKind::Axonal(Spatial))
-
-            // .input_layer("motor_ctx", map::NS_IN | LayerTags::uid(MOTOR_UID),
-            //     AxonDomain::Local, AxonTopology::Nonspatial)
-            .input_layer("motor_ctx", LayerTags::DEFAULT,
-                AxonDomain::input(&[(InputTrack::Afferent,
-                    GlyphSequences::val_lyr_tags())]),
-                AxonTopology::Nonspatial
+            .layer(LayerScheme::define("motor_ctx")
+                .axonal(AxonTopology::Nonspatial)
+                .axon_domain(AxonDomain::input(&[(InputTrack::Afferent,
+                    GlyphSequences::val_lyr_tags())]))
             )
-
-            // .input_layer("olfac", map::NS_IN | LayerTags::with_uid(OLFAC_UID), Horizontal)
-            // .input_layer("eff_in", map::FB_IN | LayerTags::uid(U0),
-            //     AxonDomain::input(&[(InputTrack::Efferent, &[map::THAL_SP])]),
-            //     AxonTopology::Spatial
-            // )
-
-            .input_layer("aff_in", LayerTags::DEFAULT,
-                AxonDomain::input(&[(InputTrack::Afferent,
-                    GlyphSequences::img_lyr_tags())]),
-                AxonTopology::Spatial
+            .layer(LayerScheme::define("aff_in")
+                .axonal(AxonTopology::Spatial)
+                .axon_domain(AxonDomain::input(&[(InputTrack::Afferent,
+                    GlyphSequences::img_lyr_tags())]))
             )
-            .input_layer("unused", LayerTags::UNUSED, AxonDomain::Local, AxonTopology::Spatial)
-            .layer_old("mcols", 1, LayerTags::DEFAULT, AxonDomain::output(&[map::THAL_SP]),
-                CellScheme::minicolumn(9999)
+            .layer(LayerScheme::define("unused")
+                .depth(1)
+                .tags(LayerTags::UNUSED)
+                .axonal(AxonTopology::Spatial)
+                .axon_domain(AxonDomain::Local)
             )
-            .layer_old("iv", 1, LayerTags::PSAL, AxonDomain::Local,
-                CellScheme::ssc(&[("aff_in", 12, 1)], 4, 400)
+            .layer(LayerScheme::define("iv")
+                .depth(1)
+                .tags(LayerTags::PSAL)
+                .axon_domain(AxonDomain::Local)
+                .cellular(CellScheme::spiny_stellate()
+                    .tft(TuftScheme::basal().proximal()
+                        .syns_per_den_l2(4)
+                        .thresh_init(400)
+                        .src_lyr(TuftSourceLayer::define("aff_in")
+                            .syn_reach(12)
+                            .prevalence(1)
+                        )
+                    )
+                )
             )
-            .layer_old("iv_inhib", 0, LayerTags::DEFAULT, AxonDomain::Local,
-                CellScheme::inhib("iv", 4, 0)
+            .layer(LayerScheme::define("iv_inhib")
+                .cellular(CellScheme::control(
+                        ControlCellKind::InhibitoryBasketSurround {
+                            host_lyr_name: "iv".into(),
+                            field_radius: 4,
+                        },
+                        0
+                    )
+                )
             )
-
-            .layer_old("iii", 2, LayerTags::PTAL, AxonDomain::Local,
-                CellScheme::pyr(&[("iii", 20, 1)], 2, 5, 2, 800)
-                    // .apical(&[("eff_in", 22)], 1, 5, 500)
+            .layer(LayerScheme::define("iii")
+                .depth(3)
+                .tags(LayerTags::PTAL)
+                .axon_domain(AxonDomain::output(&[AxonTag::unique()]))
+                .cellular(CellScheme::pyramidal()
+                    // .tft(TuftScheme::basal().proximal()
+                    //     .syns_per_den_l2(0)
+                    //     .src_lyr(TuftSourceLayer::define("aff_in_0")
+                    //         .syn_reach(0)
+                    //         .prevalence(1)
+                    //     )
+                    // )
+                    .tft(TuftScheme::basal().distal()
+                        .dens_per_tft_l2(2)
+                        .syns_per_den_l2(5)
+                        .max_active_dens_l2(2)
+                        .thresh_init(800)
+                        .src_lyr(TuftSourceLayer::define("iii")
+                            .syn_reach(10)
+                            .prevalence(1)
+                        )
+                    )
+                    // .tft(TuftScheme::apical().distal()
+                    //     .dens_per_tft_l2(1)
+                    //     .syns_per_den_l2(5)
+                    //     .max_active_dens_l2(0)
+                    //     .thresh_init(500)
+                    //     .src_lyr(TuftSourceLayer::define("iii")
+                    //         .syn_reach(3)
+                    //         .prevalence(1)
+                    //     )
+                    // )
+                )
             )
-            .layer_old("iii_output", 0, LayerTags::DEFAULT, AxonDomain::Local,
-                CellScheme::pyr_outputter("iii", 0)
+            .layer(LayerScheme::define("iii_output")
+                .cellular(CellScheme::control(
+                        ControlCellKind::PyrOutputter {
+                            host_lyr_name: "iii".into(),
+                        },
+                        0
+                    )
+                )
             )
         )
         .lmap(LayerMapScheme::new("v0_lm", LayerMapKind::Subcortical)
-            .layer_old("horiz_ns", 1, LayerTags::DEFAULT,
-                AxonDomain::output(GlyphSequences::val_lyr_tags()),
-                LayerKind::Axonal(AxonTopology::Nonspatial))
-
-            .layer_old("spatial", 1, LayerTags::DEFAULT,
-                AxonDomain::output(GlyphSequences::img_lyr_tags()),
-                LayerKind::Axonal(AxonTopology::Spatial))
+            .layer(LayerScheme::define("horiz_ns")
+                .depth(1)
+                .axonal(AxonTopology::Nonspatial)
+                .axon_domain(AxonDomain::output(GlyphSequences::val_lyr_tags()))
+            )
+            .layer(LayerScheme::define("spatial")
+                .depth(1)
+                .axonal(AxonTopology::Spatial)
+                .axon_domain(AxonDomain::output(GlyphSequences::img_lyr_tags()))
+            )
         )
 }
 
