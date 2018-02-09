@@ -413,13 +413,13 @@ impl<'d> Window<'d> {
                     match win_event {
                         // Event::KeyboardInput(state, _, v_code) => ()
                         //     println!("Key: {:?} has been {:?}", ui::map_vkc(v_code), state),
-                        WindowEvent::MouseMoved { device_id: _, position } => {
+                        WindowEvent::CursorMoved { device_id: _, position, modifiers: _ } => {
                             self.handle_mouse_moved(position)
                         },
-                        WindowEvent::MouseWheel { device_id: _, delta, phase: _ } => {
+                        WindowEvent::MouseWheel { device_id: _, delta, phase: _, modifiers: _ } => {
                             self.handle_mouse_wheel(delta)
                         },
-                        WindowEvent::MouseInput { device_id: _, state, button } => {
+                        WindowEvent::MouseInput { device_id: _, state, button, modifiers: _ } => {
                             self.handle_mouse_input(state, button)
                         },
                         WindowEvent::Touch(touch) => println!("Touch recieved: {:?}", touch),
