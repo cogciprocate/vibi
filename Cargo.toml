@@ -3,6 +3,8 @@ name = "vibi"
 version = "0.1.0"
 authors = ["Nick Sanders <nsan1129@gmail.com>"]
 
+[features]
+eval = ["bismit/eval"]
 
 [dependencies.bismit]
 # path = "/home/nick/src/github.com/cogciprocate/bismit"
