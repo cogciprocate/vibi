@@ -1,8 +1,9 @@
 use std::iter;
 use std::sync::{Arc, Mutex};
 use std::ops::Range;
+// use rand::{self, FromEntropy};
 use rand;
-use rand::distributions::{IndependentSample, Range as RandRange};
+use rand::distributions::{Distribution, Range as RandRange};
 // use glium::backend::glutin::{GlutinFacade};
 use glium::backend::glutin::Display;
 use glium::vertex::{VertexBuffer, VertexBufferSlice};
@@ -115,7 +116,7 @@ impl HexGridBuffer {
         let mut raw_states_vec = self.raw_states_vec.lock().unwrap();
 
         for rs in raw_states_vec.iter_mut() {
-            *rs = range.ind_sample(&mut rng);
+            *rs = range.sample(&mut rng);
         }
     }
 

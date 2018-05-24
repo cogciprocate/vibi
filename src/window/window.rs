@@ -126,7 +126,7 @@ impl<'d> Window<'d> {
         let area_info;
         loop {
             println!("VIBI: Attempting to receive area info...");
-            match response_rx.recv().expect("Current area name reception error") {
+            match response_rx.recv().expect("vibi::Window::open: Current area name reception error") {
                 Response::AreaInfo(info) => {
                     area_info = *info;
                     break;

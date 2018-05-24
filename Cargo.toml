@@ -31,7 +31,9 @@ num = "*"
 vecmath = "*"
 # rustc-serialize = "*"
 colorify = "*"
-nalgebra = "*"
+# nalgebra = "*"
+# nalgebra = "=0.14.1"
+nalgebra = { git = "https://github.com/sebcrozet/nalgebra", version = "*" }
 log = "*"
 futures = "*"
 
